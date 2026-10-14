@@ -12,7 +12,7 @@ Diretório previsto na VPS: `/opt/garro`.
 
 O script de deploy recusa continuar se 80 ou 443 já pertencerem a outro processo. Isso protege os demais sistemas desta VPS.
 
-Nesta VPS as portas 80 e 443 já são do Traefik. O site em `https://cadete.tech` continua na raiz. O sistema entra em `https://cadete.tech/gestaogarro`, com `DOMAIN=cadete.tech`, `BASE_PATH=/gestaogarro` e `bash scripts/deploy.sh --seed --behind-proxy`.
+Nesta VPS as portas 80 e 443 já são do Traefik. O site em `https://cadete.tech` continua na raiz. O sistema entra em `https://cadete.tech/gestaogarro`, com `DOMAIN=cadete.tech`, `BASE_PATH=/gestaogarro` e `bash scripts/deploy.sh --seed --behind-proxy`. As imagens de `public/images` saem nesse mesmo prefixo; o otimizador `/_next/image` não é usado, porque ele busca o arquivo sem o prefixo e recebe HTML.
 
 ## Antes do primeiro deploy
 
