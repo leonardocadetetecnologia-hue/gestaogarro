@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sessionCookiePath } from "@/lib/public-path";
 import { can, type Permission } from "@/lib/rbac";
 
 const COOKIE = "garro_session";
@@ -61,7 +62,7 @@ export async function createSession(userId: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/",
+    path: sessionCookiePath(),
     expires: expiresAt,
   });
 }
@@ -72,7 +73,13 @@ export async function destroySession() {
   if (token) {
     await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } });
   }
-  jar.delete(COOKIE);
+  jar.set(COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: sessionCookiePath(),
+    maxAge: 0,
+  });
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

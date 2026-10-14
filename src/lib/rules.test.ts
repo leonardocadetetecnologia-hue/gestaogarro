@@ -1,3 +1,4 @@
+import { sessionCookiePath } from "@/lib/public-path";
 import { crmAttention, deliveryRisk, formatDuration, remainingLabel } from "@/lib/deadlines";
 import { can } from "@/lib/rbac";
 import { describe, expect, it } from "vitest";
@@ -47,5 +48,16 @@ describe("rbac", () => {
     expect(can("ATENDENTE", "production")).toBe(false);
     expect(can("EDITOR", "commercial.values")).toBe(false);
     expect(can("EDITOR", "production")).toBe(true);
+  });
+});
+
+describe("caminho público", () => {
+  it("restringe o cookie da sessão ao prefixo publicado", () => {
+    const previous = process.env.BASE_PATH;
+    process.env.BASE_PATH = "/gestaogarro";
+    expect(sessionCookiePath()).toBe("/gestaogarro");
+    delete process.env.BASE_PATH;
+    expect(sessionCookiePath()).toBe("/");
+    if (previous !== undefined) process.env.BASE_PATH = previous;
   });
 });

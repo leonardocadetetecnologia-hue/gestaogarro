@@ -113,6 +113,12 @@ if [[ ${#SESSION_SECRET} -lt 32 ]]; then
   exit 1
 fi
 
+BASE_PATH="$(get_env BASE_PATH)"
+if [[ -n "$BASE_PATH" && ! "$BASE_PATH" =~ ^/([A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*)$ ]]; then
+  echo "BASE_PATH inválido. Use um caminho como /gestaogarro, sem barra no final." >&2
+  exit 1
+fi
+
 if [[ "$DATABASE_URL" != *@db:* && "$DATABASE_URL" != *@db/* ]]; then
   echo "DATABASE_URL de produção deve usar o host db da rede Docker." >&2
   exit 1
@@ -220,4 +226,5 @@ if ! docker compose up -d --wait "${front[@]}"; then
   exit 1
 fi
 
-echo "Deploy concluído. Confira https://${DOMAIN}"
+public_path="$(get_env BASE_PATH)"
+echo "Deploy concluído. Confira https://${DOMAIN}${public_path}"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { formatSaoPaulo } from "@/lib/deadlines";
 import { prisma } from "@/lib/prisma";
@@ -28,10 +29,10 @@ export default async function AgendaPage({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">{user.role === "GESTOR_GARRO" ? "Agenda global" : "Minha agenda"}</h1>
         <div className="flex gap-2 text-sm">
-          <a href="/agenda?visao=dia">Dia</a>
-          <a href="/agenda?visao=semana">Semana</a>
-          <a href="/agenda?visao=mes">Mês</a>
-          <a href="/agenda?visao=lista">Lista</a>
+          <Link href="/agenda?visao=dia">Dia</Link>
+          <Link href="/agenda?visao=semana">Semana</Link>
+          <Link href="/agenda?visao=mes">Mês</Link>
+          <Link href="/agenda?visao=lista">Lista</Link>
         </div>
       </div>
       <div className="grid gap-2">

@@ -1419,13 +1419,13 @@ Registrar:
 
 ## 20. PENDÊNCIAS
 
+URL pública definida: `https://cadete.tech/gestaogarro`. O site já existente em `https://cadete.tech` permanece na raiz.
+
 Ainda devem ser definidos:
 
 - IP e acesso da VPS.
 - Distribuição Linux.
 - CPU, RAM e armazenamento.
-- Domínio/subdomínio.
-- DNS.
 - Repositório Git.
 - Branch de publicação.
 - Credenciais iniciais.

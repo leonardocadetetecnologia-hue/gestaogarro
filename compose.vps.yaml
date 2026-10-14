@@ -3,19 +3,26 @@ services:
     profiles: ["edge-caddy"]
 
   app:
+    build:
+      args:
+        BASE_PATH: /gestaogarro
+    environment:
+      BASE_PATH: /gestaogarro
     networks:
       - coolify
     labels:
       - traefik.enable=true
       - traefik.docker.network=coolify
       - traefik.http.routers.gestaogarro-http.entrypoints=http
-      - traefik.http.routers.gestaogarro-http.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.gestaogarro-http.priority=1000
+      - traefik.http.routers.gestaogarro-http.rule=(Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)) && (Path(`/gestaogarro`) || PathPrefix(`/gestaogarro/`))
       - traefik.http.routers.gestaogarro-http.middlewares=gestaogarro-https
       - traefik.http.routers.gestaogarro-http.service=gestaogarro
       - traefik.http.middlewares.gestaogarro-https.redirectscheme.scheme=https
       - traefik.http.middlewares.gestaogarro-https.redirectscheme.permanent=true
       - traefik.http.routers.gestaogarro-https.entrypoints=https
-      - traefik.http.routers.gestaogarro-https.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.gestaogarro-https.priority=1000
+      - traefik.http.routers.gestaogarro-https.rule=(Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)) && (Path(`/gestaogarro`) || PathPrefix(`/gestaogarro/`))
       - traefik.http.routers.gestaogarro-https.tls=true
       - traefik.http.routers.gestaogarro-https.tls.certresolver=letsencrypt
       - traefik.http.routers.gestaogarro-https.service=gestaogarro
