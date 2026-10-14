@@ -1,0 +1,17 @@
+Leia primeiro `00_CODEX_MASTER_PROMPT.md` e depois TODOS os arquivos em `docs/`, `prisma/`, `design/` e `assets/`.
+
+Implemente o Sistema Integrado Garro exatamente conforme a documentação. Não faça somente planejamento. Comece inspecionando o repositório, crie/ajuste a fundação Next.js + TypeScript + PostgreSQL + Prisma, depois avance pelas fases descritas em `docs/09_IMPLEMENTATION_PLAN.md`.
+
+Prioridades absolutas:
+1. RBAC real no servidor para GESTOR_GARRO, ATENDENTE e EDITOR.
+2. CRM comercial com Kanban, valores por card/coluna, timers manuais de resposta/atualização e rascunhos persistentes.
+3. Venda ganha gerando demanda sem duplicar cliente.
+4. Gestão de demandas/entregáveis por editor com 3 prazos (editor, revisão Garro, cliente), tempo restante e risco.
+5. Agenda Global da Gestora consolidando compromissos de Atendente, Gestora e Editores.
+6. Painel do Editor somente com demandas atribuídas, sem valores comerciais.
+7. Conversa interna Gestora ↔ Editor por demanda, com notificações.
+8. UI aprovada: clara, terracota/marrom, IBM Plex Sans, minimalista, séria, sidebar compacta que expande em hover e modal bloqueante com autosave de rascunho.
+9. Sem integração WhatsApp nesta etapa.
+10. Preparar deploy Docker Compose + Caddy na VPS, com PostgreSQL privado e sem Coolify.
+
+Não invente escopo fora dos documentos. Rode lint, typecheck, testes e build. Ao final, crie `IMPLEMENTATION_REPORT.md`.
