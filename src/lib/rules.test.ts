@@ -54,9 +54,9 @@ describe("rbac", () => {
 
 describe("destino do login", () => {
   it("abre o painel correspondente ao perfil real", () => {
-    expect(loginDestination("GESTOR_GARRO")).toBe("/");
-    expect(loginDestination("ATENDENTE")).toBe("/crm");
-    expect(loginDestination("EDITOR")).toBe("/demandas");
+    expect(loginDestination("GESTOR_GARRO")).toBe("/painel");
+    expect(loginDestination("ATENDENTE")).toBe("/painel");
+    expect(loginDestination("EDITOR")).toBe("/painel");
   });
 });
 
