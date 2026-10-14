@@ -181,6 +181,14 @@ if [[ "$status_code" -ne 0 ]]; then
 fi
 
 if [[ "$SEED" -eq 1 ]]; then
+  require SEED_GESTORA_PASSWORD "$(get_env SEED_GESTORA_PASSWORD)"
+  require SEED_ATENDENTE_PASSWORD "$(get_env SEED_ATENDENTE_PASSWORD)"
+  gestora_password="$(get_env SEED_GESTORA_PASSWORD)"
+  atendente_password="$(get_env SEED_ATENDENTE_PASSWORD)"
+  if [[ "$gestora_password" == *change-me* || "$atendente_password" == *change-me* ]]; then
+    echo "Defina senhas reais de seed no .env." >&2
+    exit 1
+  fi
   docker compose --profile tools run --rm migrate npx prisma db seed
 fi
 

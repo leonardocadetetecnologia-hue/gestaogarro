@@ -1,0 +1,355 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  GESTOR_GARRO
+  ATENDENTE
+  EDITOR
+}
+
+enum OpportunityStage {
+  NOVO_CONTATO
+  EM_ATENDIMENTO
+  PROPOSTA_ENVIADA
+  EM_NEGOCIACAO
+  AGUARDANDO_CLIENTE
+  FOLLOW_UP
+  FECHADO
+  PERDIDO
+}
+
+enum OpportunityOutcome {
+  ABERTA
+  GANHA
+  PERDIDA
+}
+
+enum WaitingOn {
+  NINGUEM
+  CLIENTE
+  GARRO
+}
+
+enum Priority {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+enum DemandStatus {
+  NOVA
+  PLANEJAMENTO
+  AGUARDANDO_EDITOR
+  EM_PRODUCAO
+  ENVIADO_REVISAO
+  EM_REVISAO
+  CORRECAO
+  PRONTO_ENTREGA
+  ENTREGUE
+  CONCLUIDO
+}
+
+enum DeliverableStatus {
+  AGUARDANDO_EDITOR
+  EM_PRODUCAO
+  ENVIADO_REVISAO
+  EM_REVISAO
+  CORRECAO
+  APROVADO
+  ENTREGUE
+  CONCLUIDO
+}
+
+enum ScheduleEventType {
+  FOLLOW_UP
+  REUNIAO
+  RETORNO_ORCAMENTO
+  ENTREGA_EDITOR
+  REVISAO_GARRO
+  ENTREGA_CLIENTE
+  CORRECAO
+  GRAVACAO
+  EVENTO
+  INTERNO
+}
+
+enum EventStatus {
+  PENDENTE
+  CONCLUIDO
+  CANCELADO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions           Session[]
+  opportunities      Opportunity[]    @relation("OpportunityResponsible")
+  interactions       CrmInteraction[]
+  editedDeliverables Deliverable[]    @relation("DeliverableEditor")
+  messages           DemandMessage[]
+  uploadedFiles      DemandFile[]
+  events             ScheduleEvent[]
+  notifications      Notification[]
+  drafts             Draft[]
+  auditLogs          AuditLog[]
+
+  @@index([role, active])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  origin    String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  opportunities Opportunity[]
+  sales         Sale[]
+  demands       Demand[]
+
+  @@index([name])
+}
+
+model Opportunity {
+  id             String             @id @default(cuid())
+  customerId     String
+  customer       Customer           @relation(fields: [customerId], references: [id])
+  responsibleId  String
+  responsible    User               @relation("OpportunityResponsible", fields: [responsibleId], references: [id])
+  service        String
+  stage          OpportunityStage   @default(NOVO_CONTATO)
+  outcome        OpportunityOutcome @default(ABERTA)
+  estimatedValue Decimal?           @db.Decimal(12, 2)
+  proposalValue  Decimal?           @db.Decimal(12, 2)
+  closedValue    Decimal?           @db.Decimal(12, 2)
+  priority       Priority           @default(MEDIA)
+  waitingOn      WaitingOn          @default(NINGUEM)
+  waitingSince   DateTime?
+  lastContactAt  DateTime?
+  lastActivityAt DateTime           @default(now())
+  nextActionAt   DateTime?
+  nextAction     String?
+  lossReason     String?
+  lossNote       String?
+  lostAt         DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  interactions CrmInteraction[]
+  sale         Sale?
+
+  @@index([stage])
+  @@index([responsibleId])
+  @@index([customerId])
+  @@index([nextActionAt])
+  @@index([lastActivityAt])
+  @@index([outcome])
+}
+
+model CrmInteraction {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  channel       String
+  summary       String
+  occurredAt    DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([opportunityId, occurredAt])
+}
+
+model Sale {
+  id            String      @id @default(cuid())
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  value         Decimal     @db.Decimal(12, 2)
+  closedAt      DateTime
+  workDate      DateTime?
+  clientDueAt   DateTime?
+  description   String
+  referenceLinks String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  demand        Demand?
+
+  @@index([customerId])
+  @@index([closedAt])
+}
+
+model Demand {
+  id          String       @id @default(cuid())
+  saleId      String       @unique
+  sale        Sale         @relation(fields: [saleId], references: [id])
+  customerId  String
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  title       String
+  description String?
+  status      DemandStatus @default(NOVA)
+  clientDueAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  deliverables Deliverable[]
+  messages     DemandMessage[]
+  files        DemandFile[]
+  events       ScheduleEvent[]
+
+  @@index([status])
+  @@index([customerId])
+  @@index([clientDueAt])
+}
+
+model Deliverable {
+  id                String            @id @default(cuid())
+  demandId          String
+  demand            Demand            @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  editorId          String?
+  editor            User?             @relation("DeliverableEditor", fields: [editorId], references: [id])
+  title             String
+  description       String?
+  status            DeliverableStatus @default(AGUARDANDO_EDITOR)
+  editorDueAt       DateTime?
+  reviewDueAt       DateTime?
+  clientDueAt       DateTime?
+  editorDeliveredAt DateTime?
+  managerApprovedAt DateTime?
+  clientDeliveredAt DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  events ScheduleEvent[]
+
+  @@index([demandId])
+  @@index([editorId])
+  @@index([status])
+  @@index([editorDueAt])
+  @@index([clientDueAt])
+}
+
+model DemandMessage {
+  id        String   @id @default(cuid())
+  demandId  String
+  demand    Demand   @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  system    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([demandId, createdAt])
+}
+
+model DemandFile {
+  id           String   @id @default(cuid())
+  demandId     String
+  demand       Demand   @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  fileName     String
+  storagePath  String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([demandId])
+}
+
+model ScheduleEvent {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id])
+  demandId      String?
+  demand        Demand?           @relation(fields: [demandId], references: [id])
+  opportunityId String?
+  deliverableId String?
+  deliverable   Deliverable?      @relation(fields: [deliverableId], references: [id])
+  type          ScheduleEventType
+  title         String
+  dueAt         DateTime
+  completedAt   DateTime?
+  status        EventStatus       @default(PENDENTE)
+  createdAt     DateTime          @default(now())
+
+  @@index([userId, dueAt])
+  @@index([dueAt])
+  @@index([demandId])
+  @@index([opportunityId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model Draft {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  content    Json
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, entityType, entityId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key   String @id
+  value String
+}

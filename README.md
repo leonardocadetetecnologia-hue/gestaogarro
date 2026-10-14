@@ -55,7 +55,7 @@ As imagens são referência de layout/composição, não de texto. Em caso de er
 - `scripts/rollback.sh`
 - `docs/DEPLOY_VPS.md`
 
-A aplicação Next.js, o Prisma e os documentos de produto da ordem de leitura ainda não estão neste repositório. A publicação na VPS depende deles e de um domínio definido.
+A aplicação Next.js, o Prisma e o healthcheck estão neste repositório. A publicação na VPS ainda depende de domínio, chave SSH e do `.env` real.
 
 ## Regra de ouro
 
