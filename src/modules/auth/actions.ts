@@ -11,17 +11,20 @@ import {
   registerFailure,
   tooManyAttempts,
 } from "@/lib/auth";
+import { loginDestination } from "@/lib/login-route";
 import { prisma } from "@/lib/prisma";
 
 const loginSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(8).max(200),
+  selectedRole: z.enum(["GESTOR_GARRO", "ATENDENTE", "EDITOR"]),
 });
 
 export async function login(_state: { error?: string } | undefined, formData: FormData) {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    selectedRole: formData.get("selectedRole"),
   });
   if (!parsed.success) return { error: "Informe e-mail e senha válidos." };
 
@@ -36,11 +39,16 @@ export async function login(_state: { error?: string } | undefined, formData: Fo
     return { error: "E-mail ou senha incorretos." };
   }
 
+  if (user.role !== parsed.data.selectedRole) {
+    await audit(user.id, "LOGIN_ROLE_MISMATCH", "User", user.id);
+    return { error: "Não foi possível entrar. Confira os dados e o perfil selecionado." };
+  }
+
   clearAttempts(email);
   await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
-  await createSession(user.id);
+  await createSession(user.id, formData.get("rememberMe") === "1");
   await audit(user.id, "LOGIN", "User", user.id);
-  redirect("/");
+  redirect(loginDestination(user.role));
 }
 
 export async function logout() {

@@ -37,6 +37,7 @@ O sistema NÃO terá integração com WhatsApp nesta etapa. Ele será um CRM com
 
 ## Referências visuais
 
+- `public/images/garro-cinema-login.webp` e `public/images/garro-wordmark-reference.png`: tela de login aprovada.
 - `assets/garro-logo.png`: logo oficial. É a fonte correta de branding.
 - `assets/reference-atendente.png`: referência aprovada do painel comercial.
 - `assets/reference-gestora.png`: referência aprovada do painel da Gestora e comportamento de modal.

@@ -1,34 +1,174 @@
 "use client";
 
-import { useActionState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, type FormEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowRight, Eye, EyeOff, Headphones, LockKeyhole,
+  Mail, Monitor, UserRound,
+} from "lucide-react";
+import { isRedirectError } from "@/lib/redirect";
 import { login } from "@/modules/auth/actions";
+import styles from "./login.module.css";
+
+type Role = "GESTOR_GARRO" | "ATENDENTE" | "EDITOR";
+
+const profiles = [
+  { role: "GESTOR_GARRO", label: "Gestor", Icon: UserRound },
+  { role: "ATENDENTE", label: "Atendente", Icon: Headphones },
+  { role: "EDITOR", label: "Editor", Icon: Monitor },
+] as const;
 
 export default function LoginPage() {
-  const [state, action, pending] = useActionState(login, undefined);
-  const form = useForm<{ email: string; password: string }>();
+  const [role, setRole] = useState<Role>("GESTOR_GARRO");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (loading) return;
+
+    setError("");
+    setLoading(true);
+    const data = new FormData();
+    data.set("email", email.trim().toLowerCase());
+    data.set("password", password);
+    data.set("selectedRole", role);
+    if (remember) data.set("rememberMe", "1");
+    try {
+      const result = await login(undefined, data);
+      if (result?.error) setError(result.error);
+    } catch (caught) {
+      if (isRedirectError(caught)) throw caught;
+      setError("Não foi possível acessar o servidor. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <main className="grid min-h-screen place-items-center px-4">
-      <form action={action} className="grid w-full max-w-sm gap-4 rounded-xl bg-[var(--surface)] p-6 shadow-sm">
-        <div>
-          <p className="text-sm text-[var(--terra)]">Garro Produtora</p>
-          <h1 className="text-2xl font-semibold">Entrar</h1>
-        </div>
-        <label>
-          E-mail
-          <input type="email" autoComplete="username" autoFocus {...form.register("email", { required: true })} />
-        </label>
-        <label>
-          Senha
-          <input type="password" autoComplete="current-password" {...form.register("password", { required: true, minLength: 8 })} />
-        </label>
-        {state?.error ? <p className="text-sm text-[var(--red)]">{state.error}</p> : null}
-        {form.formState.errors.password ? <p className="text-sm text-[var(--red)]">A senha tem pelo menos 8 caracteres.</p> : null}
-        <button disabled={pending} className="rounded-md bg-[var(--terra)] px-4 py-2 font-medium text-white disabled:opacity-60">
-          {pending ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <section className={styles.photoSide} aria-label="Garro Produtora — produzindo histórias reais">
+          <Image
+            src="/images/garro-cinema-login.png"
+            alt="Câmera profissional em estúdio com luz dourada e os dizeres produzindo histórias reais"
+            fill
+            sizes="51vw"
+            quality={95}
+            priority
+            className={styles.photo}
+          />
+        </section>
+
+        <section className={styles.formSide} aria-label="Acesso ao sistema Garro">
+          <div className={styles.formContent}>
+            <Image
+              src="/images/garro-wordmark-reference.png"
+              width={256}
+              height={93}
+              alt="Garro Produtora"
+              className={styles.brand}
+              priority
+            />
+            <div className={styles.shortRule} aria-hidden="true" />
+            <header className={styles.header}>
+              <h1>Bem-vindo de volta</h1>
+              <p>Acesse o sistema para continuar.</p>
+            </header>
+
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <fieldset className={styles.roleGroup}>
+                <legend>Tipo de acesso</legend>
+                <div className={styles.roleGrid}>
+                  {profiles.map(({ role: itemRole, label, Icon }) => (
+                    <button
+                      key={itemRole}
+                      className={`${styles.roleCard} ${role === itemRole ? styles.roleActive : ""}`}
+                      type="button"
+                      aria-pressed={role === itemRole}
+                      onClick={() => { setRole(itemRole); setError(""); }}
+                    >
+                      <span className={styles.selection} aria-hidden="true" />
+                      <Icon className={styles.roleIcon} strokeWidth={1.7} aria-hidden="true" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className={styles.field}>
+                <label htmlFor="login-email">E-mail</label>
+                <div className={styles.inputFrame}>
+                  <Mail aria-hidden="true" size={19} strokeWidth={1.65} />
+                  <input
+                    id="login-email"
+                    type="email"
+                    autoComplete="username"
+                    placeholder="seu@email.com"
+                    required
+                    maxLength={254}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="login-password">Senha</label>
+                <div className={styles.inputFrame}>
+                  <LockKeyhole aria-hidden="true" size={19} strokeWidth={1.65} />
+                  <input
+                    id="login-password"
+                    type={visible ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="Digite sua senha"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.eyeButton}
+                    onClick={() => setVisible(!visible)}
+                    aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {visible ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.options}>
+                <label className={styles.remember}>
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(event) => setRemember(event.target.checked)}
+                  />
+                  <span>Lembrar de mim</span>
+                </label>
+                <Link href="/recuperar-senha">Esqueceu sua senha?</Link>
+              </div>
+
+              {error ? <p role="alert" className={styles.error}>{error}</p> : null}
+              <button className={styles.submit} type="submit" disabled={loading}>
+                <span>{loading ? "Entrando..." : "Entrar"}</span>
+                {!loading && <ArrowRight size={21} strokeWidth={1.8} aria-hidden="true" />}
+              </button>
+            </form>
+
+            <div className={styles.footer}>
+              <span aria-hidden="true" />
+              <p>CONTEÚDO QUE APROXIMA PESSOAS</p>
+              <span aria-hidden="true" />
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

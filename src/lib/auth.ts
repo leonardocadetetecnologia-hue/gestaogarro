@@ -51,9 +51,10 @@ export function clearAttempts(email: string) {
   attempts.delete(email.toLowerCase());
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, remember = true) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_MS);
+  const ttl = remember ? SESSION_MS : 12 * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + ttl);
   await prisma.session.create({
     data: { userId, tokenHash: hashToken(token), expiresAt },
   });
@@ -63,7 +64,7 @@ export async function createSession(userId: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: sessionCookiePath(),
-    expires: expiresAt,
+    ...(remember ? { expires: expiresAt } : {}),
   });
 }
 

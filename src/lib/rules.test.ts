@@ -1,3 +1,4 @@
+import { loginDestination } from "@/lib/login-route";
 import { sessionCookiePath } from "@/lib/public-path";
 import { crmAttention, deliveryRisk, formatDuration, remainingLabel } from "@/lib/deadlines";
 import { can } from "@/lib/rbac";
@@ -48,6 +49,14 @@ describe("rbac", () => {
     expect(can("ATENDENTE", "production")).toBe(false);
     expect(can("EDITOR", "commercial.values")).toBe(false);
     expect(can("EDITOR", "production")).toBe(true);
+  });
+});
+
+describe("destino do login", () => {
+  it("abre o painel correspondente ao perfil real", () => {
+    expect(loginDestination("GESTOR_GARRO")).toBe("/");
+    expect(loginDestination("ATENDENTE")).toBe("/crm");
+    expect(loginDestination("EDITOR")).toBe("/demandas");
   });
 });
 
