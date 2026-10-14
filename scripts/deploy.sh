@@ -6,17 +6,20 @@ cd "$ROOT"
 
 PULL=0
 SEED=0
+BEHIND_PROXY=0
 
 for arg in "$@"; do
   case "$arg" in
     --pull) PULL=1 ;;
     --seed) SEED=1 ;;
+    --behind-proxy) BEHIND_PROXY=1 ;;
     -h|--help)
       cat <<'EOF'
-Uso: bash scripts/deploy.sh [--pull] [--seed]
+Uso: bash scripts/deploy.sh [--pull] [--seed] [--behind-proxy]
 
-  --pull  atualiza o código com git pull --ff-only
-  --seed  executa prisma db seed depois das migrations (só na implantação inicial)
+  --pull          atualiza o código com git pull --ff-only
+  --seed          executa prisma db seed depois das migrations (só na implantação inicial)
+  --behind-proxy  não sobe o Caddy; o proxy já existente encaminha o domínio
 
 O script não apaga volumes e não executa docker compose down.
 EOF
@@ -73,7 +76,9 @@ DATABASE_URL="$(get_env DATABASE_URL)"
 SESSION_SECRET="$(get_env SESSION_SECRET)"
 
 require DOMAIN "$DOMAIN"
-require ACME_EMAIL "$ACME_EMAIL"
+if [[ "$BEHIND_PROXY" -eq 0 ]]; then
+  require ACME_EMAIL "$ACME_EMAIL"
+fi
 require POSTGRES_USER "$POSTGRES_USER"
 require POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
 require POSTGRES_DB "$POSTGRES_DB"
@@ -85,7 +90,7 @@ if [[ ! "$DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9](
   exit 1
 fi
 
-if [[ ! "$ACME_EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
+if [[ "$BEHIND_PROXY" -eq 0 && ! "$ACME_EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
   echo "ACME_EMAIL inválido." >&2
   exit 1
 fi
@@ -127,6 +132,10 @@ fi
 sha="$(git rev-parse --short HEAD 2>/dev/null || echo sem-git)"
 echo "Deploy Garro — revisão ${sha}"
 
+if [[ "$BEHIND_PROXY" -eq 1 ]]; then
+  export COMPOSE_FILE="compose.yaml:compose.vps.yaml"
+fi
+
 port_busy() {
   local port="$1"
   ss -tln | awk '{print $4}' | grep -Eq "(^|:)${port}$"
@@ -136,7 +145,7 @@ caddy_running() {
   docker compose ps --status running --format '{{.Service}}' 2>/dev/null | grep -qx caddy
 }
 
-if port_busy 80 || port_busy 443; then
+if [[ "$BEHIND_PROXY" -eq 0 ]] && { port_busy 80 || port_busy 443; }; then
   if ! caddy_running; then
     echo "As portas 80/443 já estão em uso por outro processo. Deploy interrompido para preservar o que já escuta nesta VPS." >&2
     exit 1
@@ -192,13 +201,18 @@ if [[ "$SEED" -eq 1 ]]; then
   docker compose --profile tools run --rm migrate npx prisma db seed
 fi
 
-if ! docker compose up -d --wait app caddy; then
+front=(app)
+if [[ "$BEHIND_PROXY" -eq 0 ]]; then
+  front+=(caddy)
+fi
+
+if ! docker compose up -d --wait "${front[@]}"; then
   echo "Healthcheck falhou." >&2
-  docker compose logs --tail 80 app caddy || true
+  docker compose logs --tail 80 "${front[@]}" || true
   if [[ "$migrated" -eq 0 ]] && docker image inspect garro-app:previous >/dev/null 2>&1; then
     echo "Sem migration nova. Voltando a imagem anterior." >&2
     docker tag garro-app:previous garro-app:current
-    docker compose up -d --no-build --wait app caddy || true
+    docker compose up -d --no-build --wait "${front[@]}" || true
   else
     echo "Houve migration neste deploy. A imagem anterior permanece em garro-app:previous." >&2
     echo "O banco não foi revertido. Restaure o backup se a aplicação nova for incompatível." >&2

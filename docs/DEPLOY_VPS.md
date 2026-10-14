@@ -12,6 +12,8 @@ Diretório previsto na VPS: `/opt/garro`.
 
 O script de deploy recusa continuar se 80 ou 443 já pertencerem a outro processo. Isso protege os demais sistemas desta VPS.
 
+Nesta VPS as portas 80 e 443 já são do Traefik. O endereço `cadete.tech` continua no site que já existe. O sistema entra em `sistema.cadete.tech`, com `bash scripts/deploy.sh --seed --behind-proxy`. O registro DNS desse nome precisa apontar para o IP da VPS.
+
 ## Antes do primeiro deploy
 
 Estes passos são manuais. Não fazem parte do repositório e não foram executados daqui.
