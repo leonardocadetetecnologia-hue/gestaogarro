@@ -32,6 +32,8 @@ A Gestora pode criar **Nova demanda**, selecionando um cliente ou cadastrando um
 
 A Gestora atribui cada entregável a um editor ativo ou a si mesma, com prazo de edição e revisão opcional. A atribuição atualiza os eventos, a notificação e a auditoria na mesma transação. Em **Meus trabalhos**, a Gestora inicia sua edição e envia para revisão mantendo seu perfil administrativo.
 
+Cada entregável tem um botão **Script**. A caixa de texto fica oculta inicialmente, inclusive quando já há texto salvo, e abre somente ao selecionar o botão. A Gestora edita e salva até 10.000 caracteres, com contador, feedback e preservação de linhas/acentos. Fechar e reabrir o botão mantém o texto em edição; salvar vazio limpa o script. O editor responsável pode abrir o script para consulta. A gravação reutiliza a descrição do entregável, é auditada sem copiar o conteúdo para o log e impede sobrescrever silenciosamente alterações feitas em outra sessão.
+
 Em **Editores**, Editar editor abre a administração de usuários. Nome e e-mail podem ser atualizados; ativação/desativação e redefinição de senha continuam disponíveis. Não é possível trocar o perfil da Gestora por esse formulário. Alterar o e-mail de um editor encerra suas sessões.
 
 ## Agendas e legibilidade

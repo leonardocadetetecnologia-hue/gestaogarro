@@ -8,6 +8,8 @@
 | Criar demanda diretamente para cliente | Sim | Não | Não |
 | Ver todas as demandas | Sim | Não | Não |
 | Ver/executar entregáveis próprios | Sim | Não | Sim |
+| Consultar Script do entregável | Todos | Não | Apenas atribuições próprias |
+| Editar/salvar Script do entregável | Sim | Não | Não |
 | Atribuir editor ou Gestora | Sim | Não | Não |
 | Aprovar e entregar ao cliente | Sim | Não | Não |
 | Agenda Global | Sim | Não | Não |

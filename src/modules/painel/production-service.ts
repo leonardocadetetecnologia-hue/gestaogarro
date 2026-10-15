@@ -5,10 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
 import { addDemandMessage, assignEditor, changeDeliverableStatus } from "@/modules/production/actions";
 import { createDirectDemand, directDemandSchema } from "@/modules/production/create-demand";
+import { saveDeliverableScript, taskScriptSchema } from "@/modules/production/script-service";
 
 const id = z.string().min(1).max(80);
 const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createDemand"), input: directDemandSchema }),
+  z.object({ kind: z.literal("script"), input: taskScriptSchema }),
   z.object({ kind: z.literal("assign"), id, editorId: id, editorDue: z.string().datetime({ offset: true }).optional(), reviewDue: z.string().datetime({ offset: true }).or(z.literal("")).optional() }),
   z.object({ kind: z.literal("due"), id, field: z.enum(["editorDue", "reviewDue", "clientDue"]), value: z.string().datetime({ offset: true }) }),
   z.object({ kind: z.literal("status"), id, status: z.enum(["A iniciar", "Em edição", "Em revisão", "Correção", "Aprovado"]) }),
@@ -23,6 +25,7 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
   const input = parsed.data;
   if (input.kind === "createDemand") return createDirectDemand(user, input.input);
+  if (input.kind === "script") return saveDeliverableScript(user, input.input);
   if (input.kind === "read") {
     await prisma.notification.updateMany({ where: { id: input.id, userId: user.id }, data: { readAt: new Date() } });
     return;

@@ -7,6 +7,7 @@ import { loadPanelState } from "../src/modules/painel/state";
 import { assignProductionEditor } from "../src/modules/production/assignment-service";
 import { createDirectDemand } from "../src/modules/production/create-demand";
 import { editEditor } from "../src/modules/users/edit-editor";
+import { saveDeliverableScript } from "../src/modules/production/script-service";
 import type { SessionUser } from "../src/lib/auth";
 
 // Este teste nunca executa contra o banco de produção.
@@ -90,6 +91,29 @@ async function main() {
   const changed = await prisma.user.findUniqueOrThrow({ where: { id: editor.id } });
   assert.equal(changed.name, "QA Editor atualizado"); assert.equal(changed.role, "EDITOR");
   console.log("PASS: lead separado de cliente, conversão, nova oportunidade, demanda direta/novo cliente, rollback e edição de editor.");
+
+  const script = "Ação\n".repeat(2000);
+  await saveDeliverableScript(manager, { id: task.id, script, previous: "" });
+  assert.equal((await prisma.deliverable.findUniqueOrThrow({ where: { id: task.id } })).description, script);
+  const scriptAudits = await prisma.auditLog.count({ where: { action: "DELIVERABLE_SCRIPT_UPDATED" } });
+  await saveDeliverableScript(manager, { id: task.id, script, previous: "" });
+  assert.equal(await prisma.auditLog.count({ where: { action: "DELIVERABLE_SCRIPT_UPDATED" } }), scriptAudits);
+  await assert.rejects(saveDeliverableScript(manager, { id: task.id, script: "x".repeat(10001), previous: script }), /10.000/);
+  await assert.rejects(saveDeliverableScript(manager, { id: task.id, script: "Conflito", previous: "" }), /outra sessão/);
+  for (const actor of [attendant, editor]) await assert.rejects(saveDeliverableScript(actor, { id: task.id, script: "Alteração indevida", previous: script }), /Somente a Gestora/);
+  await assignProductionEditor(manager, { deliverableId: task.id, editorId: editor.id, editorDueAt: new Date(), reviewDueAt: new Date() });
+  const editorWithScript = await loadPanelState(editor);
+  assert.equal(editorWithScript.deliverables.find(t => t.id === task.id)?.script, script);
+  assert.ok(editorWithScript.deliverables.every(t => t.editorId === editor.id));
+  assert.equal((await loadPanelState(attendant)).deliverables.length, 0);
+  await saveDeliverableScript(manager, { id: task.id, script: "", previous: script });
+  assert.equal((await prisma.deliverable.findUniqueOrThrow({ where: { id: task.id } })).description, null);
+  await saveDeliverableScript(manager, { id: task.id, script, previous: "" });
+  await prisma.$executeRaw`ALTER TABLE "AuditLog" ADD CONSTRAINT "qa_script_audit_failure" CHECK ("action" <> 'DELIVERABLE_SCRIPT_UPDATED') NOT VALID`;
+  await assert.rejects(saveDeliverableScript(manager, { id: task.id, script: "QA rollback", previous: script }));
+  assert.equal((await prisma.deliverable.findUniqueOrThrow({ where: { id: task.id } })).description, script);
+  await prisma.$executeRaw`ALTER TABLE "AuditLog" DROP CONSTRAINT "qa_script_audit_failure"`;
+  console.log("PASS: script de 10.000 caracteres, persistência, consulta do editor, limite, conflito, RBAC e rollback.");
 
   if (process.env.QA_APP_URL && process.env.QA_SESSION_SECRET) {
     const secret = process.env.QA_SESSION_SECRET;

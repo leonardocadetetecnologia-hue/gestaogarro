@@ -6,6 +6,8 @@ A suíte de autenticação cobre login por usuário, normalização sem alterar 
 
 O endpoint estável de entrada também testa origem ausente/divergente, formato inválido, corpo grande, respostas de erro sem informações internas, opção lembrar de mim e redirecionamento para o painel no prefixo de publicação. A renderização confirma o rótulo Usuário e a ausência de `type=email`. A página dinâmica deve responder sem cache em produção. Foi identificado em log o erro de Server Action de uma publicação anterior, relacionado à tela de login desatualizada; o novo fluxo remove essa dependência na entrada.
 
+Script por entregável: testes cobrem limite exato de 10.000 caracteres, rejeição de excesso, preservação de texto, limpeza, autorização, idempotência e conflito entre sessões. A renderização confirma que a caixa começa oculta mesmo com script salvo. O teste PostgreSQL isolado verifica persistência real, acesso do editor somente às próprias atribuições e rollback da alteração se a auditoria falhar. Não são inseridos dados de teste em produção.
+
 A suíte Vitest cobre envio explícito/idempotente para produção, valores decimais, permissões, estado filtrado por perfil, agendas no horário de Brasília, origem dos eventos e renderização de cartões, confirmações e atribuição da Gestora. A criação direta exige cliente ou novo cadastro, briefing, prazo e entregáveis e bloqueia perfis não administrativos.
 
 `scripts/test-flow-integration.ts` valida serviços reais em PostgreSQL isolado: persistência, dupla submissão concorrente, rollback após erro de banco, conversão de lead, novas oportunidades, criação direta sem venda, cadastro de cliente com rollback e edição de editor com RBAC. Recusa bancos fora do host/database de QA definidos no script. Não execute contra produção.

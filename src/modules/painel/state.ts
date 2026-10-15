@@ -94,7 +94,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       })),
     })),
     deliverables: demands.flatMap(d => d.deliverables.map(t => ({
-      id: t.id, demandId: d.id, title: t.title, editorId: t.editorId || "", status: taskLabels[t.status],
+      id: t.id, demandId: d.id, title: t.title, script: t.description || "", editorId: t.editorId || "", status: taskLabels[t.status],
       editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
       clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
       editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),

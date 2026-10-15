@@ -21,6 +21,7 @@ type Ctx = {
   closeSale: (id: string, input: Closing) => Save;
   sendMessage: (id: string, message: string) => Save;
   setTaskStatus: (id: string, status: TaskStatus) => Save;
+  saveTaskScript: (id: string, script: string, previous: string) => Save;
   markDelivered: (id: string) => Save;
   assignEditor: (id: string, editorId: string, editorDue?: string, reviewDue?: string) => Save;
   updateTaskDue: (id: string, field: "editorDue" | "reviewDue" | "clientDue", value: string) => Save;
@@ -82,6 +83,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     } }),
     sendMessage: (id, message) => save({ kind: "message", id, message }, true),
     setTaskStatus: (id, status) => save({ kind: "status", id, status }, true),
+    saveTaskScript: (id, script, previous) => save({ kind: "script", input: { id, script, previous } }, true),
     markDelivered: id => save({ kind: "delivered", id }, true),
     assignEditor: (id, editorId, editorDue, reviewDue) => save({ kind: "assign", id, editorId, editorDue, reviewDue }, true),
     updateTaskDue: (id, field, input) => save({ kind: "due", id, field, value: input }, true),
