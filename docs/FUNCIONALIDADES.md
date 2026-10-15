@@ -6,6 +6,8 @@ Regras adotadas em 14/10/2026.
 
 O campo Login aceita nomes de usuário (inclusive com ponto ou @), sem exigir endereço de e-mail. O backend normaliza o identificador e preserva a senha exatamente como digitada. Contas ainda sem nome de usuário mantêm acesso por e-mail; após definir o nome de usuário, somente ele autentica a conta. A escolha do perfil continua obrigatória e é conferida no servidor. A alteração de credenciais encerra as sessões anteriores sem recriar usuários nem perder vínculos.
 
+A tela identifica o campo como **Usuário**, usa entrada de texto e não sugere endereço de e-mail. O envio usa `POST /api/auth/login`, com validação de origem, limite de corpo, validação de dados, controle de tentativas e as mesmas regras de sessão/perfil. O acesso não depende de um identificador de Server Action compilado que possa mudar entre deploys. A página de login é dinâmica e não fica em cache; após autenticar, uma navegação completa carrega o painel da versão em produção.
+
 ## Lead, cliente e oportunidade
 
 - **Lead** é um contato que ainda não contratou. Novo lead cadastra o contato e uma oportunidade na primeira coluna do CRM.

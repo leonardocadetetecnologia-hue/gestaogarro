@@ -20,6 +20,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.
 - Login por nome de usuário único, separado do e-mail. Contas legadas sem nome de usuário continuam usando e-mail; a definição de um usuário substitui esse acesso. Trocas de credenciais revogam as sessões anteriores e preservam IDs e permissões.
+- A tela usa o rótulo Usuário, sem validação de e-mail. A entrada passa pelo endpoint estável `/api/auth/login`, com conferência de origem, tamanho de corpo e perfil; a página de login é dinâmica e sem cache para evitar versões antigas após publicações.
 - Ambiente real: `/opt/garro`, Docker Compose atrás do Traefik existente, publicação em `https://garroprodutora.com.br/gestaogarro`. O site público permanece na raiz desse domínio e o endereço anterior em cadete.tech permanece disponível. Caddy standalone continua opção para outras VPS.
 
 ---

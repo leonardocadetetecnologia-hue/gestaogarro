@@ -5,6 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (
     pathname === "/login" ||
+    pathname === "/api/auth/login" ||
     pathname === "/recuperar-senha" ||
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/images/")

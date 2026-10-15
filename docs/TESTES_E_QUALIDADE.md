@@ -4,6 +4,8 @@ Comandos locais: `npm run lint`, `npm run typecheck`, `npm test`. Build Linux: D
 
 A suíte de autenticação cobre login por usuário, normalização sem alterar senha, compatibilidade com e-mail somente em contas legadas, senha incorreta, perfil incompatível, conta inativa e limite de tentativas. Credenciais dos testes são fictícias. A confirmação de troca em produção verifica login real por perfil e revogação das sessões anteriores sem registrar senhas ou cookies nos logs.
 
+O endpoint estável de entrada também testa origem ausente/divergente, formato inválido, corpo grande, respostas de erro sem informações internas, opção lembrar de mim e redirecionamento para o painel no prefixo de publicação. A renderização confirma o rótulo Usuário e a ausência de `type=email`. A página dinâmica deve responder sem cache em produção. Foi identificado em log o erro de Server Action de uma publicação anterior, relacionado à tela de login desatualizada; o novo fluxo remove essa dependência na entrada.
+
 A suíte Vitest cobre envio explícito/idempotente para produção, valores decimais, permissões, estado filtrado por perfil, agendas no horário de Brasília, origem dos eventos e renderização de cartões, confirmações e atribuição da Gestora. A criação direta exige cliente ou novo cadastro, briefing, prazo e entregáveis e bloqueia perfis não administrativos.
 
 `scripts/test-flow-integration.ts` valida serviços reais em PostgreSQL isolado: persistência, dupla submissão concorrente, rollback após erro de banco, conversão de lead, novas oportunidades, criação direta sem venda, cadastro de cliente com rollback e edição de editor com RBAC. Recusa bancos fora do host/database de QA definidos no script. Não execute contra produção.
