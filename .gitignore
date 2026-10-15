@@ -15,3 +15,4 @@ npm-debug.log*
 Thumbs.db
 output/
 tmp/
+__pycache__/
