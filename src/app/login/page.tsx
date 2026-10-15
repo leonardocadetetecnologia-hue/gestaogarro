@@ -6,7 +6,7 @@ import { GarroBrand } from "@/components/garro-brand";
 import Link from "next/link";
 import {
   ArrowRight, Eye, EyeOff, Headphones, LockKeyhole,
-  Mail, Monitor, UserRound,
+  Monitor, UserRound,
 } from "lucide-react";
 import { isRedirectError } from "@/lib/redirect";
 import { login } from "@/modules/auth/actions";
@@ -22,7 +22,7 @@ const profiles = [
 
 export default function LoginPage() {
   const [role, setRole] = useState<Role>("GESTOR_GARRO");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -36,7 +36,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     const data = new FormData();
-    data.set("email", email.trim().toLowerCase());
+    data.set("login", identifier.trim().toLowerCase());
     data.set("password", password);
     data.set("selectedRole", role);
     if (remember) data.set("rememberMe", "1");
@@ -96,18 +96,20 @@ export default function LoginPage() {
               </fieldset>
 
               <div className={styles.field}>
-                <label htmlFor="login-email">E-mail</label>
+                <label htmlFor="login-identifier">Login</label>
                 <div className={styles.inputFrame}>
-                  <Mail aria-hidden="true" size={19} strokeWidth={1.65} />
+                  <UserRound aria-hidden="true" size={19} strokeWidth={1.65} />
                   <input
-                    id="login-email"
-                    type="email"
+                    id="login-identifier"
+                    type="text"
                     autoComplete="username"
-                    placeholder="seu@email.com"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="Seu usuário ou e-mail"
                     required
                     maxLength={254}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    value={identifier}
+                    onChange={(event) => setIdentifier(event.target.value)}
                   />
                 </div>
               </div>

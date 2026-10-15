@@ -2,6 +2,10 @@
 
 Regras adotadas em 14/10/2026.
 
+## Acesso
+
+O campo Login aceita nomes de usuário (inclusive com ponto ou @), sem exigir endereço de e-mail. O backend normaliza o identificador e preserva a senha exatamente como digitada. Contas ainda sem nome de usuário mantêm acesso por e-mail; após definir o nome de usuário, somente ele autentica a conta. A escolha do perfil continua obrigatória e é conferida no servidor. A alteração de credenciais encerra as sessões anteriores sem recriar usuários nem perder vínculos.
+
 ## Lead, cliente e oportunidade
 
 - **Lead** é um contato que ainda não contratou. Novo lead cadastra o contato e uma oportunidade na primeira coluna do CRM.

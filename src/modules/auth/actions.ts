@@ -2,7 +2,6 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { audit } from "@/lib/audit";
 import {
   clearAttempts,
@@ -13,30 +12,25 @@ import {
 } from "@/lib/auth";
 import { loginDestination } from "@/lib/login-route";
 import { prisma } from "@/lib/prisma";
-
-const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(8).max(200),
-  selectedRole: z.enum(["GESTOR_GARRO", "ATENDENTE", "EDITOR"]),
-});
+import { findLoginAccount, loginSchema } from "./credentials";
 
 export async function login(_state: { error?: string } | undefined, formData: FormData) {
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    login: formData.get("login") ?? formData.get("email"),
     password: formData.get("password"),
     selectedRole: formData.get("selectedRole"),
   });
-  if (!parsed.success) return { error: "Informe e-mail e senha válidos." };
+  if (!parsed.success) return { error: "Informe login e senha válidos." };
 
-  const email = parsed.data.email.toLowerCase();
-  if (tooManyAttempts(email)) return { error: "Muitas tentativas. Aguarde alguns minutos." };
+  const identifier = parsed.data.login;
+  if (tooManyAttempts(identifier)) return { error: "Muitas tentativas. Aguarde alguns minutos." };
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await findLoginAccount(identifier);
   const valid = user ? await bcrypt.compare(parsed.data.password, user.passwordHash) : false;
   if (!user || !valid || !user.active) {
-    registerFailure(email);
-    await audit(user?.id ?? null, "LOGIN_FAILED", "User", user?.id ?? email);
-    return { error: "E-mail ou senha incorretos." };
+    registerFailure(identifier);
+    await audit(user?.id ?? null, "LOGIN_FAILED", "User", user?.id ?? identifier);
+    return { error: "Login ou senha incorretos." };
   }
 
   if (user.role !== parsed.data.selectedRole) {
@@ -44,7 +38,7 @@ export async function login(_state: { error?: string } | undefined, formData: Fo
     return { error: "Não foi possível entrar. Confira os dados e o perfil selecionado." };
   }
 
-  clearAttempts(email);
+  clearAttempts(identifier);
   await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   await createSession(user.id, formData.get("rememberMe") === "1");
   await audit(user.id, "LOGIN", "User", user.id);
