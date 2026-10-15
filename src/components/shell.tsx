@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/modules/auth/actions";
 import type { SessionUser } from "@/lib/auth";
+import { GarroMark } from "./garro-brand";
 
 export type NavItem = { href: string; label: string; icon: string };
 
@@ -48,7 +49,7 @@ export function Shell({
   const nav = (
     <nav className="flex h-full flex-col gap-1 p-2">
       <div className="mb-3 flex h-10 items-center px-2 font-semibold text-[var(--terra-dark)]">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-[var(--terra)] text-sm text-white">G</span>
+        <GarroMark size={32} decorative />
         <span className="ml-3 hidden group-hover:inline md:hidden">Garro</span>
         <span className="nav-label ml-3">Garro</span>
       </div>

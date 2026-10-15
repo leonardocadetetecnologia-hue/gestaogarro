@@ -52,11 +52,6 @@
 }
 
 .brand {
-  display: block;
-  width: 168px;
-  height: auto;
-  object-fit: contain;
-  object-position: left center;
   margin-bottom: 18px;
 }
 

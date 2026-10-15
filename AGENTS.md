@@ -2,6 +2,8 @@
 
 Este arquivo existe para agentes de desenvolvimento que reconhecem AGENTS.md.
 
+O usuário adotou expressamente `MASTER_PROMPT.md` como as regras permanentes deste desenvolvimento em 14/10/2026. O arquivo corresponde ao prompt fornecido por ele e deve ser consultado também em novas sessões neste repositório.
+
 ## Regra principal
 
 Antes de qualquer alteração relevante:

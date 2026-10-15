@@ -17,3 +17,16 @@
 
 .agenda-head{flex-wrap:wrap}.agenda-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.agenda-tools select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px;font-size:11px;color:var(--text)}.calendar-navigation{display:flex;align-items:center;gap:18px;padding:12px 17px;border-bottom:1px solid var(--line)}.calendar-navigation>div{display:flex;align-items:center;gap:8px}.calendar-navigation>strong{text-transform:capitalize;font-size:12px;font-weight:600}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}.calendar-day{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:270px;padding:8px 7px}.calendar-day.today{background:#fff7ee}.calendar-day-header{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);padding:6px}.calendar-day-header strong{font-size:13px;color:var(--brown)}.calendar-day-events{display:flex;flex-direction:column;gap:5px}.calendar-event{text-align:left;border:0;border-left:3px solid #b9785e;background:#f8e9de;padding:6px 7px;border-radius:4px;min-width:0;color:#7f4935}.calendar-event strong{display:block;font-size:9px}.calendar-event span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;margin-top:2px}.calendar-event-editor{background:#eaf1f5;color:#4f7e97;border-color:#5d95ac}.calendar-event-revisão{background:#fff2de;color:#9d7a38;border-color:#cb9b45}.calendar-event-cliente{background:#edf3e9;color:#55865d;border-color:#7ba07c}.calendar-month .calendar-day{min-height:118px}.calendar-month .calendar-day-header{padding:3px}.calendar-day-events>small{color:var(--muted);font-size:9px}.calendar-day .calendar-event:hover{filter:brightness(.96)}.calendar-dia{grid-template-columns:1fr}.calendar-dia .calendar-day{min-height:460px}.calendar-dia .calendar-event{max-width:620px;padding:13px}
 @media(max-width:1050px){.calendar-grid{overflow-x:auto;display:flex}.calendar-day{min-width:140px;flex:1}.calendar-dia .calendar-day{min-width:100%}.agenda-tools{gap:5px}}@media(max-width:700px){.calendar-month .calendar-day{min-width:105px}.calendar-navigation{justify-content:space-between}.agenda-head{align-items:flex-start}}
+/* A marca composta mantém o símbolo legível no cabeçalho e no menu móvel. */
+.header-logo { width: auto; }
+@media (max-width: 700px) {
+  .header-logo { width: 125px; gap: 8px; }
+  .header-left, .header-right { gap: 8px; }
+  .top-header { gap: 12px; }
+}
+@media (max-width: 420px) {
+  .header-logo { width: 112px; }
+  .profile-trigger { padding: 0; }
+  .profile-trigger > svg { display: none; }
+  .top-header { gap: 8px; }
+}

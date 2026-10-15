@@ -1,0 +1,27 @@
+.mark {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: var(--terra, #a65f45);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.wordmark {
+  display: block;
+  height: auto;
+  min-width: 0;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}

@@ -1136,6 +1136,8 @@ Interface empresarial minimalista, moderna e objetiva.
 
 A aparência deverá seguir os layouts aprovados da Garro.
 
+O símbolo oficial é o G circular com diafragma de câmera enviado pelo usuário. Na interface, utilizar a adaptação terracota com espaços transparentes em `public/images/garro-symbol-terracotta.webp`, pelos componentes compartilhados `GarroMark` e `GarroBrand`. A escrita Garro Produtora existente é preservada. Consulte `docs/IDENTIDADE_VISUAL.md`.
+
 Características:
 
 - Fundo claro.
@@ -1421,13 +1423,12 @@ Registrar:
 
 URL pública definida: `https://cadete.tech/gestaogarro`. O site já existente em `https://cadete.tech` permanece na raiz.
 
+Acesso operacional verificado em 14/10/2026: VPS `2.25.229.131`, usuário SSH `root`, chave existente do operador, aplicação em `/opt/garro` e branch `main`. Segredos permanecem no `.env` privado da VPS; referências de acesso em `docs/ACESSOS_E_CREDENCIAIS.md`.
+
 Ainda devem ser definidos:
 
-- IP e acesso da VPS.
 - Distribuição Linux.
 - CPU, RAM e armazenamento.
-- Repositório Git.
-- Branch de publicação.
 - Credenciais iniciais.
 - Editores iniciais.
 - Destino dos backups.

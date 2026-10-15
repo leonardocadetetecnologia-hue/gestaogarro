@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
+import { GarroBrand } from "@/components/garro-brand";
 import Link from "next/link";
 import {
   ArrowRight, Eye, EyeOff, Headphones, LockKeyhole,
@@ -67,14 +68,7 @@ export default function LoginPage() {
 
         <section className={styles.formSide} aria-label="Acesso ao sistema Garro">
           <div className={styles.formContent}>
-            <Image
-              src="/images/garro-wordmark-reference.png"
-              width={256}
-              height={93}
-              alt="Garro Produtora"
-              className={styles.brand}
-              priority
-            />
+            <GarroBrand size={60} wordmarkWidth={168} className={styles.brand} priority />
             <div className={styles.shortRule} aria-hidden="true" />
             <header className={styles.header}>
               <h1>Bem-vindo de volta</h1>

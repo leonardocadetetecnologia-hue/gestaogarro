@@ -40,6 +40,15 @@ bash scripts/deploy.sh --seed
 
 ## Atualização
 
+Nesta VPS, usar sempre o modo atrás do proxy existente, sem seed:
+
+```bash
+cd /opt/garro
+bash scripts/deploy.sh --pull --behind-proxy
+```
+
+Referências de acesso estão em `docs/ACESSOS_E_CREDENCIAIS.md`. Nunca incluir valores do `.env` em logs ou documentação.
+
 ```bash
 cd /opt/garro
 git pull --ff-only
@@ -110,4 +119,4 @@ Rollback de schema é uma migration nova para a frente, ou a restauração desse
 
 ## Estado deste repositório
 
-A infra está descrita e scriptada. A imagem ainda não constrói: faltam a aplicação Next.js, o Prisma e o endpoint `/api/health`. A VPS não foi alterada.
+A aplicação Next.js, Prisma, migrations e `/api/health` estão implementados. Em 14/10/2026, o acesso à VPS confirmou app e PostgreSQL saudáveis em `/opt/garro`, revisão `ebd5e34`. A atualização do logo foi validada localmente com lint, typecheck, 8 testes, build e smoke test HTTP sob `/gestaogarro`. O resultado de cada publicação deve ser conferido nos containers e na URL pública.
