@@ -93,3 +93,13 @@
 .task-script-conflict { display: grid; gap: 10px; min-width: 0; font-size: 14px; }
 .task-script-conflict summary { cursor: pointer; }
 .task-script-conflict pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+
+.script-attachments{border-top:1px solid var(--line,#e8dace);padding-top:18px;margin-top:12px;min-width:0}
+.script-attachments h4{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 0 12px}
+.script-attachments ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.script-attachments li a{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e8dace;border-radius:10px;text-decoration:none;overflow-wrap:anywhere}
+.script-attachments li small{display:block;color:#897b70;margin-top:4px}
+.script-attachment-upload{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-top:16px}
+.script-attachment-upload label{flex:1 1 240px;min-width:0}
+.script-attachment-upload input{display:block;margin-top:8px;max-width:100%;width:100%;font-size:15px}
+.script-attachment-upload>small{flex-basis:100%;color:#897b70}

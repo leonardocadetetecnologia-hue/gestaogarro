@@ -122,3 +122,7 @@ Rollback de schema é uma migration nova para a frente, ou a restauração desse
 ## Estado deste repositório
 
 A aplicação Next.js, Prisma, migrations e `/api/health` estão implementados. Em 14/10/2026, o acesso à VPS confirmou app e PostgreSQL saudáveis em `/opt/garro`, revisão `ebd5e34`. A atualização do logo foi validada localmente com lint, typecheck, 8 testes, build e smoke test HTTP sob `/gestaogarro`. O resultado de cada publicação deve ser conferido nos containers e na URL pública.
+
+## Documentos do Script
+
+A migration `20261015030000_script_attachments` adiciona documentos privados aos entregáveis. Os bytes ficam em PostgreSQL (BYTEA), com limite de 10 MB por arquivo e integridade de tamanho no banco. O backup PostgreSQL inclui os documentos. Não é necessário abrir portas, criar URLs públicas nem configurar novo volume. Acompanhar tamanho dos backups e crescimento do banco.

@@ -17,3 +17,5 @@ Quando `QA_APP_URL` e `QA_SESSION_SECRET` são fornecidos, o teste verifica HTTP
 Não havia navegador disponível na sessão de implementação. Os testes de renderização e HTTP não substituem revisão visual interativa; não foi afirmada validação por screenshots.
 
 As migrations preservam os enums comerciais antigos, acrescentam as novas etapas, classificam contatos com venda/demanda/fechamento prévio como clientes e permitem demandas sem venda. O deploy executa backup antes de aplicar migrations pendentes, preserva a imagem anterior e exige healthcheck. Atualizações não utilizam seed.
+
+Anexos de Script: testes cobrem TXT UTF-8/UTF-16, assinaturas DOC/PDF, extensão incompatível, nomes inseguros, vazio, limite de 10 MB, RBAC, origem HTTP e limite sem Content-Length. QA PostgreSQL confirma bytes após download, metadados filtrados e rollback dos bytes quando a auditoria falha.

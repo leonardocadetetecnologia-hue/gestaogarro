@@ -3,6 +3,7 @@ import type { SessionUser } from "@/lib/auth";
 import type { Customer, ProductionStatus, State, TaskStatus } from "@/lib/data";
 import { STAGE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
+import { attachmentSelect } from "@/modules/production/attachment-service";
 
 const demandLabels: Record<DemandStatus, ProductionStatus> = {
   NOVA: "Nova demanda", PLANEJAMENTO: "Planejamento", AGUARDANDO_EDITOR: "Planejamento",
@@ -41,7 +42,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       where: user.role === "EDITOR" ? { deliverables: { some: { editorId: user.id } } } : {},
       orderBy: { createdAt: "desc" },
       include: {
-        deliverables: { where: user.role === "EDITOR" ? { editorId: user.id } : {} },
+        deliverables: { where: user.role === "EDITOR" ? { editorId: user.id } : {}, include: { scriptAttachments: { select: attachmentSelect, orderBy: { createdAt: "asc" } } } },
         messages: {
           orderBy: { createdAt: "asc" },
           include: { sender: { select: { name: true, role: true } } },
@@ -95,6 +96,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     })),
     deliverables: demands.flatMap(d => d.deliverables.map(t => ({
       id: t.id, demandId: d.id, title: t.title, script: t.description || "", editorId: t.editorId || "", status: taskLabels[t.status],
+      attachments: (t.scriptAttachments || []).map(a => ({ ...a, createdAt: a.createdAt.toISOString() })),
       editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
       clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
       editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),

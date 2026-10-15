@@ -108,6 +108,7 @@ model User {
   editedDeliverables Deliverable[]    @relation("DeliverableEditor")
   messages           DemandMessage[]
   uploadedFiles      DemandFile[]
+  scriptAttachments ScriptAttachment[]
   events             ScheduleEvent[]
   notifications      Notification[]
   drafts             Draft[]
@@ -264,12 +265,28 @@ model Deliverable {
   updatedAt         DateTime          @updatedAt
 
   events ScheduleEvent[]
+  scriptAttachments ScriptAttachment[]
 
   @@index([demandId])
   @@index([editorId])
   @@index([status])
   @@index([editorDueAt])
   @@index([clientDueAt])
+}
+
+model ScriptAttachment {
+  id           String   @id @default(cuid())
+  deliverableId String
+  deliverable  Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User @relation(fields: [uploadedById], references: [id])
+  fileName     String
+  mimeType     String
+  size         Int
+  content      Bytes
+  createdAt    DateTime @default(now())
+
+  @@index([deliverableId, createdAt])
 }
 
 model DemandMessage {

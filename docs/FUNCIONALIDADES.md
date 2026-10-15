@@ -45,3 +45,9 @@ Somente a Gestora vê a Agenda Global. Atendente e Editor recebem no servidor so
 ## Persistência
 
 O painel usa PostgreSQL e ações autenticadas, com atualização periódica. Dados demonstrativos do antigo estado local não são importados para produção. O armazenamento local guarda apenas rascunhos dos formulários que já possuem esse recurso; a conclusão exige resposta de sucesso do servidor.
+
+## Anexos do Script
+
+Dentro de Script, a Gestora seleciona e anexa um arquivo TXT, DOC ou PDF por envio, até 10 MB por arquivo. Os anexos ficam vinculados ao entregável; o editor responsável consulta e baixa. Texto e documentos são salvos separadamente. A interface mostra nome, tamanho e confirmação. Downloads exigem sessão e autorização atual por atribuição; arquivos não são publicados em pasta pública.
+
+A API POST `/api/script-attachments` valida origem, perfil, tamanho real do corpo, nome, extensão e assinatura/conteúdo compatível. GET `/api/script-attachments/[id]` força download privado sem cache. Metadados, bytes e auditoria são persistidos juntos em PostgreSQL; o estado do painel carrega somente metadados. Documentos pequenos usam o backup existente do banco, sem volume adicional; acompanhar crescimento do banco se o uso aumentar.

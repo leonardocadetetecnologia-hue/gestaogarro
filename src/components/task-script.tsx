@@ -3,6 +3,7 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { FileText } from "lucide-react";
 import type { Deliverable } from "@/lib/data";
 import { useGarro } from "@/lib/store";
+import { ScriptAttachments } from "./script-attachments";
 
 export function TaskScript({ task }: { task: Deliverable }) {
   const { role, busy, saveTaskScript } = useGarro();
@@ -44,6 +45,7 @@ export function TaskScript({ task }: { task: Deliverable }) {
         <button type="button" className="button secondary small" disabled={busy} onClick={() => { setPrevious(saved); setFeedback(""); }}>Manter meu texto para substituir a versão salva</button>
       </div>}
       {feedback && <p className={failed ? "form-error" : "task-script-feedback"} role={failed ? "alert" : "status"}>{feedback}</p>}
+      <ScriptAttachments task={task}/>
     </form>}
   </div>;
 }

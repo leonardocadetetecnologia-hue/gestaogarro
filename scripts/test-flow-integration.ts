@@ -8,6 +8,7 @@ import { assignProductionEditor } from "../src/modules/production/assignment-ser
 import { createDirectDemand } from "../src/modules/production/create-demand";
 import { editEditor } from "../src/modules/users/edit-editor";
 import { saveDeliverableScript } from "../src/modules/production/script-service";
+import { uploadScriptAttachment, downloadScriptAttachment } from "../src/modules/production/attachment-service";
 import type { SessionUser } from "../src/lib/auth";
 
 // Este teste nunca executa contra o banco de produção.
@@ -114,6 +115,21 @@ async function main() {
   assert.equal((await prisma.deliverable.findUniqueOrThrow({ where: { id: task.id } })).description, script);
   await prisma.$executeRaw`ALTER TABLE "AuditLog" DROP CONSTRAINT "qa_script_audit_failure"`;
   console.log("PASS: script de 10.000 caracteres, persistência, consulta do editor, limite, conflito, RBAC e rollback.");
+
+  const attachmentBytes = Buffer.from("Ação\nRoteiro de QA.");
+  const attachment = await uploadScriptAttachment(manager, task.id, "ação.txt", attachmentBytes);
+  assert.deepEqual(Buffer.from((await downloadScriptAttachment(editor, attachment.id)).content), attachmentBytes);
+  for (const actor of [attendant, editor]) await assert.rejects(uploadScriptAttachment(actor, task.id, "ação.txt", attachmentBytes), /Somente a Gestora/);
+  await assert.rejects(downloadScriptAttachment(attendant, attachment.id), /Acesso não permitido/);
+  await assert.rejects(downloadScriptAttachment({ ...editor, id: manager.id }, attachment.id), /não encontrado/);
+  const withAttachments = await loadPanelState(editor);
+  assert.ok(withAttachments.deliverables.find(t => t.id === task.id)?.attachments?.some(a => a.id === attachment.id));
+  assert.ok(!JSON.stringify(withAttachments).includes('"content":'), "Bytes não podem ser enviados no estado do painel.");
+  await prisma.$executeRaw`ALTER TABLE "AuditLog" ADD CONSTRAINT "qa_attachment_failure" CHECK ("action" <> 'DELIVERABLE_SCRIPT_ATTACHED') NOT VALID`;
+  await assert.rejects(uploadScriptAttachment(manager, task.id, "rollback.txt", attachmentBytes));
+  assert.equal(await prisma.scriptAttachment.count(), 1, "Falha na auditoria deve reverter também os bytes.");
+  await prisma.$executeRaw`ALTER TABLE "AuditLog" DROP CONSTRAINT "qa_attachment_failure"`;
+  console.log("PASS: anexo com bytes persistidos, download autorizado, isolamento do editor, metadados sem conteúdo e rollback.");
 
   if (process.env.QA_APP_URL && process.env.QA_SESSION_SECRET) {
     const secret = process.env.QA_SESSION_SECRET;

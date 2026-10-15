@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   if (!request.cookies.get("garro_session")) {
+    if (pathname.startsWith("/api/script-attachments")) return NextResponse.json({ error: "Entre novamente para acessar os anexos." }, { status: 401, headers: { "Cache-Control": "no-store" } });
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

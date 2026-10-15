@@ -17,3 +17,5 @@
 | Criar/editar/ativar editor e redefinir senha | Sim | Não | Não |
 
 Autorização é aplicada no servidor. O Editor não recebe valores comerciais, oportunidades nem contatos completos no estado do painel. Notificações são restritas ao destinatário. A Gestora pode executar edição sem mudar seu perfil.
+
+Anexos de Script: somente Gestora envia documentos. Gestora baixa todos; Editor baixa somente os anexos dos entregáveis atualmente atribuídos a ele. Atendente não envia nem baixa. Não há exclusão ou substituição automática de anexos.

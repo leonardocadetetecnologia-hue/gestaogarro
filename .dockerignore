@@ -19,3 +19,5 @@ PROJECT_CONTEXT.md
 PROMPT_CURTO_PARA_COLAR_NO_CODEX.txt
 docs
 agent-transcripts
+output
+tmp
