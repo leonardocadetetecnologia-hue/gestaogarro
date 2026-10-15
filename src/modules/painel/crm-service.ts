@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { stages } from "@/lib/data";
 import { STAGE_VALUES } from "@/lib/labels";
@@ -16,6 +17,7 @@ export const crmCommandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("updateCustomer"), customer }),
   z.object({ kind: z.literal("createOpportunity"), customerId: z.string().min(1).max(80), service: z.string().trim().min(2).max(200) }),
   z.object({ kind: z.literal("move"), id: z.string().min(1).max(80), stage: z.enum([stages[0], ...stages.slice(1)]) }),
+  z.object({ kind: z.literal("value"), id: z.string().min(1).max(80), value: z.number().finite().min(0).max(9999999999).nullable() }),
   z.object({ kind: z.literal("lose"), id: z.string().min(1).max(80), reason: z.string().trim().min(3).max(1000) }),
   z.object({
     kind: z.literal("contact"), id: z.string().min(1).max(80), summary: z.string().trim().min(1).max(10000),
@@ -52,6 +54,28 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.$queryRaw`SELECT "id" FROM "Opportunity" WHERE "id" = ${input.id} FOR UPDATE`;
     const current = await tx.opportunity.findUnique({ where: { id: input.id }, include: { customer: { select: { name: true } }, sale: { select: { demand: { select: { id: true } } } } } });
     if (!current) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
+    if (input.kind === "value") {
+      if (current.sale?.demand || current.closedValue !== null) throw new CrmFlowError("O valor fechado não pode ser alterado depois do envio para produção.");
+      const previous = current.proposalValue ?? current.estimatedValue;
+      const amount = input.value === null ? null : new Prisma.Decimal(input.value);
+      await tx.opportunity.update({ where: { id: current.id }, data: {
+        proposalValue: amount,
+        ...(amount === null ? { estimatedValue: null } : {}),
+        lastActivityAt: new Date(),
+      } });
+      await tx.crmInteraction.create({ data: {
+        opportunityId: current.id, userId: user.id, channel: "Sistema",
+        summary: amount === null
+          ? `Valor da oportunidade removido (anterior: ${previous?.toString() ?? "não definido"}).`
+          : `Valor da oportunidade atualizado de ${previous?.toString() ?? "não definido"} para ${amount.toString()}.`,
+        occurredAt: new Date(),
+      } });
+      await tx.auditLog.create({ data: {
+        userId: user.id, action: "OPPORTUNITY_VALUE_UPDATED", entityType: "Opportunity", entityId: current.id,
+        details: { previousValue: previous?.toString() ?? null, newValue: amount?.toString() ?? null },
+      } });
+      return;
+    }
     if (input.kind === "move" || input.kind === "lose") {
       if (current.sale?.demand) throw new CrmFlowError("Esta venda já foi enviada para produção e permanece fechada.");
       if (input.kind === "move" && input.stage === "Fechado sem sucesso") throw new CrmFlowError("Informe o motivo do fechamento sem sucesso.");

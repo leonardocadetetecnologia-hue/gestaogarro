@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | Cadastrar/editar leads e clientes | Sim | Sim | Não |
 | Criar oportunidade e movimentar CRM | Sim | Sim | Não |
+| Definir, editar ou limpar valor de oportunidade | Sim | Sim | Não |
 | Enviar fechamento com sucesso para produção | Sim | Sim | Não |
 | Criar demanda diretamente para cliente | Sim | Não | Não |
 | Ver todas as demandas | Sim | Não | Não |

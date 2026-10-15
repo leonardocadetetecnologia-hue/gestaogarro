@@ -61,6 +61,14 @@
 .detail-drawer { width: 390px; flex-basis: 390px; }
 .drawer-top h2 { font-size: 22px; }
 .drawer-highlight strong { font-size: 29px; }
+.drawer-value-action,.drawer-value-editor{padding:12px 18px;border-bottom:1px solid var(--line)}
+.drawer-value-action{display:flex;justify-content:flex-end}
+.drawer-value-editor{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px}
+.drawer-value-editor .field{min-width:0}
+.drawer-value-editor input{width:100%;min-width:0}
+.drawer-value-actions{display:flex;gap:6px;align-items:center}
+.drawer-value-hint{grid-column:1/-1;color:var(--muted);font-size:11px;margin-top:-5px}
+@media(max-width:520px){.drawer-value-editor{grid-template-columns:1fr}.drawer-value-actions{justify-content:flex-end}.drawer-value-hint{grid-column:auto}}
 .info-list > div, .note-box p, .drawer-body .field, .drawer-body .field select { font-size: 14px; line-height: 1.5; }
 .drawer-bottom { gap: 10px; }
 .panel-feedback { position: fixed; z-index: 140; bottom: 22px; left: 85px; right: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 17px; border: 1px solid #bbd7bc; background: #f1f8ec; color: #355b3c; border-radius: 10px; box-shadow: 0 8px 35px #2e211b20; font-size: 14px; }

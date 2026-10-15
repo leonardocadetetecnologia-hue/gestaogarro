@@ -24,6 +24,8 @@ Sem interesse e Bolo permanecem etapas de acompanhamento, sem automações espec
 
 Fechado com sucesso disponibiliza **Enviar para produção** no card e no painel de detalhes. Mover a oportunidade para essa coluna não cria demanda. O envio exige serviço contratado, valor fechado, briefing, prazo e entregáveis. Venda, demanda, entregáveis, agenda, histórico, auditoria e notificações são gravados na mesma transação. Envios concorrentes da mesma oportunidade retornam a demanda existente. Após o envio, a oportunidade permanece fechada e mostra o vínculo com a produção.
 
+Gestora e Atendente podem definir ou editar o valor de uma oportunidade pelo botão **Definir valor**/**Editar valor** no painel aberto ao selecionar o card. O campo aceita centavos; deixá-lo vazio remove o valor. A mudança atualiza a atividade, registra o histórico comercial e a auditoria. Depois de enviada para produção, a demanda mantém o valor fechado e a edição pelo CRM fica bloqueada.
+
 ## Produção
 
 O cabeçalho destaca o nome da demanda, o cliente e, quando há uma venda vinculada, o serviço da oportunidade. O briefing fica no conteúdo da demanda. Cartões e listas identificam o trabalho pelo título e pelo cliente; códigos internos do banco não são exibidos nessas áreas. Demandas criadas diretamente não recebem um serviço inventado a partir do título.

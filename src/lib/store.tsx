@@ -14,6 +14,7 @@ type Ctx = {
   updateCustomer: (c: Customer) => Save;
   addCustomer: (c: Customer, value: number | null) => Save;
   addOpportunity: (customerId: string, service: string) => Save;
+  updateOpportunityValue: (id: string, value: number | null) => Save;
   createDemand: (input: DirectDemandInput) => Save;
   moveOpportunity: (id: string, stage: Stage) => Save;
   loseOpportunity: (id: string, reason: string) => Save;
@@ -73,6 +74,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     updateCustomer: customer => save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD" } }),
     addCustomer: (customer, amount) => save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD" }, value: amount }),
     addOpportunity: (customerId, service) => save({ kind: "createOpportunity", customerId, service }),
+    updateOpportunityValue: (id, amount) => save({ kind: "value", id, value: amount }),
     createDemand: input => save({ kind: "createDemand", input }, true),
     moveOpportunity: (id, stage) => save({ kind: "move", id, stage }),
     loseOpportunity: (id, reason) => save({ kind: "lose", id, reason }),
