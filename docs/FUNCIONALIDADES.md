@@ -26,6 +26,8 @@ Fechado com sucesso disponibiliza **Enviar para produção** no card e no painel
 
 ## Produção
 
+O cabeçalho destaca o nome da demanda, o cliente e, quando há uma venda vinculada, o serviço da oportunidade. O briefing fica no conteúdo da demanda. Cartões e listas identificam o trabalho pelo título e pelo cliente; códigos internos do banco não são exibidos nessas áreas. Demandas criadas diretamente não recebem um serviço inventado a partir do título.
+
 A Gestora pode criar **Nova demanda**, selecionando um cliente ou cadastrando um novo cliente no formulário. Essa operação cria demanda, entregáveis e compromisso sem inventar venda ou oportunidade; `saleId` fica vazio. Leads precisam de fechamento com sucesso antes de entrar em produção.
 
 A Gestora atribui cada entregável a um editor ativo ou a si mesma, com prazo de edição e revisão opcional. A atribuição atualiza os eventos, a notificação e a auditoria na mesma transação. Em **Meus trabalhos**, a Gestora inicia sua edição e envia para revisão mantendo seu perfil administrativo.

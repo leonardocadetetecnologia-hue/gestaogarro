@@ -47,6 +47,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
           include: { sender: { select: { name: true, role: true } } },
         },
         files: { select: { storagePath: true } },
+        sale: { select: { opportunity: { select: { service: true } } } },
       },
     }) : Promise.resolve([]),
     user.role === "ATENDENTE" ? Promise.resolve([]) : prisma.user.findMany({
@@ -83,7 +84,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     })),
     editors,
     demands: demands.map(d => ({
-      id: d.id, customerId: d.customerId, title: d.title, description: d.description || "",
+      id: d.id, customerId: d.customerId, title: d.title, service: d.sale?.opportunity.service, description: d.description || "",
       status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
       briefing: d.description || "", links: d.files.find(f => /^https?:\/\//.test(f.storagePath))?.storagePath || "",
       createdAt: d.createdAt.toISOString(),

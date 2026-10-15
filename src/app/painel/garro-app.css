@@ -72,3 +72,10 @@
 .task-assignment select, .task-assignment input { font-size: 13px; min-height: 42px; padding: 9px; }
 .task-assignment > button { grid-column: 1/-1; justify-self: start; }
 @media (max-width: 700px) { .task-assignment { grid-template-columns: 1fr; } }
+
+/* Identificação legível da demanda, inclusive em telas pequenas. */
+.demand-detail > .view-title { align-items: flex-start; flex-wrap: wrap; }
+.demand-detail > .view-title > div:first-child { min-width: 0; flex: 1 1 280px; }
+.demand-detail > .view-title h1 { overflow-wrap: anywhere; line-height: 1.25; }
+.demand-detail > .view-title p { overflow-wrap: anywhere; line-height: 1.6; font-size: 15px; }
+.demand-detail > .view-title .view-actions { flex-wrap: wrap; }
