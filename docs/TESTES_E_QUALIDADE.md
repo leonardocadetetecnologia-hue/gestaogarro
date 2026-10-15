@@ -1,0 +1,13 @@
+# Validação
+
+Comandos locais: `npm run lint`, `npm run typecheck`, `npm test`. Build Linux: Dockerfile, target runner, `BASE_PATH=/gestaogarro`.
+
+A suíte Vitest cobre envio explícito/idempotente para produção, valores decimais, permissões, estado filtrado por perfil, agendas no horário de Brasília, origem dos eventos e renderização de cartões, confirmações e atribuição da Gestora. A criação direta exige cliente ou novo cadastro, briefing, prazo e entregáveis e bloqueia perfis não administrativos.
+
+`scripts/test-flow-integration.ts` valida serviços reais em PostgreSQL isolado: persistência, dupla submissão concorrente, rollback após erro de banco, conversão de lead, novas oportunidades, criação direta sem venda, cadastro de cliente com rollback e edição de editor com RBAC. Recusa bancos fora do host/database de QA definidos no script. Não execute contra produção.
+
+Quando `QA_APP_URL` e `QA_SESSION_SECRET` são fornecidos, o teste verifica HTTP autenticado das agendas nos três perfis. As sessões/fixtures são exclusivas do banco temporário. Containers de QA e suas credenciais devem ser removidos ao terminar.
+
+Não havia navegador disponível na sessão de implementação. Os testes de renderização e HTTP não substituem revisão visual interativa; não foi afirmada validação por screenshots.
+
+As migrations preservam os enums comerciais antigos, acrescentam as novas etapas, classificam contatos com venda/demanda/fechamento prévio como clientes e permitem demandas sem venda. O deploy executa backup antes de aplicar migrations pendentes, preserva a imagem anterior e exige healthcheck. Atualizações não utilizam seed.

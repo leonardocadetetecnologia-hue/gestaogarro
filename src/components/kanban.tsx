@@ -44,7 +44,7 @@ export function Kanban({
         return (
           <section
             key={stage}
-            className="w-[260px] shrink-0 rounded-lg bg-[var(--bg-2)] p-2"
+            className="w-[300px] shrink-0 rounded-lg bg-[var(--bg-2)] p-2"
             onDragOver={(event) => {
               if (!locked) event.preventDefault();
             }}
@@ -55,8 +55,8 @@ export function Kanban({
             }}
           >
             <header className="mb-2 px-1">
-              <h2 className="text-sm font-semibold">{STAGE_LABELS[stage]}</h2>
-              <p className="text-xs text-[var(--muted)]">
+              <h2 className="text-lg font-semibold">{STAGE_LABELS[stage]}</h2>
+              <p className="text-sm text-[var(--muted)]">
                 {summary?.count ?? 0} · {summary?.total} · {summary?.late ?? 0} atrasados
               </p>
             </header>
@@ -66,7 +66,7 @@ export function Kanban({
                   key={card.id}
                   draggable={!locked}
                   onDragStart={(event) => event.dataTransfer.setData("text/plain", card.id)}
-                  className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-sm shadow-sm"
+                  className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4 text-base shadow-sm"
                 >
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <Link href={`/crm/${card.id}`} className="font-medium">
@@ -77,9 +77,9 @@ export function Kanban({
                   <p>{card.service}</p>
                   <p className="text-[var(--muted)]">{card.origin || "Origem não informada"}</p>
                   <p className="mt-1 font-medium">{card.valueLabel}</p>
-                  <p className="text-xs text-[var(--muted)]">{card.staleLabel}</p>
-                  <p className="text-xs">{card.nextAction || "Sem próxima ação"}</p>
-                  <p className="text-xs uppercase tracking-wide text-[var(--muted)]">{card.priority}</p>
+                  <p className="text-sm text-[var(--muted)]">{card.staleLabel}</p>
+                  <p className="text-sm">{card.nextAction || "Sem próxima ação"}</p>
+                  <p className="text-sm uppercase tracking-wide text-[var(--muted)]">{card.priority}</p>
                 </article>
               ))}
             </div>

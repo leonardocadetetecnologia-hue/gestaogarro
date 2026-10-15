@@ -30,3 +30,45 @@
   .profile-trigger > svg { display: none; }
   .top-header { gap: 8px; }
 }
+/* Kanbans com leitura ampliada em todos os perfis. */
+.kanban-column, .has-detail .kanban-grid .kanban-column { width: 280px; flex-basis: 280px; }
+.column-head { padding: 16px 15px; min-height: 100px; }
+.column-head strong { font-size: 16px; line-height: 1.4; }
+.column-head span { font-size: 17px; }
+.column-head .column-count { font-size: 13px; width: 29px; height: 29px; }
+.column-content { padding: 10px; gap: 11px; }
+.crm-card { padding: 15px; }
+.crm-card-open { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.crm-card-head { gap: 10px; }
+.crm-card-head .monogram { width: 38px; height: 38px; font-size: 13px; }
+.crm-card-head strong { font-size: 16px; white-space: normal; overflow: visible; line-height: 1.4; }
+.crm-card-head small { font-size: 13px; white-space: normal; overflow: visible; line-height: 1.5; }
+.crm-card-price { font-size: 20px; margin: 15px 0; }
+.crm-card-bottom { flex-wrap: wrap; gap: 8px; }
+.time-meta, .time-row { font-size: 12px; line-height: 1.5; }
+.crm-card .badge, .production-card .badge { font-size: 12px; line-height: 1.4; }
+.crm-production-button { margin-top: 14px; min-height: 38px; font-size: 13px; }
+.production-column { width: 310px; flex-basis: 310px; padding: 12px; }
+.production-heading { font-size: 16px; padding: 10px 5px 17px; }
+.production-card { padding: 17px; gap: 12px; }
+.production-card strong { font-size: 17px; line-height: 1.5; }
+.production-card small { font-size: 12px; overflow-wrap: anywhere; }
+.production-card > span, .production-card-foot, .production-three > div > span { font-size: 14px; line-height: 1.5; }
+.production-three { gap: 10px; }
+.production-sent { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px; width: 100%; color: #43714d; background: #edf5ea; border: 1px solid #cee2c8; border-radius: 8px; font-size: 13px; }
+.production-sent.compact { padding: 8px; margin-top: 13px; font-size: 12px; }
+.production-sent a { font-weight: 600; margin-left: auto; text-decoration: underline; }
+.detail-drawer { width: 390px; flex-basis: 390px; }
+.drawer-top h2 { font-size: 22px; }
+.drawer-highlight strong { font-size: 29px; }
+.info-list > div, .note-box p, .drawer-body .field, .drawer-body .field select { font-size: 14px; line-height: 1.5; }
+.drawer-bottom { gap: 10px; }
+.panel-feedback { position: fixed; z-index: 140; bottom: 22px; left: 85px; right: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 17px; border: 1px solid #bbd7bc; background: #f1f8ec; color: #355b3c; border-radius: 10px; box-shadow: 0 8px 35px #2e211b20; font-size: 14px; }
+.panel-feedback-error { border-color: #deb3a7; background: #fff4ee; color: #9b4334; }
+.form-error { color: #a34636; font-size: 14px; line-height: 1.5; margin: 0; }
+@media (max-width: 700px) { .panel-feedback { left: 12px; right: 12px; bottom: 12px; } .detail-drawer { width: min(390px,100%); flex-basis: auto; } }
+.task-assignment { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: end; gap: 12px; width: 100%; }
+.task-assignment > label { min-width: 0; font-size: 13px; line-height: 1.5; }
+.task-assignment select, .task-assignment input { font-size: 13px; min-height: 42px; padding: 9px; }
+.task-assignment > button { grid-column: 1/-1; justify-self: start; }
+@media (max-width: 700px) { .task-assignment { grid-template-columns: 1fr; } }

@@ -7,6 +7,16 @@ import { audit } from "@/lib/audit";
 import { requireManager, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { reject } from "@/lib/redirect";
+import { editEditor } from "./edit-editor";
+import { CrmFlowError } from "@/modules/crm/send-to-production";
+
+export async function updateEditor(formData: FormData) {
+  const user = await requireManager();
+  try { await editEditor(user, { id: text(formData, "id"), name: text(formData, "name"), email: text(formData, "email") }); }
+  catch (error) { reject("/usuarios", error instanceof CrmFlowError ? error.message : "Não foi possível atualizar o editor. Confira o e-mail e tente novamente."); }
+  revalidatePath("/usuarios"); revalidatePath("/painel", "layout");
+  redirect("/usuarios?ok=1");
+}
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();

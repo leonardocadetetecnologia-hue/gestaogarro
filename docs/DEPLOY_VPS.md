@@ -1,6 +1,6 @@
 # Deploy na VPS
 
-Publicação manual do Garro com Docker Compose e Caddy. Sem Coolify e sem pipeline automático.
+Publicação manual com Docker Compose. A VPS atual usa o Traefik já existente; Caddy é opção para instalação independente. Não há pipeline automático.
 
 Diretório previsto na VPS: `/opt/garro`.
 
@@ -16,7 +16,7 @@ Nesta VPS as portas 80 e 443 já são do Traefik. O site em `https://cadete.tech
 
 ## Antes do primeiro deploy
 
-Estes passos são manuais. Não fazem parte do repositório e não foram executados daqui.
+Estes passos são manuais para uma VPS nova. A instalação em `/opt/garro` já foi realizada; atualizações preservam configuração privada e dados existentes.
 
 1. Entrar por SSH com chave. Esta VPS aceita apenas `publickey`.
 2. Confirmar Docker Engine e o plugin Compose v2: `docker compose version`.

@@ -40,7 +40,7 @@ export default async function DemandPage({ params }: { params: Promise<{ id: str
   const editors = user.role === "GESTOR_GARRO" ? await prisma.user.findMany({ where: { role: "EDITOR", active: true }, orderBy: { name: "asc" } }) : [];
   const commercial = user.role !== "EDITOR";
   const saleValue = commercial
-    ? await prisma.sale.findUnique({ where: { id: demand.saleId }, select: { value: true } })
+    && demand.saleId ? await prisma.sale.findUnique({ where: { id: demand.saleId }, select: { value: true } })
     : null;
 
   return (
@@ -122,7 +122,7 @@ export default async function DemandPage({ params }: { params: Promise<{ id: str
           {demand.files.map((file) => (
             <p key={file.id} className="text-sm"><a href={file.storagePath} className="underline">{file.fileName}</a></p>
           ))}
-          {commercial && demand.sale.referenceLinks ? <p className="mt-2 whitespace-pre-wrap text-sm">{demand.sale.referenceLinks}</p> : null}
+          {commercial && demand.sale?.referenceLinks ? <p className="mt-2 whitespace-pre-wrap text-sm">{demand.sale?.referenceLinks}</p> : null}
           <form action={addDemandLink} className="mt-3 grid gap-2">
             <input type="hidden" name="demandId" value={demand.id} />
             <input name="fileName" placeholder="Nome" required />

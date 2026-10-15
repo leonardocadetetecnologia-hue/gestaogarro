@@ -1,6 +1,6 @@
 import { requireManager } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createEditor, resetPassword, setUserActive } from "@/modules/users/actions";
+import { createEditor, resetPassword, setUserActive, updateEditor } from "@/modules/users/actions";
 
 export default async function UsersPage() {
   await requireManager();
@@ -15,6 +15,15 @@ export default async function UsersPage() {
             <article key={person.id} className="rounded-lg bg-[var(--surface)] p-3 text-sm">
               <p className="font-medium">{person.name}</p>
               <p className="text-[var(--muted)]">{person.email} · {person.role} · {person.active ? "ativo" : "inativo"}</p>
+              {person.role === "EDITOR" && <details id={`editor-${person.id}`} className="mt-3">
+                <summary className="cursor-pointer text-base font-medium">Editar editor</summary>
+                <form action={updateEditor} className="mt-3 grid gap-3">
+                  <input type="hidden" name="id" value={person.id}/>
+                  <label>Nome<input name="name" required minLength={2} maxLength={200} defaultValue={person.name}/></label>
+                  <label>E-mail<input name="email" type="email" required defaultValue={person.email}/></label>
+                  <button className="rounded-md bg-[var(--terra)] px-3 py-2 text-white">Salvar editor</button>
+                </form>
+              </details>}
               {person.role !== "GESTOR_GARRO" ? (
                 <div className="mt-2 flex flex-wrap gap-2">
                   <form action={setUserActive}>

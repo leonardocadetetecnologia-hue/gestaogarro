@@ -15,6 +15,11 @@ enum Role {
 }
 
 enum OpportunityStage {
+  LEAD
+  SEM_INTERESSE
+  REUNIAO_AGENDADA
+  REUNIAO_REALIZADA
+  BOLO
   NOVO_CONTATO
   EM_ATENDIMENTO
   PROPOSTA_ENVIADA
@@ -122,9 +127,15 @@ model Session {
   @@index([expiresAt])
 }
 
+enum ContactKind {
+  LEAD
+  CLIENTE
+}
+
 model Customer {
   id        String   @id @default(cuid())
   name      String
+  kind      ContactKind @default(LEAD)
   phone     String?
   email     String?
   company   String?
@@ -212,8 +223,8 @@ model Sale {
 
 model Demand {
   id          String       @id @default(cuid())
-  saleId      String       @unique
-  sale        Sale         @relation(fields: [saleId], references: [id])
+  saleId      String?      @unique
+  sale        Sale?        @relation(fields: [saleId], references: [id])
   customerId  String
   customer    Customer     @relation(fields: [customerId], references: [id])
   title       String

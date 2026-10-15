@@ -1,6 +1,6 @@
 "use server";
 
-import type { DeliverableStatus, DemandStatus, ScheduleEventType } from "@prisma/client";
+import type { DeliverableStatus, DemandStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit, notify } from "@/lib/audit";
@@ -8,6 +8,8 @@ import { requireManager, requireUser } from "@/lib/auth";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import { prisma } from "@/lib/prisma";
 import { reject } from "@/lib/redirect";
+import { assignProductionEditor } from "./assignment-service";
+import { CrmFlowError } from "@/modules/crm/send-to-production";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -26,7 +28,7 @@ const MANAGER_NEXT: Partial<Record<DeliverableStatus, DeliverableStatus[]>> = {
   ENTREGUE: ["CONCLUIDO"],
   AGUARDANDO_EDITOR: ["EM_PRODUCAO"],
   EM_PRODUCAO: ["ENVIADO_REVISAO"],
-  CORRECAO: ["EM_REVISAO", "APROVADO"],
+  CORRECAO: ["EM_PRODUCAO", "ENVIADO_REVISAO", "EM_REVISAO", "APROVADO"],
 };
 
 function aggregateDemand(statuses: DeliverableStatus[]): DemandStatus {
@@ -61,89 +63,23 @@ async function syncDemand(demandId: string) {
   });
 }
 
-async function upsertEvent(input: {
-  deliverableId: string;
-  demandId: string;
-  userId: string;
-  type: ScheduleEventType;
-  title: string;
-  dueAt: Date;
-}) {
-  const existing = await prisma.scheduleEvent.findFirst({
-    where: { deliverableId: input.deliverableId, type: input.type, status: "PENDENTE" },
-  });
-  if (existing) {
-    await prisma.scheduleEvent.update({
-      where: { id: existing.id },
-      data: { dueAt: input.dueAt, userId: input.userId, title: input.title },
-    });
-    return;
-  }
-  await prisma.scheduleEvent.create({ data: input });
-}
-
 export async function assignEditor(formData: FormData) {
   const user = await requireManager();
   const deliverableId = text(formData, "deliverableId");
-  const editorId = text(formData, "editorId");
-  const editorDueAt = parseSaoPaulo(text(formData, "editorDueAt"));
-  const reviewDueAt = parseSaoPaulo(text(formData, "reviewDueAt"));
-  const item = await prisma.deliverable.findUnique({
-    where: { id: deliverableId },
-    include: { demand: true },
-  });
-  const editor = await prisma.user.findFirst({
-    where: { id: editorId, role: "EDITOR", active: true },
-  });
-  if (!item || !editor || !editorDueAt) {
-    reject(item ? `/demandas/${item.demandId}` : "/demandas", "Escolha um editor ativo e o prazo dele.");
-  }
-
-  await prisma.deliverable.update({
-    where: { id: item.id },
-    data: {
-      editorId: editor.id,
-      editorDueAt,
-      reviewDueAt,
-      status: item.status === "AGUARDANDO_EDITOR" ? "AGUARDANDO_EDITOR" : item.status,
-    },
-  });
-  await upsertEvent({
-    deliverableId: item.id,
-    demandId: item.demandId,
-    userId: editor.id,
-    type: "ENTREGA_EDITOR",
-    title: `${item.title} — entrega do editor`,
-    dueAt: editorDueAt,
-  });
-  if (reviewDueAt) {
-    await upsertEvent({
-      deliverableId: item.id,
-      demandId: item.demandId,
-      userId: user.id,
-      type: "REVISAO_GARRO",
-      title: `${item.title} — revisão Garro`,
-      dueAt: reviewDueAt,
+  try {
+    await assignProductionEditor(user, {
+      deliverableId, editorId: text(formData, "editorId"),
+      editorDueAt: parseSaoPaulo(text(formData, "editorDueAt")),
+      reviewDueAt: parseSaoPaulo(text(formData, "reviewDueAt")),
     });
+  } catch (error) {
+    if (error instanceof CrmFlowError) reject("/demandas", error.message);
+    throw error;
   }
-  await prisma.demandMessage.create({
-    data: {
-      demandId: item.demandId,
-      senderId: user.id,
-      system: true,
-      content: `${editor.name} ficou responsável por ${item.title}.`,
-    },
-  });
-  await notify({
-    userId: editor.id,
-    type: "ATRIBUICAO",
-    title: "Novo trabalho",
-    message: item.title,
-    href: `/demandas/${item.demandId}`,
-  });
-  await audit(user.id, "DELIVERABLE_ASSIGNED", "Deliverable", item.id, { editorId });
-  await syncDemand(item.demandId);
+  const item = await prisma.deliverable.findUnique({ where: { id: deliverableId }, select: { demandId: true } });
+  if (!item) reject("/demandas", "Entregável não encontrado.");
   revalidatePath(`/demandas/${item.demandId}`);
+  if (formData.get("returnToPanel") === "1") { revalidatePath("/painel", "layout"); return; }
   redirect(`/demandas/${item.demandId}`);
 }
 
@@ -206,6 +142,7 @@ export async function changeDeliverableStatus(formData: FormData) {
   await audit(user.id, "DELIVERABLE_STATUS", "Deliverable", item.id, { from: item.status, to: next });
   await syncDemand(item.demandId);
   revalidatePath(`/demandas/${item.demandId}`);
+  if (formData.get("returnToPanel") === "1") { revalidatePath("/painel", "layout"); return; }
   redirect(`/demandas/${item.demandId}`);
 }
 
@@ -243,6 +180,7 @@ export async function addDemandMessage(formData: FormData) {
     ),
   );
   revalidatePath(`/demandas/${demandId}`);
+  if (formData.get("returnToPanel") === "1") { revalidatePath("/painel", "layout"); return; }
   redirect(`/demandas/${demandId}`);
 }
 
@@ -260,5 +198,6 @@ export async function addDemandLink(formData: FormData) {
   });
   await audit(user.id, "DEMAND_LINK", "Demand", demandId, { fileName });
   revalidatePath(`/demandas/${demandId}`);
+  if (formData.get("returnToPanel") === "1") { revalidatePath("/painel", "layout"); return; }
   redirect(`/demandas/${demandId}`);
 }

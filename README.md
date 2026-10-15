@@ -57,7 +57,9 @@ As imagens são referência de layout/composição, não de texto. Em caso de er
 - `scripts/rollback.sh`
 - `docs/DEPLOY_VPS.md`
 
-A aplicação Next.js, o Prisma e o healthcheck estão neste repositório. A publicação na VPS ainda depende de domínio, chave SSH e do `.env` real.
+A aplicação Next.js, o Prisma e o healthcheck estão neste repositório. A produção está em `https://cadete.tech/gestaogarro`, com configuração privada em `/opt/garro/.env` e Traefik existente na VPS. Atualizações usam `bash scripts/deploy.sh --pull --behind-proxy`, sem seed.
+
+O [fluxo atual](docs/FUNCIONALIDADES.md) diferencia leads de clientes, oferece envio explícito do CRM para produção e criação direta de demandas pela Gestora. Consulte também a [matriz de permissões](docs/MATRIZ_DE_PERMISSOES.md) e os [testes](docs/TESTES_E_QUALIDADE.md).
 
 ## Regra de ouro
 

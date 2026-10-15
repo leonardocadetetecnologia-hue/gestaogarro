@@ -8,6 +8,19 @@
 > Última atualização: 14/10/2026.
 > Status: especificação funcional aprovada, desenvolvimento e implantação a validar.
 
+## Atualização funcional adotada em 14/10/2026
+
+As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [FUNCIONALIDADES.md](docs/FUNCIONALIDADES.md), com [permissões](docs/MATRIZ_DE_PERMISSOES.md) e [validação](docs/TESTES_E_QUALIDADE.md). Estas alterações substituem o fluxo comercial original descrito abaixo:
+
+- Lead é contato comercial; cliente já contratou. Cadastro de cliente não cria lead. Novas oportunidades reutilizam contatos existentes.
+- CRM: Lead, Follow-up, Sem interesse, Reunião agendada, Reunião realizada, Bolo, Fechado sem sucesso, Fechado com sucesso.
+- Fechado com sucesso converte o contato para cliente. A demanda nasce somente pela ação explícita Enviar para produção, com dados validados e gravação transacional.
+- A Gestora também cria demandas diretamente para clientes existentes ou novos, sem venda fictícia.
+- A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
+- Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
+- Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.
+- Ambiente real: `/opt/garro`, Docker Compose atrás do Traefik existente, publicação em `https://cadete.tech/gestaogarro`. Caddy standalone continua opção para outras VPS.
+
 ---
 
 ## 1. IDENTIFICAÇÃO
