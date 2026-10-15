@@ -11,6 +11,7 @@ import {Badge,Deadline,Empty,Field,Metric,Modal,SearchBox,SectionHead,ViewTitle}
 
 const stageKind:Record<Stage,string>={"Lead":"neutral","Follow-up":"warning","Sem interesse":"attention","Reunião agendada":"info","Reunião realizada":"info","Bolo":"attention","Fechado com sucesso":"success","Fechado sem sucesso":"danger"};
 const initialForm:Customer={id:"",name:"",phone:"",email:"",origin:"Instagram",company:"",city:"",service:"",notes:""};
+const serviceOptions=["Ensaio PESSOAL","Ensaio REPOSICIONAMENTO","Campanha make + foto","Captação de foto e vídeo","Captação de vídeo","Cobertura de evento","Cobertura em tempo real","Consultoria de posicionamento","Workshop","Curso e mentoria para fotógrafos","Aluguel estúdio"];
 export function CustomerForm({customer,onClose,value,kind="LEAD"}:{customer?:Customer;onClose:()=>void;value?:number|null;kind?:"LEAD"|"CLIENTE"}){
  const {updateCustomer,addCustomer,busy}=useGarro();const storageKey=`garro-form-draft-customer-${customer?.id||kind}`;
  const [form,setForm]=useState<Customer>(()=>{if(typeof window!=="undefined"){try{const d=localStorage.getItem(storageKey);if(d)return JSON.parse(d)}catch{}}return customer||{...initialForm,kind,id:crypto.randomUUID()}});
@@ -24,7 +25,7 @@ export function CustomerForm({customer,onClose,value,kind="LEAD"}:{customer?:Cus
   <Field label="Telefone"><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="(31) 99999-9999"/></Field>
   <Field label="E-mail"><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Field>
   <Field label="Origem"><select value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})}>{["Instagram","Indicação","WhatsApp","Site","Google","Outro"].map(o=><option key={o}>{o}</option>)}</select></Field>
-  {!customer&&kind==="LEAD"&&<Field label="Serviço de interesse"><input value={form.service} onChange={e=>setForm({...form,service:e.target.value})} placeholder="Ex.: vídeo institucional"/></Field>}
+  {!customer&&kind==="LEAD"&&<Field label="Serviço de interesse"><select value={form.service} disabled={busy} onChange={e=>setForm({...form,service:e.target.value})}><option value="">Selecione um serviço</option>{form.service&&!serviceOptions.includes(form.service)&&<option value={form.service}>{form.service}</option>}{serviceOptions.map(service=><option key={service} value={service}>{service}</option>)}</select></Field>}
   <Field label="Empresa"><input value={form.company} onChange={e=>setForm({...form,company:e.target.value})}/></Field>
   {!customer&&kind==="LEAD"&&<Field label="Valor estimado (R$)"><input type="number" min={0} step="0.01" value={estimated} onChange={e=>setEstimated(e.target.value)} placeholder="Pode ficar em branco"/></Field>}
   </div><Field label="Observações"><textarea rows={3} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Detalhes importantes deste contato"/></Field>

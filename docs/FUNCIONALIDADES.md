@@ -14,6 +14,7 @@ A tela identifica o campo como **Usuário**, usa entrada de texto e não sugere 
 - **Cliente** já contratou a Garro. Novo cliente cadastra uma pessoa/empresa, sem criar uma oportunidade fictícia. Clientes existentes também podem ter novas oportunidades.
 - O cadastro é compartilhado para preservar o histórico, com classificação `LEAD` ou `CLIENTE`. Fechado com sucesso promove o contato para cliente; uma oportunidade posterior perdida não desfaz o relacionamento anterior.
 - Clientes e leads têm filtros separados na tela de cadastros. Editar contato atualiza os dados gerais; o serviço pertence à oportunidade.
+- No cadastro de novo lead, Serviço de interesse é um seletor com os 11 serviços aprovados pela Garro, de Ensaio PESSOAL a Aluguel estúdio, incluindo ensaios, campanhas, captações, coberturas, consultoria, Workshop e Curso e mentoria para fotógrafos. Nomes e ordem seguem a lista solicitada. Rascunhos com serviços anteriormente digitados são preservados.
 
 ## CRM
 
