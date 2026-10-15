@@ -12,7 +12,9 @@ Diretório previsto na VPS: `/opt/garro`.
 
 O script de deploy recusa continuar se 80 ou 443 já pertencerem a outro processo. Isso protege os demais sistemas desta VPS.
 
-Nesta VPS as portas 80 e 443 já são do Traefik. O site em `https://cadete.tech` continua na raiz. O sistema entra em `https://cadete.tech/gestaogarro`, com `DOMAIN=cadete.tech`, `BASE_PATH=/gestaogarro` e `bash scripts/deploy.sh --seed --behind-proxy`. As imagens de `public/images` saem nesse mesmo prefixo; o otimizador `/_next/image` não é usado, porque ele busca o arquivo sem o prefixo e recebe HTML.
+Nesta VPS as portas 80 e 443 já são do Traefik. Os sites públicos em `https://cadete.tech` e `https://garroprodutora.com.br` continuam na raiz. O sistema entra em `https://garroprodutora.com.br/gestaogarro`, com `DOMAIN=garroprodutora.com.br` e `BASE_PATH=/gestaogarro`. O host www também é atendido e o endereço anterior em cadete.tech permanece disponível. As imagens de `public/images` saem nesse mesmo prefixo; o otimizador `/_next/image` não é usado, porque ele busca o arquivo sem o prefixo e recebe HTML.
+
+Uma troca apenas de domínio, mantendo `/gestaogarro`, reutiliza a imagem já compilada: após preservar uma cópia privada do `.env`, atualizar `DOMAIN` e revisar as labels, executar `docker compose -f compose.yaml -f compose.vps.yaml up -d --no-build --wait app`. Não aplicar seed nem alterar o banco. Validar HTTPS, login, healthcheck, imagens, ações de formulário e sites públicos. Next.js verifica a origem das Server Actions contra o Host/X-Forwarded-Host; domínios adicionais em allowedOrigins só são necessários quando esses hosts divergem.
 
 ## Antes do primeiro deploy
 

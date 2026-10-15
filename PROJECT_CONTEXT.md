@@ -19,7 +19,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.
-- Ambiente real: `/opt/garro`, Docker Compose atrás do Traefik existente, publicação em `https://cadete.tech/gestaogarro`. Caddy standalone continua opção para outras VPS.
+- Ambiente real: `/opt/garro`, Docker Compose atrás do Traefik existente, publicação em `https://garroprodutora.com.br/gestaogarro`. O site público permanece na raiz desse domínio e o endereço anterior em cadete.tech permanece disponível. Caddy standalone continua opção para outras VPS.
 
 ---
 
