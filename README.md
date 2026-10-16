@@ -53,6 +53,7 @@ As imagens são referência de layout/composição, não de texto. Em caso de er
 - `.env.example`
 - `scripts/deploy.sh`
 - `scripts/backup-postgres.sh`
+- `scripts/backup-daily.sh`
 - `scripts/restore-postgres.sh`
 - `scripts/rollback.sh`
 - `docs/DEPLOY_VPS.md`

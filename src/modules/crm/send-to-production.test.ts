@@ -20,6 +20,7 @@ const input = {
 const opportunity = { id: "opportunity", customerId: "customer", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
 
 beforeEach(() => {
+  delete process.env.GARRO_EVENT_CAPTURE_MODE;
   vi.resetAllMocks();
   transaction.mockImplementation(async (work: (client: typeof tx) => Promise<unknown>) => work(tx));
   tx.opportunity.findUnique.mockResolvedValue(opportunity);

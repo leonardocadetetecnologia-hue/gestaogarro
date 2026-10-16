@@ -5,6 +5,7 @@ import { stages } from "@/lib/data";
 import { STAGE_VALUES } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
+import { publishSaleClosed } from "@/lib/integration-feed";
 import { CrmFlowError, productionSubmissionSchema, sendToProduction } from "@/modules/crm/send-to-production";
 
 const customer = z.object({
@@ -34,6 +35,7 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
   if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
   const input = parsed.data;
   if (input.kind === "send") return sendToProduction(user, input.submission);
+  let saleNotice: { opportunityId: string; customerName: string; serviceTitle: string; previousStage: string } | null = null;
   await prisma.$transaction(async tx => {
     if (input.kind === "createOpportunity") {
       if (!await tx.customer.findUnique({ where: { id: input.customerId } })) throw new CrmFlowError("Contato não encontrado.");
@@ -92,6 +94,9 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       await tx.crmInteraction.create({ data: { opportunityId: current.id, userId: user.id, channel: "Sistema", summary, occurredAt: new Date() } });
       if (terminal) await tx.scheduleEvent.updateMany({ where: { opportunityId: current.id, demandId: null, status: "PENDENTE" }, data: { status: "CANCELADO" } });
       await tx.auditLog.create({ data: { userId: user.id, action: lost ? "OPPORTUNITY_LOST" : "OPPORTUNITY_MOVED", entityType: "Opportunity", entityId: current.id, details: { stage } } });
+      if (stage === "FECHADO" && current.stage !== "FECHADO") saleNotice = {
+        opportunityId: current.id, customerName: current.customer.name, serviceTitle: current.service, previousStage: current.stage,
+      };
       return;
     }
     await tx.crmInteraction.create({ data: { opportunityId: current.id, userId: user.id, channel: "Manual", summary: input.summary, occurredAt: new Date() } });
@@ -105,4 +110,5 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     } });
     await tx.auditLog.create({ data: { userId: user.id, action: "CRM_INTERACTION", entityType: "Opportunity", entityId: current.id } });
   });
+  if (saleNotice) await publishSaleClosed(saleNotice);
 }

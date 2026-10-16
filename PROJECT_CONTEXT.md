@@ -1440,13 +1440,14 @@ URL pública definida: `https://cadete.tech/gestaogarro`. O site já existente e
 
 Acesso operacional verificado em 14/10/2026: VPS `2.25.229.131`, usuário SSH `root`, chave existente do operador, aplicação em `/opt/garro` e branch `main`. Segredos permanecem no `.env` privado da VPS; referências de acesso em `docs/ACESSOS_E_CREDENCIAIS.md`.
 
+Destino dos backups definido em 15/10/2026: dump diário com `scripts/backup-daily.sh`, cópia local em `/var/backups/garro` e cópia privada no Google Drive do operador, pasta `Garro/backups`. O token do rclone permanece só na VPS.
+
 Ainda devem ser definidos:
 
 - Distribuição Linux.
 - CPU, RAM e armazenamento.
 - Credenciais iniciais.
 - Editores iniciais.
-- Destino dos backups.
 - Storage.
 - Regras finais de timer.
 - Critérios de risco.

@@ -382,3 +382,24 @@ model Setting {
   key   String @id
   value String
 }
+
+// Contador único do feed. A linha só é bloqueada na transação do aviso, depois da ação confirmada.
+model IntegrationFeedCounter {
+  id    String @id @default("feed")
+  value BigInt @default(0)
+}
+
+// Evento imutável. sequence ordena a publicação; eventId não garante ordem de commit.
+model IntegrationEvent {
+  id                String   @id
+  eventId           String   @unique
+  type              String
+  schemaVersion     Int
+  occurredAt        DateTime
+  payload           Json
+  deduplicationKey  String   @unique
+  scope             String
+  sequence          BigInt   @unique
+
+  @@index([scope, sequence])
+}

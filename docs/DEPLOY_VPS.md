@@ -78,13 +78,24 @@ bash scripts/backup-postgres.sh
 
 Grava `pg_dump` em formato custom em `/var/backups/garro`, com permissão `600`, e mantém os 14 arquivos mais novos. O volume Docker não substitui esse backup.
 
-Agendamento sugerido, no root da VPS:
+A rotina diária grava o dump local e envia uma cópia para uma pasta privada do Google Drive do operador. O agendamento na VPS, às 03:15 no horário de São Paulo:
 
 ```cron
-15 3 * * * cd /opt/garro && bash scripts/backup-postgres.sh >> /var/log/garro-backup.log 2>&1
+CRON_TZ=America/Sao_Paulo
+15 3 * * * root cd /opt/garro && bash scripts/backup-daily.sh >> /var/log/garro-backup.log 2>&1
 ```
 
-Ainda falta definir a cópia externa. Enquanto isso, o backup local não protege a perda da VPS. Testar a restauração em uma base separada quando o primeiro dump existir.
+O arquivo fica em `/etc/cron.d/garro-backup`. O local continua em `/var/backups/garro`, com os 14 dumps mais novos. O Drive fica em `Garro/backups` e guarda 30, configurável por `BACKUP_DRIVE_DIR` e `BACKUP_DRIVE_KEEP`. O remote do rclone é `BACKUP_DRIVE_REMOTE`. Sem esse valor, o script só faz o backup local.
+
+O token do Google Drive fica em `/root/.config/rclone/rclone.conf`, com permissão `600`. Ele não entra no Git nem no `.env`. A pasta do Drive não deve ser compartilhada publicamente: o dump contém dados de clientes.
+
+A autorização é feita uma vez, numa máquina com navegador:
+
+```bash
+rclone authorize "drive" "drive.file"
+```
+
+O escopo `drive.file` deixa o rclone ver apenas os arquivos que ele mesmo criou. O resultado desse comando é o token colado na configuração do remote `garro-drive` na VPS. Testar a restauração em uma base separada quando o primeiro dump existir.
 
 ## Restauração
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isIntegrationEventsPath } from "@/lib/integration-path";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -8,7 +9,8 @@ export function middleware(request: NextRequest) {
     pathname === "/api/auth/login" ||
     pathname === "/recuperar-senha" ||
     pathname.startsWith("/api/health") ||
-    pathname.startsWith("/images/")
+    pathname.startsWith("/images/") ||
+    isIntegrationEventsPath(pathname)
   ) {
     return NextResponse.next();
   }

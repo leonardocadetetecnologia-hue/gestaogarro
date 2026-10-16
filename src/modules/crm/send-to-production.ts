@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth";
+import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 
@@ -25,7 +26,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
   const amount = new Prisma.Decimal(input.amount.replace(",", "."));
   const due = new Date(input.due);
 
-  return prisma.$transaction(async tx => {
+  const result = await prisma.$transaction(async tx => {
     // A trava serializa dois envios da mesma oportunidade antes de ler/criar venda e demanda.
     await tx.$queryRaw`SELECT "id" FROM "Opportunity" WHERE "id" = ${input.opportunityId} FOR UPDATE`;
     const opportunity = await tx.opportunity.findUnique({
@@ -36,7 +37,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
     if (opportunity.stage !== "FECHADO" || opportunity.outcome === "PERDIDA") {
       throw new CrmFlowError("Mova o card para Fechado com sucesso antes de enviar para produção.");
     }
-    if (opportunity.sale?.demand) return { demandId: opportunity.sale.demand.id, alreadySent: true };
+    if (opportunity.sale?.demand) return { demandId: opportunity.sale.demand.id, alreadySent: true as const };
     if (opportunity.sale && !opportunity.sale.value.equals(amount)) {
       throw new CrmFlowError("O valor informado deve corresponder ao valor da venda já registrada.");
     }
@@ -81,6 +82,14 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
         message: `${opportunity.customer.name} — ${input.title}`, href: `/painel/demanda?id=${demand.id}`,
       })),
     });
-    return { demandId: demand.id, alreadySent: false };
+    return {
+      demandId: demand.id, alreadySent: false as const, notice: {
+        opportunityId: opportunity.id, saleId: sale.id, demandId: demand.id,
+        customerName: opportunity.customer.name, serviceTitle: input.title, clientDueAt: due,
+      },
+    };
   }, { maxWait: 10000, timeout: 15000 });
+  if (result.alreadySent) return { demandId: result.demandId, alreadySent: true };
+  await publishProductionRequested(result.notice);
+  return { demandId: result.demandId, alreadySent: false };
 }

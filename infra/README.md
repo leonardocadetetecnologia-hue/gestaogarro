@@ -8,7 +8,7 @@ Arquivos:
 - `compose.yaml` — serviços `caddy`, `app`, `db` e o perfil `tools` para o Prisma.
 - `Dockerfile` — imagem de migrate e imagem de produção.
 - `scripts/deploy.sh` — publicação controlada.
-- `scripts/backup-postgres.sh` e `scripts/restore-postgres.sh` — backup e restauração.
+- `scripts/backup-postgres.sh`, `scripts/backup-daily.sh` e `scripts/restore-postgres.sh` — backup local, cópia diária para o Google Drive e restauração.
 - `scripts/rollback.sh` — volta a imagem anterior da aplicação.
 - `docs/DEPLOY_VPS.md` — procedimento de publicação, backup e rollback.
 
