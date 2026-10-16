@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activitiesFromDemand, buildStatement, statementOrExample, type CompletedDemandInput } from "./delivery-statement";
+import { activitiesFromDemand, buildStatement, parseStatementFilters, statementOrExample, type CompletedDemandInput } from "./delivery-statement";
 
 const deliveredAt = new Date("2026-10-10T18:30:00.000Z");
 
@@ -63,23 +63,33 @@ describe("extrato de entregas concluídas", () => {
         deliverables: [{ id: "item-5", title: "Cobertura", description: "Filmagem do evento.", status: "CONCLUIDO", clientDeliveredAt: new Date("2026-09-01T15:00:00.000Z") }],
       }),
     ];
-    const byCustomer = buildStatement(rows, { customerId: "cliente-1", service: "", group: "cliente" });
+    const byCustomer = buildStatement(rows, { customerId: "cliente-1", service: "", group: "cliente", from: "", to: "" });
     expect(byCustomer.total).toBe(1);
     expect(byCustomer.sections.map(section => section.label)).toEqual(["Ana Lima"]);
     expect(byCustomer.services).toEqual(["Captação de vídeo", "Ensaio PESSOAL"]);
 
-    const byService = buildStatement(rows, { customerId: "", service: "Captação de vídeo", group: "servico" });
+    const byService = buildStatement(rows, { customerId: "", service: "Captação de vídeo", group: "servico", from: "", to: "" });
     expect(byService.sections).toEqual([expect.objectContaining({ label: "Captação de vídeo" })]);
     expect(byService.sections[0].activities[0].customerName).toBe("Bruno Dias");
   });
 
   it("mostra um modelo identificado quando ainda não há entrega concluída", () => {
-    const model = statementOrExample([], { customerId: "", service: "", group: "cliente" });
+    const model = statementOrExample([], { customerId: "", service: "", group: "cliente", from: "", to: "" });
     expect(model.example).toBe(true);
     expect(model.sections.map(section => section.label)).toEqual(["Cliente exemplo A", "Cliente exemplo B"]);
     expect(model.total).toBe(3);
-    const real = statementOrExample([demand()], { customerId: "", service: "", group: "cliente" });
+    const real = statementOrExample([demand()], { customerId: "", service: "", group: "cliente", from: "", to: "" });
     expect(real.example).toBe(false);
     expect(real.sections.map(section => section.label)).toEqual(["Ana Lima"]);
+  });
+
+  it("limita o extrato ao período do cliente", () => {
+    const rows = [demand(), demand({
+      id: "demand-antiga",
+      deliverables: [{ id: "item-antiga", title: "Entrega antiga", description: "Trabalho de meses atrás.", status: "ENTREGUE", clientDeliveredAt: new Date("2026-01-10T15:00:00.000Z") }],
+    })];
+    const period = buildStatement(rows, { customerId: "cliente-1", service: "", group: "cliente", from: "2026-09-01", to: "2026-10-31" });
+    expect(period.sections[0].activities.map(item => item.title)).toEqual(["Vídeo principal"]);
+    expect(() => parseStatementFilters(new URLSearchParams("from=2026-11-01&to=2026-10-01"))).toThrow(/Período inválido/);
   });
 });

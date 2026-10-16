@@ -17,6 +17,8 @@ export type StatementFilters = {
   customerId: string;
   service: string;
   group: StatementGroup;
+  from: string;
+  to: string;
 };
 
 export type StatementActivity = {
@@ -55,13 +57,44 @@ export function assertStatementAccess(user: Pick<SessionUser, "role">) {
   if (!can(user.role, "reports")) throw new StatementError("Este perfil não consulta o extrato de entregas.");
 }
 
+const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+export function saoPauloDay(iso: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const value = (type: string) => parts.find(part => part.type === type)?.value || "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export function periodEnding(months: number, today = new Date()) {
+  const to = saoPauloDay(today.toISOString());
+  const [year, month, day] = to.split("-").map(Number);
+  const cursor = new Date(Date.UTC(year, month - 1, day));
+  cursor.setUTCMonth(cursor.getUTCMonth() - months);
+  return { from: cursor.toISOString().slice(0, 10), to };
+}
+
+export function formatPeriodDay(day: string) {
+  const [year, month, date] = day.split("-");
+  return `${date}/${month}/${year}`;
+}
+
 export function parseStatementFilters(params: URLSearchParams): StatementFilters {
   const customerId = params.get("customerId")?.trim() || "";
   const service = params.get("service")?.trim() || "";
   const group: StatementGroup = params.get("group") === "servico" ? "servico" : "cliente";
+  const from = params.get("from")?.trim() || "";
+  const to = params.get("to")?.trim() || "";
   if (customerId && !/^[a-zA-Z0-9_-]{1,80}$/.test(customerId)) throw new StatementError("Cliente inválido.", 400);
   if (service.length > 120) throw new StatementError("Tipo de entrega inválido.", 400);
-  return { customerId, service, group };
+  if ((from && !dayPattern.test(from)) || (to && !dayPattern.test(to)) || (from && to && from > to)) {
+    throw new StatementError("Período inválido.", 400);
+  }
+  return { customerId, service, group, from, to };
 }
 
 export function formatDeliveredAt(iso: string) {
@@ -172,10 +205,13 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
   const customers = [...new Map(all.map(item => [item.customerId, { id: item.customerId, name: item.customerName }])).values()]
     .sort((left, right) => byName(left.name, right.name));
   const services = [...new Set(all.map(item => item.service))].sort(byName);
-  const filtered = all.filter(item =>
-    (!filters.customerId || item.customerId === filters.customerId) &&
-    (!filters.service || item.service === filters.service),
-  );
+  const filtered = all.filter(item => {
+    const day = saoPauloDay(item.deliveredAt);
+    return (!filters.customerId || item.customerId === filters.customerId) &&
+      (!filters.service || item.service === filters.service) &&
+      (!filters.from || day >= filters.from) &&
+      (!filters.to || day <= filters.to);
+  });
   const grouped = new Map<string, StatementActivity[]>();
   for (const item of filtered) {
     const label = filters.group === "servico" ? item.service : item.customerName;

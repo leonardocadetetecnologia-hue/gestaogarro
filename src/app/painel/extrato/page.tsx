@@ -1,6 +1,6 @@
-import Image from "next/image";
 import { requireUser } from "@/lib/auth";
-import { formatDeliveredAt, loadDeliveryStatement, parseStatementFilters, StatementError } from "@/modules/reports/delivery-statement";
+import { GarroBrand } from "@/components/garro-brand";
+import { formatDeliveredAt, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, StatementError } from "@/modules/reports/delivery-statement";
 import { StatementPrint } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -20,20 +20,25 @@ export default async function DeliveryStatementPage({
   const customerId = one(params.customerId);
   const service = one(params.service);
   const group = one(params.group);
+  const from = one(params.from);
+  const to = one(params.to);
   if (customerId) query.set("customerId", customerId);
   if (service) query.set("service", service);
   if (group) query.set("group", group);
+  if (from) query.set("from", from);
+  if (to) query.set("to", to);
 
   try {
     const statement = await loadDeliveryStatement(user, parseStatementFilters(query));
     const customer = statement.customers.find(item => item.id === customerId)?.name || "Todos os clientes";
     const serviceLabel = service || "Todos os tipos";
     const issuedAt = formatDeliveredAt(new Date().toISOString());
+    const periodLabel = from || to ? `${from ? formatPeriodDay(from) : "início"} a ${to ? formatPeriodDay(to) : "hoje"}` : "Todo o período";
     return (
       <main className="statement-sheet">
         <StatementPrint auto={one(params.imprimir) === "1"} />
         <header>
-          <Image src="/images/garro-wordmark.png" alt="Garro Produtora" width={168} height={61} priority />
+          <GarroBrand size={64} wordmarkWidth={200} priority />
           <div>
             <p>Extrato de entregas</p>
             <h1>O que a Garro entregou</h1>
@@ -43,6 +48,7 @@ export default async function DeliveryStatementPage({
           <div><dt>Cliente</dt><dd>{customer}</dd></div>
           <div><dt>Tipo de entrega</dt><dd>{serviceLabel}</dd></div>
           <div><dt>Agrupamento</dt><dd>{statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"}</dd></div>
+          <div><dt>Período</dt><dd>{periodLabel}</dd></div>
           <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
         </dl>
         {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}

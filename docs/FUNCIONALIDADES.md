@@ -28,7 +28,7 @@ Gestora e Atendente podem definir ou editar o valor de uma oportunidade pelo bot
 
 ## Extrato de entregas
 
-Em Relatórios, a Gestora consulta somente demandas concluídas na produção. O filtro aceita cliente, tipo de entrega ou os dois, e o resultado agrupa por cliente ou por tipo. Cada item mostra a atividade, a descrição do que foi feito e a data da entrega em Brasília. Gerar PDF abre o extrato com a marca Garro para salvar pelo destino de impressão. Enquanto não houver entrega concluída, a tela mostra um modelo ilustrativo, com nomes de exemplo. Não entram demandas em andamento, valores, contatos ou arquivos. Atendente e Editor não recebem esse extrato.
+Em Relatórios, a Gestora consulta somente demandas concluídas na produção. O filtro aceita cliente, tipo de entrega, período ou a combinação deles, e o resultado agrupa por cliente ou por tipo. O período pode ser os últimos 3, 6 ou 12 meses, ou duas datas. O extrato e o PDF abrem com o logo da Garro. Cada item mostra a atividade, a descrição do que foi feito e a data da entrega em Brasília. Gerar PDF abre o extrato com a marca Garro para salvar pelo destino de impressão. Enquanto não houver entrega concluída, a tela mostra um modelo ilustrativo, com nomes de exemplo. Não entram demandas em andamento, valores, contatos ou arquivos. Atendente e Editor não recebem esse extrato.
 
 ## Produção
 
