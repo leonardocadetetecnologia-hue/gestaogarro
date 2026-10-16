@@ -30,6 +30,30 @@
   .profile-trigger > svg { display: none; }
   .top-header { gap: 8px; }
 }
+/* Barra no topo do kanban, alta o bastante para arrastar entre as etapas. */
+.board-scroll { min-width: 0; max-width: 100%; }
+.board-scroll-bar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 22px;
+  margin: 0 0 10px;
+  border-radius: 999px;
+  background: #efe4da;
+  scrollbar-color: #9a624c #efe4da;
+  scrollbar-width: auto;
+}
+.board-scroll-bar[hidden] { display: none; }
+.board-scroll-bar::-webkit-scrollbar { height: 22px; }
+.board-scroll-bar::-webkit-scrollbar-track { background: #efe4da; border-radius: 999px; }
+.board-scroll-bar::-webkit-scrollbar-thumb {
+  background: #a56b52;
+  border: 3px solid #efe4da;
+  border-radius: 999px;
+}
+.board-scroll-bar::-webkit-scrollbar-thumb:hover { background: #854632; }
+.board-scroll-sizer { height: 1px; }
+.kanban-grid, .production-grid { scrollbar-width: none; }
+.kanban-grid::-webkit-scrollbar, .production-grid::-webkit-scrollbar { display: none; height: 0; }
 /* Kanbans com leitura ampliada em todos os perfis. */
 .kanban-column, .has-detail .kanban-grid .kanban-column { width: 280px; flex-basis: 280px; }
 .column-head { padding: 16px 15px; min-height: 100px; }
@@ -111,3 +135,40 @@
 .script-attachment-upload label{flex:1 1 240px;min-width:0}
 .script-attachment-upload input{display:block;margin-top:8px;max-width:100%;width:100%;font-size:15px}
 .script-attachment-upload>small{flex-basis:100%;color:#897b70}
+
+.statement-panel{margin-top:16px}
+.statement-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px 19px 0}
+.statement-filters .field select{background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:10px 13px;min-height:36px;font-size:12px}
+.statement-body{padding:8px 19px 20px}
+.statement-body h3{margin:18px 0 8px;font-size:15px}
+.statement-body ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.statement-body li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;padding:12px 0;border-top:1px solid var(--line)}
+.statement-body li strong{display:block;font-size:14px}
+.statement-body li span,.statement-body time{color:var(--muted);font-size:12px}
+.statement-body li p{grid-column:1/-1;margin:0;color:#5c4b40;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.statement-sheet{max-width:860px;margin:24px auto;padding:32px;background:#fffdfa;color:#322821;border:1px solid #e8dfd6;border-radius:16px}
+.statement-sheet header{display:flex;align-items:center;gap:18px;padding-bottom:18px;border-bottom:3px solid #a55e44}
+.statement-sheet header img{width:168px;height:auto}
+.statement-sheet header p{margin:0;color:#ac6b4d;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.statement-sheet header h1{margin:4px 0 0;font-size:28px}
+.statement-sheet dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin:18px 0}
+.statement-sheet dt{color:#87786e;font-size:11px}
+.statement-sheet dd{margin:3px 0 0;font-size:14px;font-weight:600}
+.statement-note{color:#6d5143;font-size:13px;line-height:1.6}
+.statement-sheet section{margin-top:22px;break-inside:avoid}
+.statement-sheet section h2{margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid #eaded2;font-size:18px}
+.statement-sheet article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:12px 0;break-inside:avoid}
+.statement-sheet article h3{margin:0;font-size:15px}
+.statement-sheet article p{margin:0;color:#5c4b40;line-height:1.6;white-space:pre-wrap}
+.statement-sheet article>p:last-child{grid-column:1/-1}
+.statement-sheet time{color:#87786e;font-size:12px}
+.statement-sheet footer{margin-top:28px;padding-top:12px;border-top:1px solid #eaded2;color:#87786e;font-size:11px}
+.statement-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.statement-toolbar p{margin:0;color:#87786e;font-size:12px}
+@media(max-width:700px){.statement-filters{grid-template-columns:1fr}.statement-sheet{margin:0;padding:18px;border:0}}
+@media print{
+  .statement-toolbar,.sidebar,.top-header{display:none!important}
+  body{background:#fff!important}
+  .statement-sheet{max-width:none;margin:0;padding:0;border:0;border-radius:0}
+  .statement-sheet article,.statement-sheet section{break-inside:avoid}
+}

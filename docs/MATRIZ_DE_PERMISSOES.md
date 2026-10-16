@@ -14,6 +14,7 @@
 | Atribuir editor ou Gestora | Sim | Não | Não |
 | Aprovar e entregar ao cliente | Sim | Não | Não |
 | Agenda Global | Sim | Não | Não |
+| Extrato de entregas concluídas | Sim | Não | Não |
 | Agenda própria | Sim | Sim, comercial | Sim, atribuições próprias |
 | Criar/editar/ativar editor e redefinir senha | Sim | Não | Não |
 

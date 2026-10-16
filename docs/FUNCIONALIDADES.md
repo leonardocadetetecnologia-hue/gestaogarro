@@ -26,6 +26,10 @@ Fechado com sucesso disponibiliza **Enviar para produção** no card e no painel
 
 Gestora e Atendente podem definir ou editar o valor de uma oportunidade pelo botão **Definir valor**/**Editar valor** no painel aberto ao selecionar o card. O campo aceita centavos; deixá-lo vazio remove o valor. A mudança atualiza a atividade, registra o histórico comercial e a auditoria. Depois de enviada para produção, a demanda mantém o valor fechado e a edição pelo CRM fica bloqueada.
 
+## Extrato de entregas
+
+Em Relatórios, a Gestora consulta somente demandas concluídas na produção. O filtro aceita cliente, tipo de entrega ou os dois, e o resultado agrupa por cliente ou por tipo. Cada item mostra a atividade, a descrição do que foi feito e a data da entrega em Brasília. Gerar PDF abre o extrato com a marca Garro para salvar pelo destino de impressão. Não entram demandas em andamento, valores, contatos ou arquivos. Atendente e Editor não recebem esse extrato.
+
 ## Produção
 
 O cabeçalho destaca o nome da demanda, o cliente e, quando há uma venda vinculada, o serviço da oportunidade. O briefing fica no conteúdo da demanda. Cartões e listas identificam o trabalho pelo título e pelo cliente; códigos internos do banco não são exibidos nessas áreas. Demandas criadas diretamente não recebem um serviço inventado a partir do título.
