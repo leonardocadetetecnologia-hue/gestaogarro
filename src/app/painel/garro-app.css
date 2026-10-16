@@ -155,6 +155,7 @@
 .statement-sheet dt{color:#87786e;font-size:11px}
 .statement-sheet dd{margin:3px 0 0;font-size:14px;font-weight:600}
 .statement-note{color:#6d5143;font-size:13px;line-height:1.6}
+.statement-example{margin:0 0 12px;padding:10px 12px;border:1px solid #e7c7b4;background:#f8efe8;color:#854632;border-radius:8px;font-size:13px;line-height:1.5}
 .statement-sheet section{margin-top:22px;break-inside:avoid}
 .statement-sheet section h2{margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid #eaded2;font-size:18px}
 .statement-sheet article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:12px 0;break-inside:avoid}

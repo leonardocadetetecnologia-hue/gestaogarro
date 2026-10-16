@@ -45,8 +45,9 @@ export default async function DeliveryStatementPage({
           <div><dt>Agrupamento</dt><dd>{statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"}</dd></div>
           <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
         </dl>
+        {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}
         <p className="statement-note">Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu.</p>
-        {statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
+        {!statement.example && statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {statement.sections.map(section => (
           <section key={section.label}>
             <h2>{section.label}</h2>

@@ -9,6 +9,7 @@ type StatementResponse = {
   services: string[];
   sections: StatementSection[];
   total: number;
+  example?: boolean;
 };
 
 export function DeliveryStatement() {
@@ -57,7 +58,7 @@ export function DeliveryStatement() {
           <h2>Extrato de entregas</h2>
           <span>Somente demandas concluídas na produção. O documento descreve o que foi entregue e quando.</span>
         </div>
-        <button className="button primary" type="button" onClick={openPdf} disabled={loading || !statement?.total}>
+        <button className="button primary" type="button" onClick={openPdf} disabled={loading || statement?.total === 0}>
           <FileDown size={16} />Gerar PDF
         </button>
       </div>
@@ -87,7 +88,8 @@ export function DeliveryStatement() {
       <div className="statement-body">
         {error && <p className="form-error">{error}</p>}
         {loading && <p className="muted">Carregando entregas concluídas…</p>}
-        {!loading && !error && statement?.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
+        {!loading && !error && statement?.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro. Quando a primeira entrega for concluída, o extrato passa a usar os dados reais.</p>}
+        {!loading && !error && !statement?.example && statement?.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {!loading && !error && statement?.sections.map(section => (
           <article key={section.label}>
             <h3>{section.label}</h3>

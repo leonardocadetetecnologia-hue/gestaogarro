@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activitiesFromDemand, buildStatement, type CompletedDemandInput } from "./delivery-statement";
+import { activitiesFromDemand, buildStatement, statementOrExample, type CompletedDemandInput } from "./delivery-statement";
 
 const deliveredAt = new Date("2026-10-10T18:30:00.000Z");
 
@@ -71,5 +71,15 @@ describe("extrato de entregas concluídas", () => {
     const byService = buildStatement(rows, { customerId: "", service: "Captação de vídeo", group: "servico" });
     expect(byService.sections).toEqual([expect.objectContaining({ label: "Captação de vídeo" })]);
     expect(byService.sections[0].activities[0].customerName).toBe("Bruno Dias");
+  });
+
+  it("mostra um modelo identificado quando ainda não há entrega concluída", () => {
+    const model = statementOrExample([], { customerId: "", service: "", group: "cliente" });
+    expect(model.example).toBe(true);
+    expect(model.sections.map(section => section.label)).toEqual(["Cliente exemplo A", "Cliente exemplo B"]);
+    expect(model.total).toBe(3);
+    const real = statementOrExample([demand()], { customerId: "", service: "", group: "cliente" });
+    expect(real.example).toBe(false);
+    expect(real.sections.map(section => section.label)).toEqual(["Ana Lima"]);
   });
 });

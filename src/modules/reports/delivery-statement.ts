@@ -111,6 +111,62 @@ function byName(left: string, right: string) {
   return left.localeCompare(right, "pt-BR");
 }
 
+export function exampleDemands(): CompletedDemandInput[] {
+  return [
+    {
+      id: "modelo-ensaio",
+      title: "Ensaio de apresentação",
+      description: "Captação e edição do ensaio.",
+      status: "ENTREGUE",
+      updatedAt: new Date("2026-09-12T21:40:00.000Z"),
+      customer: { id: "modelo-cliente-a", name: "Cliente exemplo A" },
+      service: "Ensaio PESSOAL",
+      deliverables: [
+        {
+          id: "modelo-video",
+          title: "Vídeo principal",
+          description: "Edição do vídeo de apresentação, com os cortes do ensaio e a trilha combinada.",
+          status: "ENTREGUE",
+          clientDeliveredAt: new Date("2026-09-12T21:40:00.000Z"),
+        },
+        {
+          id: "modelo-fotos",
+          title: "Seleção de fotos",
+          description: "Tratamento e entrega de 20 fotos escolhidas do ensaio.",
+          status: "ENTREGUE",
+          clientDeliveredAt: new Date("2026-09-14T18:10:00.000Z"),
+        },
+      ],
+    },
+    {
+      id: "modelo-evento",
+      title: "Cobertura da celebração",
+      description: "Filmagem do evento.",
+      status: "CONCLUIDO",
+      updatedAt: new Date("2026-10-03T21:05:00.000Z"),
+      customer: { id: "modelo-cliente-b", name: "Cliente exemplo B" },
+      service: "Cobertura de evento",
+      deliverables: [
+        {
+          id: "modelo-filme",
+          title: "Filme do evento",
+          description: "Cobertura em vídeo do início ao encerramento, com um destaque de um minuto.",
+          status: "CONCLUIDO",
+          clientDeliveredAt: new Date("2026-10-03T21:05:00.000Z"),
+        },
+      ],
+    },
+  ];
+}
+
+export function statementOrExample(demands: CompletedDemandInput[], filters: StatementFilters) {
+  const real = buildStatement(demands, filters);
+  if (real.customers.length === 0 && real.services.length === 0) {
+    return { ...buildStatement(exampleDemands(), filters), example: true };
+  }
+  return { ...real, example: false };
+}
+
 export function buildStatement(demands: CompletedDemandInput[], filters: StatementFilters) {
   const all = demands.flatMap(activitiesFromDemand);
   const customers = [...new Map(all.map(item => [item.customerId, { id: item.customerId, name: item.customerName }])).values()]
@@ -149,7 +205,7 @@ export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, fil
       },
     },
   });
-  return buildStatement(demands.map(demand => ({
+  return statementOrExample(demands.map(demand => ({
     id: demand.id,
     title: demand.title,
     description: demand.description,
