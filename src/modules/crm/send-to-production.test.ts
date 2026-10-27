@@ -17,7 +17,7 @@ const input = {
   opportunityId: "opportunity", title: "Vídeo institucional", description: "Briefing validado pelo cliente",
   amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal", "Reel"],
 };
-const opportunity = { id: "opportunity", customerId: "customer", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
+const opportunity = { id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
 
 beforeEach(() => {
   delete process.env.GARRO_EVENT_CAPTURE_MODE;
@@ -50,6 +50,12 @@ describe("envio do CRM para produção", () => {
     expect(tx.sale.create).not.toHaveBeenCalled();
     expect(tx.demand.create).not.toHaveBeenCalled();
     expect(tx.notification.createMany).not.toHaveBeenCalled();
+  });
+  it("não envia a oportunidade de outra atendente", async () => {
+    tx.opportunity.findUnique.mockResolvedValue({ ...opportunity, responsibleId: "malu" });
+    await expect(sendToProduction(user, input)).rejects.toThrow("não encontrada");
+    expect(tx.sale.create).not.toHaveBeenCalled();
+    expect(tx.demand.create).not.toHaveBeenCalled();
   });
   it("bloqueia o editor antes de consultar ou escrever no banco", async () => {
     await expect(sendToProduction({ ...user, role: "EDITOR" }, input)).rejects.toThrow("Este perfil");

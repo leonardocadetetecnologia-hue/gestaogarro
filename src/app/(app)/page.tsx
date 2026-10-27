@@ -4,6 +4,7 @@ import { deliveryRisk, formatSaoPaulo } from "@/lib/deadlines";
 import { DEMAND_LABELS, RISK_LABELS } from "@/lib/labels";
 import { formatBRL } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { opportunityScope, saleScope } from "@/modules/crm/visibility";
 import { timerSettings } from "@/lib/settings";
 import { LiveRemaining } from "@/components/live-remaining";
 
@@ -43,11 +44,11 @@ export default async function HomePage({
   }
 
   const open = await prisma.opportunity.findMany({
-    where: { outcome: "ABERTA" },
+    where: { outcome: "ABERTA", ...opportunityScope(user) },
     include: { customer: true },
   });
-  const won = await prisma.sale.findMany();
-  const lost = await prisma.opportunity.count({ where: { outcome: "PERDIDA" } });
+  const won = await prisma.sale.findMany({ where: saleScope(user) });
+  const lost = await prisma.opportunity.count({ where: { outcome: "PERDIDA", ...opportunityScope(user) } });
   const pipeline = open.reduce((sum, item) => sum + Number(item.estimatedValue ?? 0), 0);
   const defined = open.filter((item) => item.estimatedValue != null).length;
   const followUps = open.filter((item) => item.nextActionAt && item.nextActionAt < now).length;

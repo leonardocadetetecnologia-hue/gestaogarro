@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { State } from "@/lib/data";
+import { lossStaysOnBoard } from "@/modules/crm/loss-board";
 
 const { context, query } = vi.hoisted(() => ({
   context: {
@@ -30,14 +31,47 @@ describe("ação de envio no Kanban", () => {
     const html = renderToStaticMarkup(createElement(CommercialKanban));
     expect(html).toContain("Enviar para produção"); expect(html).toContain("14.000,50");
     expect(html).toContain("Reunião agendada"); expect(html).not.toContain("Novo contato");
+    expect(html.indexOf("Tentativa de contato")).toBeLessThan(html.indexOf("Em tratativa"));
+    expect(html.indexOf("Em tratativa")).toBeLessThan(html.indexOf("Sem interesse"));
+    expect(html.indexOf("Fechado com sucesso")).toBeLessThan(html.indexOf("Fechado sem sucesso"));
+  });
+  it("tira da coluna quem fechou sem sucesso em um mês já encerrado", () => {
+    const base = context.state.opportunities[0];
+    context.state.customers.push(
+      { id: "old", name: "Mês encerrado", phone: "", email: "", company: "", origin: "Site", notes: "", city: "", service: "" },
+      { id: "now", name: "Ainda no mês", phone: "", email: "", company: "", origin: "Site", notes: "", city: "", service: "" },
+    );
+    const recent = new Date().toISOString();
+    context.state.opportunities.push(
+      { ...base, id: "old-card", customerId: "old", stage: "Fechado sem sucesso", lostAt: "2020-01-10T15:00:00.000Z" },
+      { ...base, id: "now-card", customerId: "now", stage: "Fechado sem sucesso", lostAt: recent },
+    );
+    const html = renderToStaticMarkup(createElement(CommercialKanban));
+    expect(html).not.toContain("Mês encerrado");
+    expect(html.includes("Ainda no mês")).toBe(lossStaysOnBoard(recent));
   });
   it("mostra o envio concluído e remove a ação que duplicaria a demanda", () => {
     context.state.opportunities[0].demandId = "demand";
     const html = renderToStaticMarkup(createElement(CommercialKanban));
     expect(html).toContain("Enviado para produção"); expect(html).not.toContain("Enviar para produção");
   });
+  it("identifica a atendente de cada card somente para a Gestora", () => {
+    context.state.opportunities = [
+      { ...context.state.opportunities[0], id: "malu-card", responsibleId: "malu", responsibleName: "Malu", stage: "Lead" },
+      { ...context.state.opportunities[0], id: "ana-card", responsibleId: "ana", responsibleName: "Ana", stage: "Tentativa de contato" },
+    ];
+    const html = renderToStaticMarkup(createElement(CommercialKanban));
+    expect(html).toContain("attendant-tag");
+    expect(html).toContain("Malu");
+    expect(html).toContain("Ana");
+    expect(html).toContain("Todas as atendentes");
+    context.role = "ATENDENTE";
+    const attendantHtml = renderToStaticMarkup(createElement(CommercialKanban));
+    expect(attendantHtml).not.toContain("attendant-tag");
+    expect(attendantHtml).not.toContain("Todas as atendentes");
+  });
   it("não permite envio a partir de uma etapa intermediária", () => {
-    context.state.opportunities[0].stage = "Follow-up";
+    context.state.opportunities[0].stage = "Tentativa de contato";
     expect(renderToStaticMarkup(createElement(CommercialKanban))).not.toContain("Enviar para produção");
   });
   it("exibe confirmação, briefing, prazo e entregáveis antes do envio", () => {

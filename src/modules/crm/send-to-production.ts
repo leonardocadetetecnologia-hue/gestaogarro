@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { SessionUser } from "@/lib/auth";
 import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
+import { canAccessOpportunity } from "@/modules/crm/visibility";
 import { prisma } from "@/lib/prisma";
 
 export class CrmFlowError extends Error {}
@@ -33,7 +34,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
       where: { id: input.opportunityId },
       include: { sale: { include: { demand: true } }, customer: { select: { name: true } } },
     });
-    if (!opportunity) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
+    if (!opportunity || !canAccessOpportunity(user, opportunity.responsibleId)) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
     if (opportunity.stage !== "FECHADO" || opportunity.outcome === "PERDIDA") {
       throw new CrmFlowError("Mova o card para Fechado com sucesso antes de enviar para produção.");
     }

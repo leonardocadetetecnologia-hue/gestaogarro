@@ -30,7 +30,7 @@ async function main() {
   const opportunity = await prisma.opportunity.findFirstOrThrow();
   assert.equal(opportunity.stage, "LEAD");
   assert.equal((await prisma.customer.findUniqueOrThrow({ where: { id: opportunity.customerId } })).kind, "LEAD");
-  await executeCrmCommand(attendant, { kind: "move", id: opportunity.id, stage: "Follow-up" });
+  await executeCrmCommand(attendant, { kind: "move", id: opportunity.id, stage: "Tentativa de contato" });
   await executeCrmCommand(attendant, {
     kind: "contact", id: opportunity.id, summary: "QA registrar retorno", waitingOn: "cliente", nextAction: "QA Retornar ao cliente", nextAt: new Date().toISOString(),
   });

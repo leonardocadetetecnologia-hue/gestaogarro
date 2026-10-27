@@ -10,7 +10,7 @@ Script por entregável: testes cobrem limite exato de 10.000 caracteres, rejeiç
 
 O extrato de entregas concluídas cobre exclusão de demanda em andamento, descrição e data da atividade, filtro por cliente ou tipo e agrupamento. Não inclui valor comercial.
 
-A suíte Vitest cobre envio explícito/idempotente para produção, valores decimais, permissões, estado filtrado por perfil, agendas no horário de Brasília, origem dos eventos e renderização de cartões, confirmações e atribuição da Gestora. A criação direta exige cliente ou novo cadastro, briefing, prazo e entregáveis e bloqueia perfis não administrativos.
+A suíte Vitest cobre envio explícito/idempotente para produção, valores decimais, permissões, estado filtrado por perfil, agendas no horário de Brasília, origem dos eventos e renderização de cartões, confirmações e atribuição da Gestora. Também cobre que uma atendente não consulta nem altera o Kanban da outra, e que a Gestora vê a etiqueta com o nome de cada atendente. A criação direta exige cliente ou novo cadastro, briefing, prazo e entregáveis e bloqueia perfis não administrativos.
 
 `scripts/test-flow-integration.ts` valida serviços reais em PostgreSQL isolado: persistência, dupla submissão concorrente, rollback após erro de banco, conversão de lead, novas oportunidades, criação direta sem venda, cadastro de cliente com rollback e edição de editor com RBAC. Recusa bancos fora do host/database de QA definidos no script. Não execute contra produção.
 

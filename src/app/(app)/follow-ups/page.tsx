@@ -2,11 +2,12 @@ import Link from "next/link";
 import { requirePermission } from "@/lib/auth";
 import { formatSaoPaulo } from "@/lib/deadlines";
 import { prisma } from "@/lib/prisma";
+import { opportunityScope } from "@/modules/crm/visibility";
 
 export default async function FollowUpsPage() {
-  await requirePermission("crm");
+  const user = await requirePermission("crm");
   const items = await prisma.opportunity.findMany({
-    where: { outcome: "ABERTA", nextActionAt: { not: null } },
+    where: { outcome: "ABERTA", nextActionAt: { not: null }, ...opportunityScope(user) },
     include: { customer: true },
     orderBy: { nextActionAt: "asc" },
   });

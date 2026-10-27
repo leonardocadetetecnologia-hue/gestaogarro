@@ -29,8 +29,8 @@ export async function mutateCrmPanel(input: unknown) {
 export async function mutateProductionPanel(input: unknown) {
   const user = await requireUser();
   try {
-    await executeProductionCommand(user, input);
-    return { state: await loadPanelState(user) };
+    const createdId = await executeProductionCommand(user, input);
+    return { state: await loadPanelState(user), ...(typeof createdId === "string" ? { createdId } : {}) };
   } catch (error) {
     if (isRedirectError(error) && typeof error === "object" && error !== null && "digest" in error) {
       const url = String(error.digest).split(";")[2];

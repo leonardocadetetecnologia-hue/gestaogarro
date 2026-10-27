@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionUser } from "@/lib/auth";
 const { db } = vi.hoisted(() => ({ db: {
   customer: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() }, demand: { findMany: vi.fn() },
-  user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() },
+  user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() }, kanbanLabel: { findMany: vi.fn() },
 } }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 import { loadPanelState } from "./state";
@@ -17,18 +17,26 @@ describe("dados e agenda por perfil", () => {
     await loadPanelState(user);
     expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { role: { in: ["EDITOR", "GESTOR_GARRO"] } } }));
     expect(db.scheduleEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+    expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      include: expect.objectContaining({ deliverables: expect.objectContaining({ orderBy: [{ createdAt: "asc" }, { id: "asc" }] }) }),
+    }));
   });
   it("não consulta a produção para a atendente e filtra sua agenda comercial no servidor", async () => {
     const state = await loadPanelState({ ...user, role: "ATENDENTE" });
-    expect(db.demand.findMany).not.toHaveBeenCalled(); expect(db.user.findMany).not.toHaveBeenCalled();
+    expect(db.demand.findMany).not.toHaveBeenCalled();
+    expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { active: true, OR: [{ id: user.id }, { role: "GESTOR_GARRO" }] } }));
     expect(state.demands).toEqual([]); expect(state.deliverables).toEqual([]);
     expect(db.scheduleEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id, demandId: null }) }));
+    expect(db.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { responsibleId: user.id } }));
+    expect(db.customer.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { OR: [{ createdById: user.id }, { opportunities: { some: { responsibleId: user.id } } }] },
+    }));
   });
   it("nega dados comerciais ao editor e consulta somente suas atribuições", async () => {
     await loadPanelState({ ...user, role: "EDITOR" });
     expect(db.opportunity.findMany).not.toHaveBeenCalled();
     expect(db.customer.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { id: true, name: true } }));
     expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deliverables: { some: { editorId: user.id } } } }));
-    expect(db.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: user.id } }));
+    expect(db.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id }) }));
   });
 });

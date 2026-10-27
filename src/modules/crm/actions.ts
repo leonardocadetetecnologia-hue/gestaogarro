@@ -4,7 +4,8 @@ import { Prisma, type OpportunityStage } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit } from "@/lib/audit";
-import { requirePermission, requireUser } from "@/lib/auth";
+import { requirePermission, requireUser, type SessionUser } from "@/lib/auth";
+import { attendantOwnsCustomer, canAccessOpportunity } from "@/modules/crm/visibility";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import { OPEN_STAGES } from "@/lib/labels";
 import { parseMoney } from "@/lib/money";
@@ -13,6 +14,19 @@ import { isRedirectError, reject } from "@/lib/redirect";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
+}
+
+function customerAccess(id: string) {
+  return prisma.customer.findUnique({
+    where: { id },
+    select: { id: true, createdById: true, opportunities: { select: { responsibleId: true } } },
+  });
+}
+
+async function requireOwnOpportunity(user: SessionUser, id: string) {
+  const current = await prisma.opportunity.findUnique({ where: { id } });
+  if (!current || !canAccessOpportunity(user, current.responsibleId)) return null;
+  return current;
 }
 
 export async function saveDraft(entityType: string, entityId: string, content: Record<string, string>) {
@@ -39,7 +53,7 @@ export async function createOpportunity(formData: FormData) {
   const priority = text(formData, "priority");
   const waitingOn = text(formData, "waitingOn");
   const customer = customerId
-    ? await prisma.customer.findUnique({ where: { id: customerId } })
+    ? await customerAccess(customerId)
     : await prisma.customer.create({
         data: {
           name: customerName,
@@ -47,9 +61,10 @@ export async function createOpportunity(formData: FormData) {
           email: text(formData, "email") || null,
           company: text(formData, "company") || null,
           origin: text(formData, "origin") || null,
+          createdById: user.id,
         },
-      });
-  if (!customer) reject("/crm?novo=1", "Cliente não encontrado.");
+      }).then((row) => ({ ...row, opportunities: [] as { responsibleId: string }[] }));
+  if (!customer || !attendantOwnsCustomer(user, customer)) reject("/crm?novo=1", "Cliente não encontrado.");
 
   const opportunity = await prisma.opportunity.create({
     data: {
@@ -78,6 +93,7 @@ export async function addInteraction(formData: FormData) {
   const summary = text(formData, "summary");
   const channel = text(formData, "channel") || "Manual";
   if (!opportunityId || summary.length < 2) reject("/crm", "Descreva o contato.");
+  if (!await requireOwnOpportunity(user, opportunityId)) reject("/crm", "Oportunidade não encontrada. Atualize o CRM.");
   const occurredAt = parseSaoPaulo(text(formData, "occurredAt")) ?? new Date();
   const waitingOn = text(formData, "waitingOn");
   await prisma.$transaction([
@@ -106,8 +122,9 @@ export async function addInteraction(formData: FormData) {
 export async function moveOpportunity(id: string, stage: OpportunityStage) {
   const user = await requirePermission("crm");
   if (!OPEN_STAGES.includes(stage)) return { error: "Use o fechamento ou a perda para encerrar." };
-  const current = await prisma.opportunity.findUnique({ where: { id } });
-  if (!current || current.outcome !== "ABERTA") return { error: "Esta oportunidade já foi encerrada." };
+  const current = await requireOwnOpportunity(user, id);
+  if (!current) return { error: "Oportunidade não encontrada. Atualize o CRM." };
+  if (current.outcome !== "ABERTA") return { error: "Esta oportunidade já foi encerrada." };
   await prisma.opportunity.update({
     where: { id },
     data: { stage, lastActivityAt: new Date() },
@@ -122,6 +139,7 @@ export async function loseOpportunity(formData: FormData) {
   const lossReason = text(formData, "lossReason");
   const lossNote = text(formData, "lossNote");
   if (!id || lossReason.length < 3) reject(id ? `/crm/${id}?perder=1` : "/crm", "Informe o motivo da perda.");
+  if (!await requireOwnOpportunity(user, id)) reject(id ? `/crm/${id}?perder=1` : "/crm", "Oportunidade não encontrada. Atualize o CRM.");
   await prisma.opportunity.update({
     where: { id },
     data: {
@@ -162,7 +180,7 @@ export async function closeOpportunity(formData: FormData) {
         where: { id: opportunityId },
         include: { sale: { include: { demand: true } }, customer: true },
       });
-      if (!opportunity) throw new Error("Oportunidade não encontrada.");
+      if (!opportunity || !canAccessOpportunity(user, opportunity.responsibleId)) throw new Error("Oportunidade não encontrada.");
       if (opportunity.outcome === "PERDIDA") throw new Error("Oportunidade perdida não gera demanda.");
       if (opportunity.sale?.demand) return opportunity.sale.demand.id;
 
@@ -272,9 +290,13 @@ export async function saveCustomer(formData: FormData) {
     origin: text(formData, "origin") || null,
     notes: text(formData, "notes") || null,
   };
+  if (id) {
+    const existing = await customerAccess(id);
+    if (!existing || !attendantOwnsCustomer(user, existing)) reject("/clientes", "Contato não encontrado.");
+  }
   const customer = id
     ? await prisma.customer.update({ where: { id }, data })
-    : await prisma.customer.create({ data });
+    : await prisma.customer.create({ data: { ...data, createdById: user.id } });
   await audit(user.id, id ? "CUSTOMER_UPDATED" : "CUSTOMER_CREATED", "Customer", customer.id);
   revalidatePath("/clientes");
   redirect("/clientes");

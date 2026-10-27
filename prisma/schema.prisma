@@ -26,6 +26,7 @@ enum OpportunityStage {
   EM_NEGOCIACAO
   AGUARDANDO_CLIENTE
   FOLLOW_UP
+  EM_TRATATIVA
   FECHADO
   PERDIDO
 }
@@ -74,6 +75,7 @@ enum DeliverableStatus {
 
 enum ScheduleEventType {
   FOLLOW_UP
+  CONTATO_FUTURO
   REUNIAO
   RETORNO_ORCAMENTO
   ENTREGA_EDITOR
@@ -113,6 +115,7 @@ model User {
   notifications      Notification[]
   drafts             Draft[]
   auditLogs          AuditLog[]
+  customersCreated   Customer[] @relation("CustomerCreator")
 
   @@index([role, active])
 }
@@ -142,15 +145,18 @@ model Customer {
   email     String?
   company   String?
   origin    String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes       String?
+  createdById String?
+  createdBy   User?   @relation("CustomerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   opportunities Opportunity[]
   sales         Sale[]
   demands       Demand[]
 
   @@index([name])
+  @@index([createdById])
 }
 
 model Opportunity {
@@ -346,9 +352,17 @@ model Notification {
   message   String
   href      String?
   readAt    DateTime?
+  visibleAt DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt, createdAt])
+  @@index([userId, visibleAt, createdAt])
+}
+
+model KanbanLabel {
+  stage     String   @id
+  label     String
+  updatedAt DateTime @updatedAt
 }
 
 model Draft {

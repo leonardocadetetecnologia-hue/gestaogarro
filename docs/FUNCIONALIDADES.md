@@ -16,11 +16,21 @@ A tela identifica o campo como **Usuário**, usa entrada de texto e não sugere 
 - Clientes e leads têm filtros separados na tela de cadastros. Editar contato atualiza os dados gerais; o serviço pertence à oportunidade.
 - No cadastro de novo lead, Serviço de interesse é um seletor com os 11 serviços aprovados pela Garro, de Ensaio PESSOAL a Aluguel estúdio, incluindo ensaios, campanhas, captações, coberturas, consultoria, Workshop e Curso e mentoria para fotógrafos. Nomes e ordem seguem a lista solicitada. Rascunhos com serviços anteriormente digitados são preservados.
 
+## Banco de dados
+
+Menu exclusivo da Gestora. Reúne todos os leads e clientes que passaram pela Garro, mesmo quando o card saiu do Kanban. A lista mostra situação, origem, atendente e último registro. Os segmentos por origem servem para planejar uma campanha. Ao abrir um contato, o histórico segue a ordem dos fatos: cadastro, contatos e mudanças de etapa com data, autor e motivo, produção e entrega ao cliente.
+
 ## CRM
 
-Colunas: Lead → Follow-up → Sem interesse → Reunião agendada → Reunião realizada → Bolo → Fechado sem sucesso → Fechado com sucesso.
+Colunas: Lead → Tentativa de contato → Em tratativa → Sem interesse → Reunião agendada → Reunião realizada → Bolo → Fechado com sucesso → Fechado sem sucesso. A troca das duas últimas colunas é só visual.
 
-Sem interesse e Bolo permanecem etapas de acompanhamento, sem automações específicas. Fechado sem sucesso exige motivo. As colunas podem ser alteradas pelo seletor ou arrastando o card.
+Cada oportunidade fica com a atendente responsável. Uma atendente nova começa sem cards, clientes, follow-ups, histórico ou agenda da outra. A Gestora vê o Kanban das duas, com etiqueta do nome em cada card, na lista, no detalhe, nos follow-ups, no histórico e nos cadastros. O filtro Atendente mostra só uma delas. Essa separação é aplicada no servidor; a etiqueta não concede acesso.
+
+Em Configurações, a Gestora edita somente os nomes exibidos das colunas. A ordem e o significado de cada etapa não mudam, e os nomes não podem se repetir.
+
+Ao mover para Sem interesse, o sistema pergunta se deverá haver contato no futuro. Se a resposta for sim, a data pode ser em 30 dias, 60 dias ou outra data. O compromisso entra na agenda da atendente e na Agenda Global. A notificação só aparece na central no dia marcado. O card em Sem interesse tem **Editar contato futuro**.
+
+Fechado sem sucesso pede o motivo, a mesma pergunta de retorno e, quando há retorno, o responsável: a atendente daquele card ou a Gestora. A agenda e a notificação seguem a data e a pessoa escolhida. O card tem **Editar retorno**. Arrastar o card não conclui a mudança antes dessas respostas. No último dia do mês em que foi encerrado, o card sai dessa coluna. Na data de retorno combinada, volta sozinho para Lead, com a mesma atendente, para uma nova tentativa. Sem data de retorno, ele apenas sai da coluna no fim do mês. O histórico do motivo permanece. Bolo continua etapa de acompanhamento. As demais colunas mudam pelo seletor ou arrastando o card.
 
 Fechado com sucesso disponibiliza **Enviar para produção** no card e no painel de detalhes. Mover a oportunidade para essa coluna não cria demanda. O envio exige serviço contratado, valor fechado, briefing, prazo e entregáveis. Venda, demanda, entregáveis, agenda, histórico, auditoria e notificações são gravados na mesma transação. Envios concorrentes da mesma oportunidade retornam a demanda existente. Após o envio, a oportunidade permanece fechada e mostra o vínculo com a produção.
 
@@ -34,7 +44,9 @@ Em Relatórios, a Gestora consulta somente demandas concluídas na produção. O
 
 O cabeçalho destaca o nome da demanda, o cliente e, quando há uma venda vinculada, o serviço da oportunidade. O briefing fica no conteúdo da demanda. Cartões e listas identificam o trabalho pelo título e pelo cliente; códigos internos do banco não são exibidos nessas áreas. Demandas criadas diretamente não recebem um serviço inventado a partir do título.
 
-A Gestora pode criar **Nova demanda**, selecionando um cliente ou cadastrando um novo cliente no formulário. Essa operação cria demanda, entregáveis e compromisso sem inventar venda ou oportunidade; `saleId` fica vazio. Leads precisam de fechamento com sucesso antes de entrar em produção.
+A Gestora pode criar **Nova demanda**, selecionando um cliente ou cadastrando um novo cliente no formulário. Dentro de um projeto já aberto, o mesmo botão cria outra demanda para aquele cliente e a inclui na lista de demandas dele, sem copiar briefing nem entregáveis. O cliente continua fixo; título, briefing, prazo e entregáveis são informados de novo. Essa operação cria demanda, entregáveis e compromisso sem inventar venda ou oportunidade; `saleId` fica vazio. Leads precisam de fechamento com sucesso antes de entrar em produção. Um cliente pode ter várias demandas ao mesmo tempo.
+
+A ordem dos entregáveis é a da criação e não muda quando a Gestora atribui, aprova ou corrige um item. **Editar** altera nome, briefing, prazo do cliente e referência em qualquer etapa. **Novo**, na lista de entregáveis, inclui um item no final do mesmo projeto. Se o projeto já estava aprovado ou entregue, ele volta a indicar que há trabalho pendente, sem reordenar os itens anteriores.
 
 A Gestora atribui cada entregável a um editor ativo ou a si mesma, com prazo de edição e revisão opcional. A atribuição atualiza os eventos, a notificação e a auditoria na mesma transação. Em **Meus trabalhos**, a Gestora inicia sua edição e envia para revisão mantendo seu perfil administrativo.
 

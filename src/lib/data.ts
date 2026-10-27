@@ -1,18 +1,27 @@
 export type Role = "GESTOR_GARRO" | "ATENDENTE" | "EDITOR";
-export type Stage = "Lead" | "Follow-up" | "Sem interesse" | "Reunião agendada" | "Reunião realizada" | "Bolo" | "Fechado sem sucesso" | "Fechado com sucesso";
+export type Stage = "Lead" | "Tentativa de contato" | "Em tratativa" | "Sem interesse" | "Reunião agendada" | "Reunião realizada" | "Bolo" | "Fechado sem sucesso" | "Fechado com sucesso";
 export type ProductionStatus = "Nova demanda" | "Planejamento" | "Em produção" | "Em revisão" | "Correção" | "Aprovada" | "Entregue";
 export type TaskStatus = "A iniciar" | "Em edição" | "Em revisão" | "Correção" | "Aprovado";
-export type Customer = {id:string;kind?:"LEAD"|"CLIENTE";name:string;phone:string;email:string;origin:string;company:string;city:string;service:string;notes:string};
-export type Opportunity = {id:string;customerId:string;service?:string;demandId?:string;stage:Stage;value:number|null;priority:"Alta"|"Média"|"Baixa";lastActivity:string;waitingSince?:string;waitingOn:"atendente"|"cliente"|"nenhum";nextAction:string;nextAt?:string;history:{at:string;description:string}[]};
+export type Customer = {id:string;kind?:"LEAD"|"CLIENTE";name:string;phone:string;email:string;origin:string;company:string;city:string;service:string;notes:string;attendantId?:string;attendantName?:string;createdAt?:string};
+export type Opportunity = {id:string;customerId:string;service?:string;demandId?:string;responsibleId?:string;responsibleName?:string;stage:Stage;value:number|null;priority:"Alta"|"Média"|"Baixa";lastActivity:string;waitingSince?:string;waitingOn:"atendente"|"cliente"|"nenhum";nextAction:string;nextAt?:string;lostAt?:string;lossReason?:string;returnResponsibleId?:string;returnResponsibleName?:string;history:{at:string;description:string;author?:string}[]};
+export type Assignee = {id:string;name:string;role:Role};
 export type Editor = {id:string;name:string;email:string;active:boolean;role?:Role};
 export type ScriptAttachment = {id:string;fileName:string;size:number;createdAt:string};
-export type Deliverable = {id:string;demandId:string;title:string;script?:string;attachments?:ScriptAttachment[];editorId:string;status:TaskStatus;editorDue:string;reviewDue:string;clientDue:string;progress:number;editorDeliveredAt?:string;managerApprovedAt?:string};
+export type Deliverable = {id:string;demandId:string;title:string;script?:string;attachments?:ScriptAttachment[];editorId:string;status:TaskStatus;editorDue:string;reviewDue:string;clientDue:string;progress:number;editorDeliveredAt?:string;managerApprovedAt?:string;clientDeliveredAt?:string};
 export type Message = {id:string;demandId:string;author:string;role:Role;message:string;createdAt:string};
 export type Demand = {id:string;customerId:string;title:string;service?:string;description:string;status:ProductionStatus;clientDue:string;briefing:string;links:string;createdAt:string;messages:Message[]};
 export type ScheduleItem = {id:string;title:string;category:"Comercial"|"Editor"|"Revisão"|"Cliente"|"Gestão";userId:string;at:string;customerId?:string;demandId?:string;opportunityId?:string;deliverableId?:string;done?:boolean;status?:"Pendente"|"Concluído"|"Cancelado";responsibleName?:string;responsibleRole?:Role;customerName?:string;typeLabel?:string;origin?:"CRM"|"Produção"|"Agenda";context?:string;createdAt?:string};
-export type Alert = {id:string;userId:string;title:string;detail:string;at:string;read:boolean;demandId?:string};
-export type State = {customers:Customer[]; opportunities:Opportunity[]; editors:Editor[]; demands:Demand[]; deliverables:Deliverable[]; schedule:ScheduleItem[]; alerts:Alert[]};
-export const stages: Stage[] = ["Lead","Follow-up","Sem interesse","Reunião agendada","Reunião realizada","Bolo","Fechado sem sucesso","Fechado com sucesso"];
+export type Alert = {id:string;userId:string;title:string;detail:string;at:string;read:boolean;demandId?:string;href?:string};
+export type State = {customers:Customer[]; opportunities:Opportunity[]; editors:Editor[]; demands:Demand[]; deliverables:Deliverable[]; schedule:ScheduleItem[]; alerts:Alert[]; kanbanLabels?: Partial<Record<Stage, string>>; assignees?: Assignee[]};
+export const stages: Stage[] = ["Lead","Tentativa de contato","Em tratativa","Sem interesse","Reunião agendada","Reunião realizada","Bolo","Fechado sem sucesso","Fechado com sucesso"];
+export const stageLabel = (stage: Stage, labels?: Partial<Record<Stage, string>>) => labels?.[stage]?.trim() || stage;
+export function kanbanLabelsFrom(saved: { stage: string; label: string }[]) {
+  const labels = Object.fromEntries(stages.map(stage => [stage, stage])) as Record<Stage, string>;
+  for (const row of saved) {
+    if ((stages as string[]).includes(row.stage) && row.label.trim()) labels[row.stage as Stage] = row.label.trim();
+  }
+  return labels;
+}
 export const productionStages: ProductionStatus[] = ["Nova demanda","Planejamento","Em produção","Em revisão","Correção","Aprovada","Entregue"];
 export const relativeDate = (offsetHours: number) => new Date(Date.now() + offsetHours * 3600000).toISOString();
 export const currency = (value:number|null|undefined) => value === null || value === undefined ? "Valor não definido" : new Intl.NumberFormat("pt-BR", {style:"currency",currency:"BRL",maximumFractionDigits:2}).format(value);

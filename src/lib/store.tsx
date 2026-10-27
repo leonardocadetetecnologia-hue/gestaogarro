@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role, Customer, Opportunity, Stage, TaskStatus, State } from "./data";
+type FutureInput = { futureContact: "sim" | "nao"; futureAt: string; responsibleId?: string; reason?: string };
 import { mutateCrmPanel, mutateProductionPanel, refreshPanel } from "@/modules/painel/actions";
 import type { CrmCommand } from "@/modules/painel/crm-service";
 import type { ProductionCommand } from "@/modules/painel/production-service";
@@ -15,9 +16,14 @@ type Ctx = {
   addCustomer: (c: Customer, value: number | null) => Save;
   addOpportunity: (customerId: string, service: string) => Save;
   updateOpportunityValue: (id: string, value: number | null) => Save;
-  createDemand: (input: DirectDemandInput) => Save;
-  moveOpportunity: (id: string, stage: Stage) => Save;
-  loseOpportunity: (id: string, reason: string) => Save;
+  createDemand: (input: DirectDemandInput) => Promise<string | false>;
+  updateDemand: (input: { id: string; title: string; description: string; due: string; links: string }) => Save;
+  addDeliverable: (demandId: string, title: string) => Save;
+  renameDeliverable: (id: string, title: string) => Save;
+  moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
+  loseOpportunity: (id: string, input: { reason: string; futureContact: "sim" | "nao"; futureAt: string; responsibleId: string }) => Save;
+  saveFutureContact: (id: string, input: FutureInput) => Save;
+  saveKanbanLabels: (labels: { stage: Stage; label: string }[]) => Save;
   recordContact: (id: string, summary: string, waitingOn: Opportunity["waitingOn"], nextAction: string, nextAt: string) => Save;
   closeSale: (id: string, input: Closing) => Save;
   sendMessage: (id: string, message: string) => Save;
@@ -56,40 +62,50 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     return () => { window.removeEventListener("focus", handleFocus); window.clearInterval(timer); };
   }, [refresh]);
 
-  async function save(command: CrmCommand | ProductionCommand, production = false): Save {
-    if (busyRef.current) return false;
+  async function save(command: CrmCommand | ProductionCommand, production = false) {
+    if (busyRef.current) return { ok: false as const };
     busyRef.current = true; revision.current += 1; setBusy(true); setError(""); setNotice("");
     try {
       const result = await (production ? mutateProductionPanel(command) : mutateCrmPanel(command));
-      if ("error" in result) { setError(result.error || "Não foi possível salvar."); return false; }
+      if ("error" in result) { setError(result.error || "Não foi possível salvar."); return { ok: false as const }; }
       setState(result.state);
       if (command.kind === "send") setNotice("Enviado para produção. A demanda está disponível para a Gestora.");
-      return true;
-    } catch { setError("Não foi possível salvar. Confira sua conexão e tente novamente."); return false; }
+      const createdId = "createdId" in result && typeof result.createdId === "string" ? result.createdId : undefined;
+      return { ok: true as const, createdId };
+    } catch { setError("Não foi possível salvar. Confira sua conexão e tente novamente."); return { ok: false as const }; }
     finally { busyRef.current = false; setBusy(false); }
   }
+  const done = (work: ReturnType<typeof save>): Save => work.then((result) => result.ok);
 
   const value: Ctx = {
     state, role, ready: true, activeEditorId: userId, userName, busy, error,
-    updateCustomer: customer => save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD" } }),
-    addCustomer: (customer, amount) => save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD" }, value: amount }),
-    addOpportunity: (customerId, service) => save({ kind: "createOpportunity", customerId, service }),
-    updateOpportunityValue: (id, amount) => save({ kind: "value", id, value: amount }),
-    createDemand: input => save({ kind: "createDemand", input }, true),
-    moveOpportunity: (id, stage) => save({ kind: "move", id, stage }),
-    loseOpportunity: (id, reason) => save({ kind: "lose", id, reason }),
-    recordContact: (id, summary, waitingOn, nextAction, nextAt) => save({ kind: "contact", id, summary, waitingOn, nextAction, nextAt }),
-    closeSale: (opportunityId, input) => save({ kind: "send", submission: {
+    updateCustomer: customer => done(save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD" } })),
+    addCustomer: (customer, amount) => done(save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD" }, value: amount })),
+    addOpportunity: (customerId, service) => done(save({ kind: "createOpportunity", customerId, service })),
+    updateOpportunityValue: (id, amount) => done(save({ kind: "value", id, value: amount })),
+    createDemand: async input => {
+      const result = await save({ kind: "createDemand", input }, true);
+      return result.ok && result.createdId ? result.createdId : false;
+    },
+    updateDemand: input => done(save({ kind: "updateDemand", input }, true)),
+    addDeliverable: (demandId, title) => done(save({ kind: "addDeliverable", input: { demandId, title } }, true)),
+    renameDeliverable: (id, title) => done(save({ kind: "renameDeliverable", input: { id, title } }, true)),
+    moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),
+    loseOpportunity: (id, input) => done(save({ kind: "lose", id, ...input })),
+    saveFutureContact: (id, input) => done(save({ kind: "futureContact", id, futureContact: input.futureContact, futureAt: input.futureAt, responsibleId: input.responsibleId || "", reason: input.reason || "" })),
+    saveKanbanLabels: labels => done(save({ kind: "kanbanLabels", labels })),
+    recordContact: (id, summary, waitingOn, nextAction, nextAt) => done(save({ kind: "contact", id, summary, waitingOn, nextAction, nextAt })),
+    closeSale: (opportunityId, input) => done(save({ kind: "send", submission: {
       opportunityId, title: input.title, description: input.description, amount: input.amount,
       due: input.due, deliverables: input.deliverables.split("\n").map(t => t.trim()).filter(Boolean),
-    } }),
-    sendMessage: (id, message) => save({ kind: "message", id, message }, true),
-    setTaskStatus: (id, status) => save({ kind: "status", id, status }, true),
-    saveTaskScript: (id, script, previous) => save({ kind: "script", input: { id, script, previous } }, true),
-    markDelivered: id => save({ kind: "delivered", id }, true),
-    assignEditor: (id, editorId, editorDue, reviewDue) => save({ kind: "assign", id, editorId, editorDue, reviewDue }, true),
-    updateTaskDue: (id, field, input) => save({ kind: "due", id, field, value: input }, true),
-    readAlert: id => save({ kind: "read", id }, true),
+    } })),
+    sendMessage: (id, message) => done(save({ kind: "message", id, message }, true)),
+    setTaskStatus: (id, status) => done(save({ kind: "status", id, status }, true)),
+    saveTaskScript: (id, script, previous) => done(save({ kind: "script", input: { id, script, previous } }, true)),
+    markDelivered: id => done(save({ kind: "delivered", id }, true)),
+    assignEditor: (id, editorId, editorDue, reviewDue) => done(save({ kind: "assign", id, editorId, editorDue, reviewDue }, true)),
+    updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, true)),
+    readAlert: id => done(save({ kind: "read", id }, true)),
   };
   return <Context.Provider value={value}>
     {(error || notice) && <div className={`panel-feedback ${error ? "panel-feedback-error" : ""}`} role={error ? "alert" : "status"}>

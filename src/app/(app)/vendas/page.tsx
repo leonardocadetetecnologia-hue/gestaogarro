@@ -2,10 +2,12 @@ import { requirePermission } from "@/lib/auth";
 import { formatSaoPaulo } from "@/lib/deadlines";
 import { formatBRL } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { saleScope } from "@/modules/crm/visibility";
 
 export default async function SalesPage() {
-  await requirePermission("commercial.values");
+  const user = await requirePermission("commercial.values");
   const sales = await prisma.sale.findMany({
+    where: saleScope(user),
     include: { customer: true, demand: true },
     orderBy: { closedAt: "desc" },
   });

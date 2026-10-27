@@ -3,11 +3,15 @@
 | Operação | Gestora | Atendente | Editor |
 | --- | --- | --- | --- |
 | Cadastrar/editar leads e clientes | Sim | Sim | Não |
-| Criar oportunidade e movimentar CRM | Sim | Sim | Não |
+| Criar oportunidade e movimentar CRM | Sim | Sim, somente as próprias | Não |
+| Ver Kanban, clientes, follow-ups, histórico e agenda de outra atendente | Sim, com o nome da atendente | Não | Não |
 | Definir, editar ou limpar valor de oportunidade | Sim | Sim | Não |
 | Enviar fechamento com sucesso para produção | Sim | Sim | Não |
 | Criar demanda diretamente para cliente | Sim | Não | Não |
+| Renomear colunas do Kanban | Sim | Não | Não |
+| Editar demanda e incluir entregável em qualquer etapa | Sim | Não | Não |
 | Ver todas as demandas | Sim | Não | Não |
+| Banco de dados de leads e clientes | Sim | Não | Não |
 | Ver/executar entregáveis próprios | Sim | Não | Sim |
 | Consultar Script do entregável | Todos | Não | Apenas atribuições próprias |
 | Editar/salvar Script do entregável | Sim | Não | Não |

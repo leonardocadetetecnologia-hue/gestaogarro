@@ -13,9 +13,13 @@
 As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [FUNCIONALIDADES.md](docs/FUNCIONALIDADES.md), com [permissões](docs/MATRIZ_DE_PERMISSOES.md) e [validação](docs/TESTES_E_QUALIDADE.md). Estas alterações substituem o fluxo comercial original descrito abaixo:
 
 - Lead é contato comercial; cliente já contratou. Cadastro de cliente não cria lead. Novas oportunidades reutilizam contatos existentes.
-- CRM: Lead, Follow-up, Sem interesse, Reunião agendada, Reunião realizada, Bolo, Fechado sem sucesso, Fechado com sucesso.
+- CRM: Lead, Tentativa de contato, Em tratativa, Sem interesse, Reunião agendada, Reunião realizada, Bolo, Fechado com sucesso, Fechado sem sucesso. No quadro, Fechado com sucesso fica na penúltima coluna e Fechado sem sucesso na última; essa troca é só visual. A Gestora pode renomear essas colunas em Configurações, sem alterar a ordem nem as regras.
+- Fechado sem sucesso sai do quadro no último dia daquele mês. Se houver data de retorno, a oportunidade volta para Lead nessa data, com a mesma atendente, para nova tentativa.
+- A Gestora tem o menu Banco de dados, com todos os leads e clientes e o histórico do Kanban até a entrega. Atendente e editor não acessam essa visão.
 - Fechado com sucesso converte o contato para cliente. A demanda nasce somente pela ação explícita Enviar para produção, com dados validados e gravação transacional.
 - A Gestora também cria demandas diretamente para clientes existentes ou novos, sem venda fictícia.
+- Desde 27/10/2026, a ordem dos entregáveis é a da criação e não muda ao atribuir, aprovar ou corrigir. A Gestora edita nome, briefing, prazo e referência em qualquer etapa e inclui um entregável novo no final do mesmo projeto.
+- Desde 27/10/2026, cada atendente vê somente os próprios atendimentos. Uma conta nova não herda o Kanban da outra. A Gestora vê os dois Kanbans, com o nome da atendente em cada item e ação.
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.
@@ -482,6 +486,7 @@ Restrições:
 - Não alterar revisão de materiais.
 - Não consultar a Agenda Global.
 - Não gerenciar usuários.
+- Não consultar clientes, oportunidades, valores, follow-ups, histórico ou agenda de outra atendente.
 
 ### EDITOR
 
