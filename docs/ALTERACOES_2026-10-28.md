@@ -114,6 +114,12 @@ O que muda: em Entregues, Exportar seleção e o clique numa entrega abrem a mes
 
 Como: a seleção consulta o extrato dessas demandas e entrega a lista para a janela que já existia.
 
+## Função da atendente
+
+O que muda: em Demandas, a Gestora atribui uma função isolada a uma atendente, com data limite. O prazo aparece na agenda como compromisso. A atendente conclui. Só a Gestora exclui o que criou. Na agenda, a atendente cria compromisso pessoal da semana ou do mês e só ela exclui esse.
+
+Como: a função é um compromisso novo, sem vínculo com a demanda de produção. O aviso chega para a atendente na hora. O compromisso pessoal não avisa ninguém.
+
 ## Conferência
 
-215 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.
+218 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.

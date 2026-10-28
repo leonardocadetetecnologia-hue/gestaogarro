@@ -39,6 +39,10 @@ type Ctx = {
   readAlert: (id: string) => Save;
   readSelectedAlerts: (ids: string[]) => Save;
   readAllAlerts: () => Save;
+  assignAttendantTask: (input: { assigneeId: string; title: string; date: string; time: string }) => Save;
+  createPersonalTask: (input: { title: string; date: string; time: string }) => Save;
+  deleteAttendantTask: (id: string) => Save;
+  completeAttendantTask: (id: string) => Save;
 };
 const Context = createContext<Ctx | null>(null);
 
@@ -117,6 +121,10 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     readAlert: id => done(save({ kind: "read", id }, true)),
     readSelectedAlerts: ids => done(save({ kind: "readSelected", ids }, true)),
     readAllAlerts: () => done(save({ kind: "readAll" }, true)),
+    assignAttendantTask: input => done(save({ kind: "attendantTask", ...input }, true)),
+    createPersonalTask: input => done(save({ kind: "personalTask", ...input }, true)),
+    deleteAttendantTask: id => done(save({ kind: "deleteAttendantTask", id }, true)),
+    completeAttendantTask: id => done(save({ kind: "completeAttendantTask", id }, true)),
   };
   return <Context.Provider value={value}>
     {(error || notice) && <div className={`panel-feedback ${error ? "panel-feedback-error" : ""}`} role={error ? "alert" : "status"}>

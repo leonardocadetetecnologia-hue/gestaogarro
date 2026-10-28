@@ -11,6 +11,7 @@ import { BoardScroll } from "./board-scroll";
 import { DeliverableStatusBar } from "./deliverable-status";
 import { DeliveredArchive } from "./delivered-archive";
 import { NewDemandModal } from "./new-demand";
+import { AttendantTasks } from "./attendant-tasks";
 import { Badge, Deadline, Empty, SearchBox, ViewTitle } from "./Ui";
 
 function statusTone(status: string) {
@@ -57,6 +58,7 @@ export function ProductionBoard({
 
   return <div className="workspace">
     <ViewTitle eyebrow="GESTÃO / PRODUÇÃO" title="Demandas de Produção" description="Organize entregas, editores, revisão e compromissos com clientes." actions={<button className="button primary" onClick={() => setNewOpen(true)}><Plus size={16} />Nova demanda</button>} />
+    {role === "GESTOR_GARRO" && <AttendantTasks />}
     <div className="board-toolbar">
       <div className="toolbar-start">
         <div className="segmented">

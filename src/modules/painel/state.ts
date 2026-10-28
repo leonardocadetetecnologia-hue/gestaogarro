@@ -80,12 +80,13 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     prisma.scheduleEvent.findMany({
       where: user.role === "GESTOR_GARRO" ? {} : {
         userId: user.id,
-        ...(user.role === "ATENDENTE" ? { demandId: null, type: { in: ["FOLLOW_UP", "CONTATO_FUTURO", "REUNIAO", "RETORNO_ORCAMENTO"] } } : {}),
+        ...(user.role === "ATENDENTE" ? { demandId: null, type: { in: ["FOLLOW_UP", "CONTATO_FUTURO", "REUNIAO", "RETORNO_ORCAMENTO", "TAREFA_ATENDENTE"] } } : {}),
         ...(user.role === "EDITOR" ? { OR: [{ demandId: null }, { demand: { deliverables: { some: { editorId: user.id } } } }] } : {}),
       },
       orderBy: { dueAt: "asc" },
       include: {
         user: { select: { name: true, role: true } },
+        createdBy: { select: { id: true, role: true } },
         demand: { select: { title: true, description: true, customer: { select: { name: true } } } },
         deliverable: { select: { title: true, description: true } },
       },
@@ -165,7 +166,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
         }));
     }),
     schedule: [...schedule.map((e): ScheduleItem => ({
-      id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.demandId ? "Gestão" : "Comercial",
+      id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.type === "TAREFA_ATENDENTE" || e.demandId ? "Gestão" : "Comercial",
       userId: e.userId, at: e.dueAt.toISOString(), demandId: e.demandId || undefined, done: e.status !== "PENDENTE",
       opportunityId: e.opportunityId || undefined, deliverableId: e.deliverableId || undefined,
       responsibleName: e.user.name,
@@ -176,7 +177,10 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       typeLabel: {
         FOLLOW_UP: "Follow-up", CONTATO_FUTURO: "Contato futuro", REUNIAO: "Reunião", RETORNO_ORCAMENTO: "Retorno de orçamento", ENTREGA_EDITOR: "Entrega do editor",
         REVISAO_GARRO: "Revisão Garro", ENTREGA_CLIENTE: "Entrega ao cliente", CORRECAO: "Correção", GRAVACAO: "Gravação", EVENTO: "Evento", INTERNO: "Compromisso interno",
+        TAREFA_ATENDENTE: e.createdBy?.role === "ATENDENTE" ? "Compromisso pessoal" : "Função da atendente",
       }[e.type],
+      createdById: e.createdBy?.id,
+      assignment: e.type === "TAREFA_ATENDENTE" ? (e.createdBy?.role === "ATENDENTE" ? "pessoal" : "gestora") : undefined,
       status: e.status === "PENDENTE" ? "Pendente" : e.status === "CANCELADO" ? "Cancelado" : "Concluído",
       createdAt: e.createdAt.toISOString(),
     })), ...birthdayReminders(customers, user.role)],

@@ -6,6 +6,7 @@ import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, Search, 
 import { agendaDayKey, agendaOriginLink, agendaTiming, calendarDays, nextCalendarFocus, type AgendaMode } from "@/lib/agenda";
 import { dateFull, type ScheduleItem } from "@/lib/data";
 import { useGarro } from "@/lib/store";
+import { AttendantTaskActions, PersonalTaskButton } from "./attendant-tasks";
 import { Empty, Metric, Modal, ViewTitle } from "./Ui";
 import styles from "./agenda.module.css";
 
@@ -58,7 +59,7 @@ export function AgendaView() {
   const listGroups = [...new Set(items.map(e => agendaDayKey(e.at)))];
 
   return <div className={`workspace ${styles.workspace}`}>
-    <ViewTitle eyebrow="PRAZOS / COMPROMISSOS" title={role === "GESTOR_GARRO" ? "Agenda Global" : role === "ATENDENTE" ? "Agenda Comercial" : "Minha Agenda"} description="Compromissos claros, responsáveis e acesso ao registro de origem."/>
+    <ViewTitle eyebrow="PRAZOS / COMPROMISSOS" title={role === "GESTOR_GARRO" ? "Agenda Global" : role === "ATENDENTE" ? "Agenda Comercial" : "Minha Agenda"} description="Compromissos claros, responsáveis e acesso ao registro de origem." actions={<PersonalTaskButton />}/>
     <div className={`metric-grid three ${styles.metrics}`}>
       <Metric name="Compromissos pendentes" value={allowed.filter(e => !e.done).length}/>
       <Metric name="Atrasados" value={allowed.filter(e => !e.done && new Date(e.at).getTime() < Date.now()).length}/>
@@ -112,7 +113,7 @@ export function AgendaView() {
           {event.createdAt && <div><dt>Registro criado em</dt><dd>{dateFull(event.createdAt)}</dd></div>}
         </dl>
         {event.context && <div className={styles.context}><h4>Contexto do atendimento ou projeto</h4><p>{event.context}</p></div>}
-        <div className="modal-footer"><button type="button" className="button secondary" onClick={() => setSelected(null)}>Fechar detalhes</button>{origin && <Link className="button primary" href={origin.href} onClick={() => setSelected(null)}>{origin.label}<ArrowUpRight size={17}/></Link>}</div>
+        <div className="modal-footer"><button type="button" className="button secondary" onClick={() => setSelected(null)}>Fechar detalhes</button><AttendantTaskActions event={event} onDone={() => setSelected(null)} />{origin && <Link className="button primary" href={origin.href} onClick={() => setSelected(null)}>{origin.label}<ArrowUpRight size={17}/></Link>}</div>
       </div>
     </Modal>}
   </div>;

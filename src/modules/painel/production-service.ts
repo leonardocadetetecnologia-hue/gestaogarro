@@ -8,6 +8,7 @@ import { assignManyDeliverables } from "@/modules/production/assignment-service"
 import { createDirectDemand, directDemandSchema } from "@/modules/production/create-demand";
 import { addDeliverable, addDeliverableSchema, deliveryLinksInputSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDeliveryLinks, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
 import { saveDeliverableScript, taskScriptSchema } from "@/modules/production/script-service";
+import { assignAttendantTask, completeAttendantTask, createPersonalTask, deleteAttendantTask } from "@/modules/production/attendant-task";
 
 const id = z.string().min(1).max(80);
 const schema = z.discriminatedUnion("kind", [
@@ -27,6 +28,10 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("read"), id }),
   z.object({ kind: z.literal("readSelected"), ids: z.array(id).min(1, "Escolha ao menos uma notificação.").max(100, "Selecione no máximo as notificações visíveis.") }),
   z.object({ kind: z.literal("readAll") }),
+  z.object({ kind: z.literal("attendantTask"), assigneeId: id, title: z.string().trim().min(1, "Informe a função.").max(160), date: z.string(), time: z.string().max(5) }),
+  z.object({ kind: z.literal("personalTask"), title: z.string().trim().min(1, "Informe o compromisso.").max(160), date: z.string(), time: z.string().max(5) }),
+  z.object({ kind: z.literal("deleteAttendantTask"), id }),
+  z.object({ kind: z.literal("completeAttendantTask"), id }),
 ]);
 export type ProductionCommand = z.infer<typeof schema>;
 
@@ -41,6 +46,10 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "addDeliverable") return addDeliverable(user, input.input);
   if (input.kind === "renameDeliverable") return renameDeliverable(user, input.input);
   if (input.kind === "script") return saveDeliverableScript(user, input.input);
+  if (input.kind === "attendantTask") return assignAttendantTask(user, input);
+  if (input.kind === "personalTask") return createPersonalTask(user, input);
+  if (input.kind === "deleteAttendantTask") return deleteAttendantTask(user, input.id);
+  if (input.kind === "completeAttendantTask") return completeAttendantTask(user, input.id);
   if (input.kind === "read" || input.kind === "readSelected" || input.kind === "readAll") {
     const now = new Date();
     await prisma.notification.updateMany({

@@ -91,6 +91,7 @@ enum ScheduleEventType {
   GRAVACAO
   EVENTO
   INTERNO
+  TAREFA_ATENDENTE
 }
 
 enum EventStatus {
@@ -117,7 +118,8 @@ model User {
   messages           DemandMessage[]
   uploadedFiles      DemandFile[]
   scriptAttachments ScriptAttachment[]
-  events             ScheduleEvent[]
+  events             ScheduleEvent[] @relation("ScheduleOwner")
+  authoredEvents     ScheduleEvent[] @relation("ScheduleAuthor")
   notifications      Notification[]
   drafts             Draft[]
   auditLogs          AuditLog[]
@@ -335,7 +337,9 @@ model DemandFile {
 model ScheduleEvent {
   id            String            @id @default(cuid())
   userId        String
-  user          User              @relation(fields: [userId], references: [id])
+  user          User              @relation("ScheduleOwner", fields: [userId], references: [id])
+  createdById   String?
+  createdBy     User?             @relation("ScheduleAuthor", fields: [createdById], references: [id])
   demandId      String?
   demand        Demand?           @relation(fields: [demandId], references: [id])
   opportunityId String?

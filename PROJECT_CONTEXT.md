@@ -28,6 +28,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Desde 28/10/2026, o Kanban da Gestora tem três visões: operação, valores por coluna e categorias por coluna. A atendente permanece na visão de cards.
 - Desde 28/10/2026, em Relatórios a Gestora ajusta o extrato numa janela: escolhe as entregas, edita o texto de cada item já nomeado, define a data ou deixa sem data, vê a prévia e gera um PDF só ou um para cada entrega. Inserir observação acrescenta um texto; outra observação, mais um. O clique no vazio não cria item. Exportar seleção, no histórico de entregues, abre essa mesma janela.
 - Desde 28/10/2026, a Visão geral da Gestora mostra duas pizzas coloridas: demandas por etapa e comercial por etapa. Fatia sem quantidade não entra.
+- Desde 28/10/2026, na página Demandas a Gestora atribui função isolada à atendente, com data limite. O prazo vira compromisso na agenda. Só a Gestora exclui essa função. A atendente cria compromisso pessoal na agenda e só ela exclui o pessoal.
 - Desde 28/10/2026, a agenda é mais compacta, com zoom leve. A tag Atrasado e a tag Próximo do atraso, nas seis horas anteriores ao horário, usam o terracota da marca.
 - Desde 28/10/2026, as colunas do kanban comercial e do de produção dividem a largura útil: todas as etapas ficam na tela, sem sobra e sem rolagem lateral. O texto permanece dentro da coluna.
 - Desde 28/10/2026, o sino abre as não lidas numa janela. Limpar uma ou limpar todas marca como lida. A página Notificações guarda o histórico.
