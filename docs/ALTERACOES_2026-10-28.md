@@ -78,6 +78,12 @@ O que muda: a agenda mostra mais compromissos na mesma página, com quadros e ti
 
 Como: a densidade padrão foi reduzida e o zoom só multiplica esse tamanho. O mês lista todos os compromissos do dia, sem cortar em três. O prazo é o horário do próprio compromisso, em Brasília.
 
+## Relatório com prévia
+
+O que muda: em Relatórios, Gerar PDF abre uma janela. A Gestora escolhe as entregas, edita o texto, tira o que não quer, informa a data ou deixa sem data e, se quiser, escreve uma observação. Pode ser um relatório só ou um para cada entrega. A prévia aparece antes do PDF. O registro da demanda não muda.
+
+Como: a janela parte das entregas já filtradas. Cada campo tem uma caixa. Sem data tira a data só do documento. O PDF imprime a prévia, com uma página para cada entrega quando essa opção está marcada.
+
 ## Conferência
 
 166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.

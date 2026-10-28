@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FileDown } from "lucide-react";
 import { GarroBrand } from "./garro-brand";
+import { StatementEditor } from "./statement-editor";
 import { formatDeliveredAt, periodEnding, type StatementGroup, type StatementSection } from "@/modules/reports/delivery-statement";
 
 type StatementResponse = {
@@ -25,6 +26,7 @@ export function DeliveryStatement() {
   const [statement, setStatement] = useState<StatementResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams({ group });
@@ -55,19 +57,6 @@ export function DeliveryStatement() {
     return () => controller.abort();
   }, [base, customerId, service, group, span, month, from, to]);
 
-  function openPdf() {
-    const params = new URLSearchParams({ group, imprimir: "1" });
-    if (customerId) params.set("customerId", customerId);
-    if (service) params.set("service", service);
-    if (span === "month") {
-      if (month) params.set("month", month);
-    } else {
-      if (from) params.set("from", from);
-      if (to) params.set("to", to);
-    }
-    window.open(`${base}/painel/extrato?${params}`, "_blank", "noopener");
-  }
-
   function changeSpan(value: string) {
     setSpan(value);
     if (value === "all" || value === "month" || value === "custom") {
@@ -90,7 +79,7 @@ export function DeliveryStatement() {
           <h2>Extrato de entregas</h2>
           <span>Somente demandas concluídas na produção. O documento descreve o que foi entregue e quando.</span>
         </div>
-        <button className="button primary" type="button" onClick={openPdf} disabled={loading || statement?.total === 0}>
+        <button className="button primary" type="button" onClick={() => setEditorOpen(true)} disabled={loading || statement?.total === 0}>
           <FileDown size={16} />Gerar PDF
         </button>
       </div>
@@ -167,6 +156,7 @@ export function DeliveryStatement() {
           </article>
         ))}
       </div>
+      {editorOpen && statement && <StatementEditor activities={statement.sections.flatMap((section) => section.activities)} onClose={() => setEditorOpen(false)} />}
     </section>
   );
 }

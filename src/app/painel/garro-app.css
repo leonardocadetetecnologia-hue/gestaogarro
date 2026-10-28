@@ -238,6 +238,25 @@
 .statement-sheet article>p:last-child{grid-column:1/-1}
 .statement-sheet time{color:#87786e;font-size:12px}
 .statement-sheet footer{margin-top:28px;padding-top:12px;border-top:1px solid #eaded2;color:#87786e;font-size:11px}
+.statement-editor{display:grid;gap:16px}
+.statement-drafts{display:grid;gap:10px;max-height:42vh;overflow:auto;padding-right:2px}
+.statement-draft{display:grid;gap:8px;padding:12px;border:1px solid #eaded2;border-radius:10px;background:#fffdfa}
+.statement-draft .statement-line{display:grid;gap:8px;padding-top:8px;border-top:1px solid #f0e6dc}
+.statement-field{display:grid;gap:6px}
+.statement-field input,.statement-field textarea,.statement-draft>textarea{width:100%;border:1px solid #dacbbd;border-radius:7px;background:#fffcf9;padding:8px 10px;font-size:12px}
+.statement-flag{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6d5143}
+.statement-flag input{width:15px;height:15px;margin:0;accent-color:var(--accent)}
+.statement-preview{display:grid;gap:16px}
+.statement-preview .statement-sheet{margin:0}
+@media print{
+  body.garro-statement-print .workspace>:not(.statement-panel),
+  body.garro-statement-print .statement-panel>:not(.modal-backdrop),
+  body.garro-statement-print .modal-head,
+  body.garro-statement-print .statement-editor-ui{display:none!important}
+  body.garro-statement-print .modal-backdrop{position:static;background:transparent;backdrop-filter:none;padding:0}
+  body.garro-statement-print .modal-window{max-height:none;overflow:visible;box-shadow:none;border:0;background:#fff}
+  body.garro-statement-print .statement-sheet+.statement-sheet{break-before:page}
+}
 .statement-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .statement-toolbar p{margin:0;color:#87786e;font-size:12px}
 @media(max-width:900px){.statement-filters{grid-template-columns:1fr 1fr}}

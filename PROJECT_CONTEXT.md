@@ -26,6 +26,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Medido em 27/10/2026 no banco de produção: o Kanban da atendente com mais cards (28 oportunidades) responde em cerca de 2 ms. O quadro não é o gargalo nesse volume. O painel recarrega o estado a cada 30 segundos e a cada abertura.
 - O que entra no ar em 28/10/2026, e como cada parte foi feita, está em `docs/ALTERACOES_2026-10-28.md`.
 - Desde 28/10/2026, o Kanban da Gestora tem três visões: operação, valores por coluna e categorias por coluna. A atendente permanece na visão de cards.
+- Desde 28/10/2026, em Relatórios a Gestora ajusta o extrato numa janela: escolhe as entregas, edita ou tira cada informação, define a data ou deixa sem data, vê a prévia e gera um PDF só ou um para cada entrega.
 - Desde 28/10/2026, a agenda é mais compacta, com zoom leve. A tag Atrasado e a tag Próximo do atraso, nas seis horas anteriores ao horário, usam o terracota da marca.
 - Desde 28/10/2026, a coluna Entregue do quadro mostra só o mês escolhido no topo. A entrega de outro mês continua gravada e a Gestora a encontra em Entregues, com PDF de uma entrega ou de uma seleção. O filtro de mês vale para quem vê o quadro; o histórico e a exportação, só para a Gestora.
 - Desde 28/10/2026, o quadro de produção filtra Foto, Vídeo e Plano EXPANSÃO. A visão por entregável coloca cada material na coluna da etapa dele, em vez de juntar o projeto inteiro num cartão só.
