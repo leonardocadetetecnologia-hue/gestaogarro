@@ -82,7 +82,7 @@ export function ProductionBoard({
         </select>
       </div>
     </div>
-    {view === "kanban" ? <BoardScroll className="production-grid" label="Etapas da produção">{productionStages.map((status) => {
+    {view === "kanban" ? <BoardScroll className="production-grid" label="Etapas da produção" columns={productionStages.length}>{productionStages.map((status) => {
       const column = cards.filter((card) => card.column === status);
       return <section className="production-column" key={status}>
         <div className="production-heading"><strong>{status}</strong><Badge>{column.length}</Badge></div>

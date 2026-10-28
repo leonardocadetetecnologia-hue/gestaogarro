@@ -19,6 +19,8 @@ describe("janela de ajuste do relatório", () => {
     expect(html).toContain(">Um para cada entrega</button>");
     expect(html).toContain("Sem data de entrega");
     expect(html).toContain("Inserir observação");
+    expect(html).toContain("1. Revelação");
+    expect(html).not.toContain("Incluir este item");
     expect(html).toContain(">Gerar prévia</button>");
     expect(html).toContain(">Gerar PDF</button>");
     expect(html).toContain("disabled=\"\"");

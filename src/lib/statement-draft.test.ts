@@ -25,22 +25,29 @@ describe("prévia editável do extrato", () => {
     expect(each.map((document) => document.title)).toEqual(["Vídeo principal"]);
   });
 
+  it("ignora item sem nome e sem texto", () => {
+    const drafts = draftsFromActivities([{
+      id: "vazio", demandId: "demand-1", customerId: "ana", customerName: "Ana Lima",
+      service: "", title: "   ", description: "Sem descrição complementar.", deliveredAt: "",
+    }, video]);
+    expect(drafts[0].lines.map((line) => line.id)).toEqual(["item-1"]);
+  });
+
   it("tira do relatório o que foi desmarcado e aceita entrega sem data", () => {
     const [first] = draftsFromActivities([video]);
     const hidden = {
       ...first,
       omitDate: true,
       showCustomer: false,
-      showNote: true,
-      note: "Entrega combinada sem hora.",
+      notes: [{ id: "nota-1", text: "Entrega combinada sem hora." }, { id: "nota-2", text: "   " }, { id: "nota-3", text: "Segunda observação." }],
       lines: first.lines.map((line) => ({ ...line, showDescription: false, showService: false, showNumber: false })),
     };
     const [document] = reportDocuments([hidden], "cada");
     expect(document.parts[0].date).toBe("");
     expect(document.parts[0].customer).toBe("");
     expect(document.parts[0].lines[0]).toEqual({ id: "item-1", heading: "Vídeo principal", description: "", service: "" });
-    expect(document.parts[0].note).toBe("Entrega combinada sem hora.");
-    const empty = reportDocuments([{ ...hidden, showNote: false, lines: hidden.lines.map((line) => ({ ...line, include: false })) }], "junto");
+    expect(document.parts[0].note).toBe("Entrega combinada sem hora.\n\nSegunda observação.");
+    const empty = reportDocuments([{ ...hidden, notes: [], lines: hidden.lines.map((line) => ({ ...line, include: false })) }], "junto");
     expect(empty).toEqual([]);
   });
 });

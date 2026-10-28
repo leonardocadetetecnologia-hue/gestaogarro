@@ -17,6 +17,33 @@ function patchLine(drafts: DraftDelivery[], demandId: string, lineId: string, pa
   });
 }
 
+function lineName(line: DraftLine) {
+  const title = line.title.trim();
+  if (line.number != null && title) return `${line.number}. ${title}`;
+  return title || line.service.trim() || "Item";
+}
+
+function addNote(drafts: DraftDelivery[], demandId: string) {
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: [...draft.notes, { id: `${demandId}-nota-${draft.notes.length + 1}`, text: "" }],
+  });
+}
+
+function patchNote(drafts: DraftDelivery[], demandId: string, noteId: string, text: string) {
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: draft.notes.map((note) => note.id === noteId ? { ...note, text } : note),
+  });
+}
+
+function removeNote(drafts: DraftDelivery[], demandId: string, noteId: string) {
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: draft.notes.filter((note) => note.id !== noteId),
+  });
+}
+
 export function StatementEditor({ activities, onClose }: { activities: StatementActivity[]; onClose: () => void }) {
   const [drafts, setDrafts] = useState(() => draftsFromActivities(activities));
   const [mode, setMode] = useState<ReportMode>("junto");
@@ -58,26 +85,33 @@ export function StatementEditor({ activities, onClose }: { activities: Statement
                   </div>
                   {draft.lines.map((line) => (
                     <div className="statement-line" key={line.id}>
-                      <label className="statement-flag"><input type="checkbox" checked={line.include} aria-label={`Incluir ${line.title}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { include: event.target.checked }))} />Incluir este item</label>
+                      <label className="statement-flag">
+                        <input type="checkbox" checked={line.include} aria-label={`Incluir ${lineName(line)}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { include: event.target.checked }))} />
+                        <span>{lineName(line)}</span>
+                      </label>
                       {line.include && <>
-                        <div className="statement-field">
-                          <label className="statement-flag"><input type="checkbox" checked={line.showTitle} aria-label={`Mostrar o que foi feito em ${line.title}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { showTitle: event.target.checked }))} />O que foi feito</label>
-                          <input aria-label={`Texto de ${line.title}`} value={line.title} maxLength={200} disabled={!line.showTitle} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { title: event.target.value }))} />
-                          {line.number != null && <label className="statement-flag"><input type="checkbox" checked={line.showNumber} aria-label={`Mostrar número de ${line.title}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { showNumber: event.target.checked }))} />Número</label>}
-                        </div>
-                        <div className="statement-field">
-                          <label className="statement-flag"><input type="checkbox" checked={line.showDescription} aria-label={`Mostrar descrição de ${line.title}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { showDescription: event.target.checked }))} />Descrição</label>
-                          <textarea aria-label={`Descrição de ${line.title}`} rows={2} maxLength={4000} value={line.description} disabled={!line.showDescription} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { description: event.target.value }))} />
-                        </div>
-                        <div className="statement-field">
-                          <label className="statement-flag"><input type="checkbox" checked={line.showService} aria-label={`Mostrar tipo de ${line.title}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { showService: event.target.checked }))} />Tipo</label>
-                          <input aria-label={`Tipo de ${line.title}`} value={line.service} maxLength={120} disabled={!line.showService} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { service: event.target.value }))} />
-                        </div>
+                        <label className="statement-field">
+                          <span>O que foi feito</span>
+                          <input aria-label={`Texto de ${lineName(line)}`} value={line.title} maxLength={200} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { title: event.target.value, showTitle: true }))} />
+                        </label>
+                        {(line.description.trim() || line.showDescription) && <label className="statement-field">
+                          <span>Descrição</span>
+                          <textarea aria-label={`Descrição de ${lineName(line)}`} rows={2} maxLength={4000} value={line.description} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { description: event.target.value, showDescription: true }))} />
+                        </label>}
+                        {(line.service.trim() || line.showService) && <label className="statement-field">
+                          <span>Tipo</span>
+                          <input aria-label={`Tipo de ${lineName(line)}`} value={line.service} maxLength={120} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { service: event.target.value, showService: true }))} />
+                        </label>}
                       </>}
                     </div>
                   ))}
-                  <label className="statement-flag"><input type="checkbox" checked={draft.showNote} aria-label={`Inserir observação em ${draft.label}`} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { showNote: event.target.checked }))} />Inserir observação</label>
-                  {draft.showNote && <textarea aria-label={`Observação de ${draft.label}`} rows={3} maxLength={2000} value={draft.note} placeholder="Informação extra desta entrega" onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { note: event.target.value }))} />}
+                  {draft.notes.map((note, index) => (
+                    <div className="statement-field" key={note.id}>
+                      <span>{draft.notes.length > 1 ? `Observação ${index + 1}` : "Observação"} <button type="button" className="text-link" onClick={() => setDrafts((current) => removeNote(current, draft.demandId, note.id))}>Tirar</button></span>
+                      <textarea aria-label={`Observação ${index + 1} de ${draft.label}`} rows={3} maxLength={2000} value={note.text} placeholder="Informação extra desta entrega" onChange={(event) => setDrafts((current) => patchNote(current, draft.demandId, note.id, event.target.value))} />
+                    </div>
+                  ))}
+                  <button type="button" className="button secondary small" onClick={() => setDrafts((current) => addNote(current, draft.demandId))}>{draft.notes.length ? "Outra observação" : "Inserir observação"}</button>
                 </>}
               </article>
             ))}

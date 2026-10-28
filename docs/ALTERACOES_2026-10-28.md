@@ -84,6 +84,24 @@ O que muda: em Relatórios, Gerar PDF abre uma janela. A Gestora escolhe as entr
 
 Como: a janela parte das entregas já filtradas. Cada campo tem uma caixa. Sem data tira a data só do documento. O PDF imprime a prévia, com uma página para cada entrega quando essa opção está marcada.
 
+## Kanban na largura da tela
+
+O que muda: no CRM e na produção, as etapas ocupam a largura toda, juntas. Não sobra faixa vazia e nenhuma coluna sai da tela. O texto quebra dentro do cartão. Muitos cartões rolam para baixo, dentro da coluna.
+
+Como: cada quadro recebe o número real de etapas e divide a área em partes iguais. A largura fixa das colunas saiu. Com o detalhe do lead aberto, as etapas dividem o que resta.
+
+## Sino com janela
+
+O que muda: o sino abre uma janela com as notificações novas, sem ir para a página inteira. Dá para limpar uma ou limpar todas. Enquanto houver aviso, o sino se move e o número pulsa. A página Notificações continua com o histórico e a leitura em lote.
+
+Como: limpar marca o aviso como lido, o mesmo registro de antes. A janela mostra só as não lidas da pessoa logada.
+
+## Observação no relatório, sem item vazio
+
+O que muda: no ajuste do PDF, cada item mostra o nome. Clicar no espaço ao lado não cria linha em branco. Inserir observação abre um texto. Outra observação abre mais um. Observação vazia não sai no documento.
+
+Como: item sem nome e sem texto nem entra na lista. A observação é um campo à parte, não um entregável novo.
+
 ## Conferência
 
-166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.
+213 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.

@@ -5,10 +5,12 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 export function BoardScroll({
   className,
   label,
+  columns,
   children,
 }: {
   className: string;
   label: string;
+  columns?: number;
   children: ReactNode;
 }) {
   const board = useRef<HTMLDivElement>(null);
@@ -57,6 +59,7 @@ export function BoardScroll({
       </div>
       <div
         className={className}
+        style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
         ref={board}
         onScroll={event => {
           if (bar.current) follow(event.currentTarget, bar.current);

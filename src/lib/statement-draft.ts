@@ -15,6 +15,11 @@ export type DraftLine = {
   showService: boolean;
 };
 
+export type DraftNote = {
+  id: string;
+  text: string;
+};
+
 export type DraftDelivery = {
   demandId: string;
   include: boolean;
@@ -24,8 +29,7 @@ export type DraftDelivery = {
   date: string;
   omitDate: boolean;
   lines: DraftLine[];
-  note: string;
-  showNote: boolean;
+  notes: DraftNote[];
 };
 
 export type ReportLine = {
@@ -64,25 +68,29 @@ export function draftsFromActivities(activities: StatementActivity[]): DraftDeli
         date: "",
         omitDate: false,
         lines: [],
-        note: "",
-        showNote: false,
+        notes: [],
       };
       map.set(activity.demandId, draft);
       order.push(activity.demandId);
     }
     const day = activity.deliveredAt ? saoPauloDay(activity.deliveredAt) : "";
     if (day && day > draft.date) draft.date = day;
+    const title = activity.title.trim();
+    const description = activity.description.trim();
+    const service = activity.service.trim();
+    if (!title && (!description || description === "Sem descrição complementar.") && !service) continue;
+    if (!draft.label.trim()) draft.label = title || service || draft.customerName;
     draft.lines.push({
       id: activity.id,
       include: true,
       number: activity.number,
       showNumber: activity.number != null,
-      title: activity.title,
+      title,
       showTitle: true,
-      description: activity.description,
-      showDescription: Boolean(activity.description.trim()),
-      service: activity.service,
-      showService: true,
+      description: description === "Sem descrição complementar." ? "" : description,
+      showDescription: Boolean(description) && description !== "Sem descrição complementar.",
+      service,
+      showService: Boolean(service),
     });
   }
   return order.map((id) => map.get(id)!);
@@ -102,7 +110,7 @@ function partOf(draft: DraftDelivery): ReportPart | null {
   const lines = draft.lines.map(lineOf).filter((line): line is ReportLine => line != null);
   const customer = draft.showCustomer ? draft.customerName.trim() : "";
   const date = !draft.omitDate && draft.date ? formatPeriodDay(draft.date) : "";
-  const note = draft.showNote ? draft.note.trim() : "";
+  const note = draft.notes.map((item) => item.text.trim()).filter(Boolean).join("\n\n");
   if (!customer && !date && !lines.length && !note) return null;
   return { key: draft.demandId, customer, date, lines, note };
 }
