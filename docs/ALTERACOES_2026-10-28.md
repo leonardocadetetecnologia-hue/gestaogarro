@@ -102,6 +102,18 @@ O que muda: no ajuste do PDF, cada item mostra o nome. Clicar no espaço ao lado
 
 Como: item sem nome e sem texto nem entra na lista. A observação é um campo à parte, não um entregável novo.
 
+## Pizzas na visão geral
+
+O que muda: a Visão geral da Gestora mostra duas pizzas coloridas, uma das demandas por etapa e outra do comercial por etapa. Etapa sem item não vira fatia.
+
+Como: cada fatia usa uma cor própria e a legenda traz o nome e a quantidade.
+
+## Exportar seleção com o mesmo ajuste
+
+O que muda: em Entregues, Exportar seleção e o clique numa entrega abrem a mesma janela de Relatórios. Dá para editar, ver a prévia e gerar o PDF. O documento não abre direto.
+
+Como: a seleção consulta o extrato dessas demandas e entrega a lista para a janela que já existia.
+
 ## Conferência
 
-213 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.
+215 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.
