@@ -9,6 +9,7 @@ import {useGarro} from "@/lib/store";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { parseSaoPaulo } from "@/lib/deadlines";
+import { demandMediaTypeLabels, demandMediaTypeOptions, isDemandMediaType } from "@/lib/demand-media-type";
 import { strategyLines, type StrategyView } from "@/lib/kanban-strategy";
 import { BoardScroll } from "./board-scroll";
 import { ColumnStrategy } from "./kanban-strategy";
@@ -55,22 +56,23 @@ export function ClosingModal({opportunity,onClose}:{opportunity:Opportunity;onCl
  const [amount,setAmount]=useState(opportunity.value===null?"":String(opportunity.value));
  const [due,setDue]=useState("");
  const [items,setItems]=useState("");
+ const [mediaType,setMediaType]=useState("");
  const key=`garro-closing-draft-${opportunity.id}`;
  useEffect(()=>{
   try {
    const saved=localStorage.getItem(key);
-   if(saved){const v=JSON.parse(saved);setTitle(v.title||"");setDescription(v.description||"");setAmount(v.amount||"");setDue(v.due||"");setItems(v.items||"")}
+   if(saved){const v=JSON.parse(saved);setTitle(v.title||"");setDescription(v.description||"");setAmount(v.amount||"");setDue(v.due||"");setItems(v.items||"");setMediaType(isDemandMediaType(v.mediaType||"")?v.mediaType:"")}
   } catch {}
  },[key]);
  useEffect(()=>{
-  const timer=setTimeout(()=>localStorage.setItem(key,JSON.stringify({title,description,amount,due,items})),300);
+  const timer=setTimeout(()=>localStorage.setItem(key,JSON.stringify({title,description,amount,due,items,mediaType})),300);
   return()=>clearTimeout(timer);
- },[title,description,amount,due,items,key]);
+ },[title,description,amount,due,items,mediaType,key]);
  async function submit(event:FormEvent) {
   event.preventDefault();
   const date=parseSaoPaulo(due);
-  if(!date)return;
-  if(await closeSale(opportunity.id,{title,description,amount,due:date.toISOString(),deliverables:items})){
+  if(!date||!isDemandMediaType(mediaType))return;
+  if(await closeSale(opportunity.id,{title,description,amount,mediaType,due:date.toISOString(),deliverables:items})){
    localStorage.removeItem(key);onClose();
   }
  }
@@ -81,6 +83,10 @@ export function ClosingModal({opportunity,onClose}:{opportunity:Opportunity;onCl
     <Field label="Valor fechado (R$) *"><input type="number" required min="0.01" step="0.01" disabled={busy} value={amount} onChange={e=>setAmount(e.target.value)}/></Field>
     <Field label="Prazo do cliente (horário de Brasília) *"><input type="datetime-local" required disabled={busy} value={due} onChange={e=>setDue(e.target.value)}/></Field>
    </div>
+   <Field label="Tipo *"><select required disabled={busy} value={mediaType} onChange={e=>setMediaType(e.target.value)}>
+    <option value="">Selecione o tipo</option>
+    {demandMediaTypeOptions.map(type=><option key={type} value={type}>{demandMediaTypeLabels[type]}</option>)}
+   </select></Field>
    <Field label="Briefing e detalhes da produção *"><textarea required minLength={3} disabled={busy} rows={4} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Descreva o que foi combinado com o cliente."/></Field>
    <Field label="Entregáveis (um por linha) *"><textarea required disabled={busy} rows={4} value={items} onChange={e=>setItems(e.target.value)} placeholder={"Vídeo principal\nReel para redes sociais"}/></Field>
    <div className="info-note">A demanda será criada na trilha de produção da Gestora, com briefing, entregáveis e prazo. A atribuição aos editores será feita pela Gestora.</div>

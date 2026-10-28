@@ -1,4 +1,5 @@
 import type { Deliverable, Demand, ProductionStatus, TaskStatus } from "@/lib/data";
+import type { DemandMediaType } from "@/lib/demand-media-type";
 
 export const productionKindOptions = ["Foto", "Vídeo", "Plano EXPANSÃO"] as const;
 export type ProductionKind = (typeof productionKindOptions)[number];
@@ -17,25 +18,46 @@ export function kindsInText(value: string): ProductionKind[] {
   return kinds;
 }
 
+const materialByMediaType: Record<DemandMediaType, ProductionKind[]> = {
+  VIDEO: ["Vídeo"],
+  FOTO: ["Foto"],
+  FOTO_E_VIDEO: ["Foto", "Vídeo"],
+};
+
+function demandText(demand: Pick<Demand, "title" | "service">) {
+  return `${demand.title} ${demand.service ?? ""}`;
+}
+
+function textMaterial(value: string) {
+  return kindsInText(value).filter((kind) => kind !== "Plano EXPANSÃO");
+}
+
+function withPlan(material: readonly ProductionKind[], ...sources: string[]): ProductionKind[] {
+  const plan = sources.some((source) => kindsInText(source).includes("Plano EXPANSÃO"));
+  return [...new Set<ProductionKind>([...material, ...(plan ? (["Plano EXPANSÃO"] as const) : [])])];
+}
+
+// O nome do entregável vence o tipo gravado. Sem foto/vídeo no nome, o tipo vence o título. Sem tipo, vale o nome.
 export function deliverableKinds(
   task: Pick<Deliverable, "title">,
-  demand: Pick<Demand, "title" | "service">,
+  demand: Pick<Demand, "title" | "service" | "mediaType">,
 ): ProductionKind[] {
-  const own = kindsInText(task.title);
-  const parent = kindsInText(`${demand.title} ${demand.service ?? ""}`);
-  const material = own.filter((kind) => kind !== "Plano EXPANSÃO");
-  const inherited = material.length ? material : parent.filter((kind) => kind !== "Plano EXPANSÃO");
-  const plan = own.includes("Plano EXPANSÃO") || parent.includes("Plano EXPANSÃO") ? (["Plano EXPANSÃO"] as const) : [];
-  return [...new Set<ProductionKind>([...inherited, ...plan])];
+  const explicit = textMaterial(task.title);
+  const fromType = demand.mediaType ? materialByMediaType[demand.mediaType] : undefined;
+  const material = explicit.length ? explicit : fromType ?? textMaterial(demandText(demand));
+  return withPlan(material, task.title, demandText(demand));
 }
 
 export function demandMatchesKind(
-  demand: Pick<Demand, "title" | "service">,
+  demand: Pick<Demand, "title" | "service" | "mediaType">,
   tasks: Pick<Deliverable, "title">[],
   kind: "Todos" | ProductionKind,
 ) {
   if (kind === "Todos") return true;
-  if (!tasks.length) return kindsInText(`${demand.title} ${demand.service ?? ""}`).includes(kind);
+  if (!tasks.length) {
+    const material = demand.mediaType ? materialByMediaType[demand.mediaType] : textMaterial(demandText(demand));
+    return withPlan(material, demandText(demand)).includes(kind);
+  }
   return tasks.some((task) => deliverableKinds(task, demand).includes(kind));
 }
 

@@ -15,7 +15,7 @@ import { productionSubmissionSchema, sendToProduction } from "./send-to-producti
 const user: SessionUser = { id: "attendant", name: "Atendente", email: "attendant@example.test", role: "ATENDENTE" };
 const input = {
   opportunityId: "opportunity", title: "Vídeo institucional", description: "Briefing validado pelo cliente",
-  amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal", "Reel"],
+  amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal", "Reel"], mediaType: "VIDEO" as const,
 };
 const opportunity = { id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
 
@@ -36,7 +36,7 @@ describe("envio do CRM para produção", () => {
     const saleData = tx.sale.create.mock.calls[0][0].data;
     expect(saleData.value.toString()).toBe("14000.5");
     expect(tx.demand.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ status: "NOVA", saleId: "sale", deliverables: { create: [
+      data: expect.objectContaining({ status: "NOVA", saleId: "sale", mediaType: "VIDEO", deliverables: { create: [
         { title: "Vídeo principal", clientDueAt: new Date(input.due), status: "AGUARDANDO_EDITOR" },
         { title: "Reel", clientDueAt: new Date(input.due), status: "AGUARDANDO_EDITOR" },
       ] } }),
@@ -82,5 +82,14 @@ describe("envio do CRM para produção", () => {
   });
   it("exige prazo e ao menos um entregável", () => {
     expect(productionSubmissionSchema.safeParse({ ...input, due: "", deliverables: [] }).success).toBe(false);
+  });
+  it("pede o tipo e não grava vídeo, foto ou ambos sem escolha", async () => {
+    await expect(sendToProduction(user, { ...input, mediaType: undefined })).rejects.toThrow(/tipo/i);
+    await expect(sendToProduction(user, { ...input, mediaType: "" })).rejects.toThrow(/tipo/i);
+    await expect(sendToProduction(user, { ...input, mediaType: "EVENTO" })).rejects.toThrow(/tipo/i);
+    expect(transaction).not.toHaveBeenCalled();
+    for (const chosen of ["VIDEO", "FOTO", "FOTO_E_VIDEO"] as const) {
+      expect(productionSubmissionSchema.safeParse({ ...input, mediaType: chosen }).success).toBe(true);
+    }
   });
 });

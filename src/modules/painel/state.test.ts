@@ -39,4 +39,14 @@ describe("dados e agenda por perfil", () => {
     expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deliverables: { some: { editorId: user.id } } } }));
     expect(db.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id }) }));
   });
+  it("leva o tipo ao quadro e deixa a demanda antiga sem tipo", async () => {
+    const row = {
+      id: "nova", customerId: "c", title: "Casamento", description: "", status: "NOVA", clientDueAt: null,
+      hd: null, driveUrl: null, mediaType: "FOTO_E_VIDEO", createdAt: new Date("2026-10-28T15:00:00.000Z"),
+      deliverables: [], messages: [], files: [], sale: null,
+    };
+    db.demand.findMany.mockResolvedValue([row, { ...row, id: "antiga", title: "Arquivo", mediaType: null }]);
+    const state = await loadPanelState(user);
+    expect(state.demands.map(item => [item.id, item.mediaType])).toEqual([["nova", "FOTO_E_VIDEO"], ["antiga", undefined]]);
+  });
 });

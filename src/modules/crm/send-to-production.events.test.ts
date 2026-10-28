@@ -18,7 +18,7 @@ import { sendToProduction } from "./send-to-production";
 const user: SessionUser = { id: "attendant", name: "Atendente", email: "attendant@example.test", role: "ATENDENTE" };
 const input = {
   opportunityId: "opportunity", title: "Vídeo institucional", description: "Briefing validado pelo cliente",
-  amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal"],
+  amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal"], mediaType: "VIDEO" as const,
 };
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ describe("gatilho de produção", () => {
     await sendToProduction(user, input);
     tx.customer.findUnique.mockResolvedValue({ id: "customer", kind: "CLIENTE", name: "Cliente" });
     tx.demand.create.mockResolvedValue({ id: "direct" });
-    await createDirectDemand({ ...user, role: "GESTOR_GARRO" }, { customerId: "customer", title: "Vídeo", description: "Peça direta", due: input.due, deliverables: ["Corte"] });
+    await createDirectDemand({ ...user, role: "GESTOR_GARRO" }, { customerId: "customer", title: "Vídeo", description: "Peça direta", mediaType: "FOTO", due: input.due, deliverables: ["Corte"] });
     expect(capture.publishProductionRequested).not.toHaveBeenCalled();
     expect(capture.publishSaleClosed).not.toHaveBeenCalled();
   });

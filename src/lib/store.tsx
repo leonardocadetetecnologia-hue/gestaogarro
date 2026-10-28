@@ -5,10 +5,11 @@ type FutureInput = { futureContact: "sim" | "nao"; futureAt: string; responsible
 import { mutateCrmPanel, mutateProductionPanel, refreshPanel } from "@/modules/painel/actions";
 import type { CrmCommand } from "@/modules/painel/crm-service";
 import type { ProductionCommand } from "@/modules/painel/production-service";
+import type { DemandMediaType } from "@/lib/demand-media-type";
 import type { DirectDemandInput } from "@/modules/production/create-demand";
 
 type Save = Promise<boolean>;
-type Closing = { title: string; description: string; amount: string; due: string; deliverables: string };
+type Closing = { title: string; description: string; amount: string; due: string; deliverables: string; mediaType: DemandMediaType };
 type Ctx = {
   state: State; role: Role; ready: boolean; activeEditorId: string; userName: string;
   busy: boolean; error: string;
@@ -100,7 +101,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     recordContact: (id, summary, waitingOn, nextAction, nextAt) => done(save({ kind: "contact", id, summary, waitingOn, nextAction, nextAt })),
     closeSale: (opportunityId, input) => done(save({ kind: "send", submission: {
       opportunityId, title: input.title, description: input.description, amount: input.amount,
-      due: input.due, deliverables: input.deliverables.split("\n").map(t => t.trim()).filter(Boolean),
+      mediaType: input.mediaType, due: input.due, deliverables: input.deliverables.split("\n").map(t => t.trim()).filter(Boolean),
     } })),
     sendMessage: (id, message) => done(save({ kind: "message", id, message }, true)),
     setTaskStatus: (id, status) => done(save({ kind: "status", id, status }, true)),

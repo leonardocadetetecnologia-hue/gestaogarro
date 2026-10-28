@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Deliverable, Demand } from "@/lib/data";
-import { deliverableColumn, deliverableKinds, productionCards } from "./production-board";
+import { deliverableColumn, deliverableKinds, demandMatchesKind, productionCards } from "./production-board";
 
 const demand = (patch: Partial<Demand> = {}): Demand => ({
   id: "ensaio", customerId: "dani", title: "Ensaio REPOSICIONAMENTO", description: "", status: "Em produção",
@@ -40,6 +40,19 @@ describe("tipo do material", () => {
     const plan = demand({ title: "Pacote mensal", service: "Plano EXPANSÃO" });
     expect(deliverableKinds(task({ title: "Vídeo X" }), plan)).toEqual(["Vídeo", "Plano EXPANSÃO"]);
     expect(deliverableKinds(task({ title: "Fotos" }), plan)).toEqual(["Foto", "Plano EXPANSÃO"]);
+  });
+
+  it("usa o tipo gravado e deixa o nome só quando o entregável diz o outro material", () => {
+    const videoJob = demand({ title: "FOTOS", service: "Ensaio", mediaType: "VIDEO" });
+    expect(deliverableKinds(task({ title: "Seleção" }), videoJob)).toEqual(["Vídeo"]);
+    expect(deliverableKinds(task({ title: "Fotos" }), videoJob)).toEqual(["Foto"]);
+    expect(deliverableKinds(task({ title: "Captação de foto e vídeo" }), videoJob)).toEqual(["Foto", "Vídeo"]);
+    expect(deliverableKinds(task({ title: "Reel" }), demand({ title: "Institucional", mediaType: "FOTO_E_VIDEO" }))).toEqual(["Foto", "Vídeo"]);
+    expect(deliverableKinds(task({ title: "Fotos" }), demand({ title: "Institucional", mediaType: "FOTO_E_VIDEO" }))).toEqual(["Foto"]);
+    const plan = demand({ title: "Mensal", service: "Plano EXPANSÃO", mediaType: "FOTO" });
+    expect(deliverableKinds(task({ title: "Seleção" }), plan)).toEqual(["Foto", "Plano EXPANSÃO"]);
+    expect(deliverableKinds(task({ title: "Vídeo do mês" }), plan)).toEqual(["Vídeo", "Plano EXPANSÃO"]);
+    expect(deliverableKinds(task({ title: "Curso" }), demand({ title: "Mentoria", service: "Curso e mentoria para fotógrafos", mediaType: "FOTO" }))).toEqual(["Foto"]);
   });
 });
 
@@ -93,6 +106,28 @@ describe("cartões do quadro", () => {
       kind: "Plano EXPANSÃO",
     });
     expect(plan.map((card) => card.id)).toEqual(["ensaio"]);
+  });
+
+  it("filtra pelo tipo da demanda e mantém foto explícita dentro de um vídeo", () => {
+    const typed = demand({ id: "job", title: "Casamento", mediaType: "VIDEO" });
+    const reel = task({ id: "reel", demandId: "job", title: "Reel", status: "Em edição" });
+    const photos = task({ id: "fotos-item", demandId: "job", title: "Fotos", status: "A iniciar", editorId: "" });
+    const cards = (kind: "Foto" | "Vídeo") => productionCards({
+      ...base, demands: [typed], deliverables: [reel, photos], split: "entregavel", kind,
+    }).map((card) => card.id);
+    expect(cards("Vídeo")).toEqual(["reel"]);
+    expect(cards("Foto")).toEqual(["fotos-item"]);
+    expect(productionCards({ ...base, demands: [typed], deliverables: [reel], split: "projeto", kind: "Vídeo" }).map((card) => card.id)).toEqual(["job"]);
+    expect(productionCards({ ...base, demands: [typed], deliverables: [reel], split: "projeto", kind: "Foto" })).toEqual([]);
+    expect(productionCards({
+      ...base, demands: [demand({ id: "ambos", title: "Institucional", mediaType: "FOTO_E_VIDEO" })],
+      deliverables: [task({ id: "reel-ambos", demandId: "ambos", title: "Reel" })], split: "projeto", kind: "Foto",
+    }).map((card) => card.id)).toEqual(["ambos"]);
+    const photoOnly = demand({ title: "Vídeo institucional", mediaType: "FOTO" });
+    expect(demandMatchesKind(photoOnly, [], "Foto")).toBe(true);
+    expect(demandMatchesKind(photoOnly, [], "Vídeo")).toBe(false);
+    expect(demandMatchesKind(demand({ title: "Plano EXPANSÃO", mediaType: "FOTO" }), [], "Plano EXPANSÃO")).toBe(true);
+    expect(demandMatchesKind(demand({ title: "Plano EXPANSÃO", mediaType: "FOTO" }), [], "Vídeo")).toBe(false);
   });
 
   it("respeita editor, cliente e acento na busca", () => {

@@ -36,6 +36,7 @@ describe("quadro de produção", () => {
     expect(html).toContain("Ensaio REPOSICIONAMENTO");
     expect(html).not.toContain("Vídeo X");
     expect(html).toContain("2 entregáveis");
+    expect(html).not.toContain("Foto e vídeo");
     expect(columnChunk(html, "Em produção")).toContain("Ensaio REPOSICIONAMENTO");
     expect(columnChunk(html, "Nova demanda")).not.toContain("Ensaio REPOSICIONAMENTO");
   });
@@ -46,5 +47,19 @@ describe("quadro de produção", () => {
     expect(columnChunk(html, "Em produção")).not.toContain(">Fotos<");
     expect(columnChunk(html, "Nova demanda")).toContain(">Fotos<");
     expect(columnChunk(html, "Nova demanda")).toContain("Ensaio REPOSICIONAMENTO");
+  });
+
+  it("mostra o tipo no cartão e na lista só quando a demanda tem tipo", () => {
+    state.demands[0].mediaType = "FOTO_E_VIDEO";
+    try {
+      const kanban = renderToStaticMarkup(createElement(ProductionBoard));
+      expect(kanban).toContain("2 entregáveis · Foto e vídeo");
+      const list = renderToStaticMarkup(createElement(ProductionBoard, { initialView: "lista" }));
+      expect(list).toContain("Danielle Portella · 2 entregáveis · Foto e vídeo");
+      const item = renderToStaticMarkup(createElement(ProductionBoard, { initialSplit: "entregavel", initialView: "lista" }));
+      expect(item).toContain("Ensaio REPOSICIONAMENTO · Foto e vídeo");
+    } finally {
+      delete state.demands[0].mediaType;
+    }
   });
 });

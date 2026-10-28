@@ -81,6 +81,7 @@ describe("ação de envio no Kanban", () => {
   it("exibe confirmação, briefing, prazo e entregáveis antes do envio", () => {
     const html = renderToStaticMarkup(createElement(ClosingModal, { opportunity: context.state.opportunities[0], onClose: vi.fn() }));
     expect(html).toContain("Confirmar envio para produção"); expect(html).toContain("Briefing e detalhes da produção");
+    expect(html).toContain("Tipo *"); expect(html).toContain(">Vídeo</option>"); expect(html).toContain(">Foto</option>"); expect(html).toContain(">Foto e vídeo</option>"); expect(html).toContain(">Selecione o tipo</option>");
     expect(html).toContain("horário de Brasília"); expect(html).toContain("Entregáveis (um por linha)");
     context.busy = true;
     expect(renderToStaticMarkup(createElement(ClosingModal, { opportunity: context.state.opportunities[0], onClose: vi.fn() }))).toContain("Enviando…");

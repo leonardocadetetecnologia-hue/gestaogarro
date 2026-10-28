@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ClipboardList, FolderOpen, Plus } from "lucide-react";
 import { productionStages } from "@/lib/data";
+import { demandMediaTypeLabel } from "@/lib/demand-media-type";
 import { productionCards, productionKindOptions, type ProductionCard, type ProductionKind, type ProductionSplit } from "@/lib/production-board";
 import { useGarro } from "@/lib/store";
 import { BoardScroll } from "./board-scroll";
@@ -23,6 +24,11 @@ function customerName(customers: { id: string; name: string }[], id: string) {
   return customers.find((item) => item.id === id)?.name || "Cliente não informado";
 }
 
+function typeSuffix(mediaType?: string | null) {
+  const label = demandMediaTypeLabel(mediaType);
+  return label ? ` · ${label}` : "";
+}
+
 export function ProductionBoard({
   initialSplit = "projeto",
   initialKind = "Todos",
@@ -31,7 +37,7 @@ export function ProductionBoard({
   initialSplit?: ProductionSplit;
   initialKind?: "Todos" | ProductionKind;
   initialView?: "kanban" | "lista";
-} = {}) {
+}) {
   const [newOpen, setNewOpen] = useState(false);
   const { state } = useGarro();
   const router = useRouter();
@@ -91,7 +97,7 @@ function ProjectCard({ card, customer, onOpen }: { card: Extract<ProductionCard,
   return <button type="button" className="production-card" onClick={() => onOpen(demand.id)}>
     <small>{customer}</small>
     <strong>{demand.title}</strong>
-    <span>{count}{demand.service && demand.service !== demand.title ? ` · ${demand.service}` : ""}</span>
+    <span>{count}{demand.service && demand.service !== demand.title ? ` · ${demand.service}` : ""}{typeSuffix(demand.mediaType)}</span>
     <DeliverableStatusBar tasks={tasks} />
     <div className="production-three">
       <div><span>Editor</span><Deadline at={tasks[0]?.editorDue} done={tasks[0]?.status === "Em revisão" || tasks[0]?.status === "Aprovado"} /></div>
@@ -108,7 +114,7 @@ function DeliverableCard({ card, customer, editorName, onOpen }: { card: Extract
   return <button type="button" className="production-card" onClick={() => onOpen(demand.id)}>
     <small>{customer}</small>
     <strong>{task.title}</strong>
-    <span>{demand.title}{editorName ? ` · ${editorName}` : ""}</span>
+    <span>{demand.title}{typeSuffix(demand.mediaType)}{editorName ? ` · ${editorName}` : ""}</span>
     <div className="production-three">
       <div><span>Editor</span><Deadline at={task.editorDue} done={task.status === "Em revisão" || task.status === "Aprovado"} /></div>
       <div><span>Revisão</span><Deadline at={task.reviewDue} done={task.status === "Aprovado"} /></div>
@@ -127,7 +133,7 @@ function BoardList({ cards, customers, editors, onOpen }: { cards: ProductionCar
         <span className="circle-icon"><FolderOpen size={18} /></span>
         <div className="row-main">
           <strong>{card.demand.title}</strong>
-          <span>{customerName(customers, card.demand.customerId)} · {tasks.length} {tasks.length === 1 ? "entregável" : "entregáveis"}{card.demand.service && card.demand.service !== card.demand.title ? ` · ${card.demand.service}` : ""}</span>
+          <span>{customerName(customers, card.demand.customerId)} · {tasks.length} {tasks.length === 1 ? "entregável" : "entregáveis"}{card.demand.service && card.demand.service !== card.demand.title ? ` · ${card.demand.service}` : ""}{typeSuffix(card.demand.mediaType)}</span>
           <DeliverableStatusBar tasks={tasks} />
         </div>
         <Badge kind={statusTone(card.demand.status)}>{card.demand.status}</Badge>
@@ -142,7 +148,7 @@ function BoardList({ cards, customers, editors, onOpen }: { cards: ProductionCar
       <span className="circle-icon"><ClipboardList size={18} /></span>
       <div className="row-main">
         <strong>{card.task.title}</strong>
-        <span>{customerName(customers, card.demand.customerId)} · {card.demand.title}{editorName ? ` · ${editorName}` : ""}</span>
+        <span>{customerName(customers, card.demand.customerId)} · {card.demand.title}{typeSuffix(card.demand.mediaType)}{editorName ? ` · ${editorName}` : ""}</span>
       </div>
       <Badge kind={statusTone(label)}>{label}</Badge>
       <Deadline at={card.task.editorDue} done={card.task.status === "Aprovado"} />

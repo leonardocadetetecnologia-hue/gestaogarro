@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { SessionUser } from "@/lib/auth";
+import { demandMediaTypeSchema } from "@/lib/demand-media-type";
 import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
 import { canAccessOpportunity } from "@/modules/crm/visibility";
@@ -11,6 +12,7 @@ export class CrmFlowError extends Error {}
 export const productionSubmissionSchema = z.object({
   opportunityId: z.string().min(1).max(80),
   title: z.string().trim().min(2, "Informe o serviço contratado.").max(200),
+  mediaType: demandMediaTypeSchema,
   description: z.string().trim().min(3, "Informe o briefing da produção.").max(10000),
   amount: z.string().trim().regex(/^\d{1,10}([.,]\d{1,2})?$/, "Informe um valor com até duas casas decimais.")
     .refine(v => Number(v.replace(",", ".")) > 0, "O valor fechado deve ser maior que zero."),
@@ -58,7 +60,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
     });
     const demand = await tx.demand.create({
       data: {
-        saleId: sale.id, customerId: opportunity.customerId, title: input.title,
+        saleId: sale.id, customerId: opportunity.customerId, title: input.title, mediaType: input.mediaType,
         description: input.description, clientDueAt: due, status: "NOVA",
         deliverables: { create: input.deliverables.map(title => ({ title, clientDueAt: due, status: "AGUARDANDO_EDITOR" })) },
         messages: { create: { senderId: user.id, content: "Venda enviada para produção pelo CRM.", system: true } },
@@ -75,7 +77,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
       },
     });
     await tx.auditLog.create({
-      data: { userId: user.id, action: "SALE_SENT_TO_PRODUCTION", entityType: "Opportunity", entityId: opportunity.id, details: { saleId: sale.id, demandId: demand.id } },
+      data: { userId: user.id, action: "SALE_SENT_TO_PRODUCTION", entityType: "Opportunity", entityId: opportunity.id, details: { saleId: sale.id, demandId: demand.id, mediaType: input.mediaType } },
     });
     if (managers.length) await tx.notification.createMany({
       data: managers.map(manager => ({

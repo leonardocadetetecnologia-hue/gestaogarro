@@ -62,6 +62,12 @@ enum DemandStatus {
   CONCLUIDO
 }
 
+enum DemandMediaType {
+  VIDEO
+  FOTO
+  FOTO_E_VIDEO
+}
+
 enum DeliverableStatus {
   AGUARDANDO_EDITOR
   EM_PRODUCAO
@@ -237,6 +243,7 @@ model Demand {
   customerId  String
   customer    Customer     @relation(fields: [customerId], references: [id])
   title       String
+  mediaType   DemandMediaType?
   description String?
   hd          String?
   driveUrl    String?

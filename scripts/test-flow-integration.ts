@@ -34,7 +34,7 @@ async function main() {
   await executeCrmCommand(attendant, {
     kind: "contact", id: opportunity.id, summary: "QA registrar retorno", waitingOn: "cliente", nextAction: "QA Retornar ao cliente", nextAt: new Date().toISOString(),
   });
-  const input = { opportunityId: opportunity.id, title: "QA Vídeo contratado", description: "QA Briefing de produção", amount: "14000.50", due: new Date().toISOString(), deliverables: ["QA Vídeo principal", "QA Reel"] };
+  const input = { opportunityId: opportunity.id, title: "QA Vídeo contratado", description: "QA Briefing de produção", amount: "14000.50", due: new Date().toISOString(), mediaType: "VIDEO" as const, deliverables: ["QA Vídeo principal", "QA Reel"] };
   await assert.rejects(sendToProduction(attendant, input), /Fechado com sucesso/);
   await executeCrmCommand(attendant, { kind: "move", id: opportunity.id, stage: "Fechado com sucesso" });
   assert.equal((await prisma.customer.findUniqueOrThrow({ where: { id: opportunity.customerId } })).kind, "CLIENTE");
@@ -45,6 +45,7 @@ async function main() {
   assert.equal(await prisma.sale.count(), 1); assert.equal(await prisma.demand.count(), 1);
   assert.equal(await prisma.deliverable.count(), 2); assert.equal(await prisma.notification.count({ where: { type: "NOVA_DEMANDA" } }), 1);
   const savedSale = await prisma.sale.findFirstOrThrow(); assert.equal(savedSale.value.toString(), "14000.5");
+  assert.equal((await prisma.demand.findFirstOrThrow()).mediaType, "VIDEO");
   await assert.rejects(executeCrmCommand(attendant, { kind: "move", id: opportunity.id, stage: "Lead" }), /produção/);
   await assert.rejects(sendToProduction(editor, input), /Este perfil/);
   const managerState = await loadPanelState(manager); assert.equal(managerState.demands.length, 1);
@@ -66,10 +67,10 @@ async function main() {
   assert.equal(await prisma.notification.count({ where: { type: "NOVA_DEMANDA" } }), 1);
   console.log("PASS: persistência, envio explícito, concorrência, duplicação, rollback, RBAC e Gestora executora.");
 
-  const directInput = { title: "QA Nova produção", description: "QA Briefing direto", due: new Date().toISOString(), deliverables: ["QA Entrega"] };
+  const directInput = { title: "QA Nova produção", description: "QA Briefing direto", due: new Date().toISOString(), mediaType: "FOTO" as const, deliverables: ["QA Entrega"] };
   const directId = await createDirectDemand(manager, { ...directInput, customerId: opportunity.customerId });
   const direct = await prisma.demand.findUniqueOrThrow({ where: { id: directId } });
-  assert.equal(direct.saleId, null); assert.equal(direct.customerId, opportunity.customerId);
+  assert.equal(direct.saleId, null); assert.equal(direct.customerId, opportunity.customerId); assert.equal(direct.mediaType, "FOTO");
   assert.equal(await prisma.sale.count(), 1, "Demanda direta não pode inventar uma venda.");
   await assert.rejects(createDirectDemand(attendant, { ...directInput, customerId: opportunity.customerId }), /Somente a Gestora/);
   await executeCrmCommand(attendant, { kind: "createCustomer", value: null, customer: { id: "draft", kind: "LEAD", name: "QA Lead novo", phone: "", email: "", company: "", origin: "Site", service: "Vídeo", notes: "" } });
