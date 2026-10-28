@@ -65,10 +65,14 @@ describe("ação de envio no Kanban", () => {
     expect(html).toContain("Malu");
     expect(html).toContain("Ana");
     expect(html).toContain("Todas as atendentes");
+    expect(html).toContain('aria-label="Visão estratégica"');
+    expect(html).toContain(">Valores</button>");
+    expect(html).toContain(">Categorias</button>");
     context.role = "ATENDENTE";
     const attendantHtml = renderToStaticMarkup(createElement(CommercialKanban));
     expect(attendantHtml).not.toContain("attendant-tag");
     expect(attendantHtml).not.toContain("Todas as atendentes");
+    expect(attendantHtml).not.toContain("Visão estratégica");
   });
   it("não permite envio a partir de uma etapa intermediária", () => {
     context.state.opportunities[0].stage = "Tentativa de contato";

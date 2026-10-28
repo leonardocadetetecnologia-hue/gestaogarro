@@ -25,6 +25,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Desde 27/10/2026, o HD e o Drive ficam em Referências. Um link sem protocolo recebe `https://`. A barra de status dos entregáveis aparece no cartão e na lista.
 - Medido em 27/10/2026 no banco de produção: o Kanban da atendente com mais cards (28 oportunidades) responde em cerca de 2 ms. O quadro não é o gargalo nesse volume. O painel recarrega o estado a cada 30 segundos e a cada abertura.
 - O que entra no ar em 28/10/2026, e como cada parte foi feita, está em `docs/ALTERACOES_2026-10-28.md`.
+- Desde 28/10/2026, o Kanban da Gestora tem três visões: operação, valores por coluna e categorias por coluna. A atendente permanece na visão de cards.
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.

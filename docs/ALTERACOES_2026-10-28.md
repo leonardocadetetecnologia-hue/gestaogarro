@@ -54,6 +54,12 @@ Como: a data fica em `Customer.birthDate`. 29 de fevereiro cai em 28 de fevereir
 
 Medido em 27/10/2026 no banco de produção: a atendente com mais cards tinha 28 oportunidades. A consulta dela levou cerca de 2 ms, lida da memória. O quadro não é o gargalo nesse volume. O painel recarrega o estado inteiro a cada abertura e de novo a cada 30 segundos.
 
+## Visão estratégica do Kanban
+
+O que muda: no Kanban, só a Gestora alterna entre Operação, Valores e Categorias. Cada coluna mostra o dinheiro daquela etapa.
+
+Como: Valores separa estimado, proposta, fechado e sem valor. Categorias separa Evento, Ensaio, Captação, Plano EXPANSÃO e o restante. O valor contado é o fechado; se não houver, a proposta; se não houver, o estimado. Os cards continuam na coluna.
+
 ## Conferência
 
 166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.

@@ -29,6 +29,8 @@ Cada oportunidade fica com a atendente responsável. Uma atendente nova começa 
 
 Em Configurações, a Gestora edita somente os nomes exibidos das colunas. A ordem e o significado de cada etapa não mudam, e os nomes não podem se repetir.
 
+No Kanban, a Gestora troca a visão sem sair do quadro. Operação é a lista de cards. Valores mostra, em cada coluna, quanto está estimado, em proposta, fechado ou sem valor. Categorias mostra, na mesma coluna, quanto está em Evento, Ensaio, Captação, Plano EXPANSÃO e no restante. O número usado é o mais avançado do card: fechado, senão proposta, senão estimado. A atendente não vê essas visões.
+
 Ao mover para Sem interesse, o sistema pergunta se deverá haver contato no futuro. Se a resposta for sim, a data pode ser em 30 dias, 60 dias ou outra data. O compromisso entra na agenda da atendente e na Agenda Global. A notificação só aparece na central no dia marcado. O card em Sem interesse tem **Editar contato futuro**.
 
 Fechado sem sucesso pede o motivo, a mesma pergunta de retorno e, quando há retorno, o responsável: a atendente daquele card ou a Gestora. A agenda e a notificação seguem a data e a pessoa escolhida. O card tem **Editar retorno**. Arrastar o card não conclui a mudança antes dessas respostas. No último dia do mês em que foi encerrado, o card sai dessa coluna. Na data de retorno combinada, volta sozinho para Lead, com a mesma atendente, para uma nova tentativa. Sem data de retorno, ele apenas sai da coluna no fim do mês. O histórico do motivo permanece. Bolo continua etapa de acompanhamento. As demais colunas mudam pelo seletor ou arrastando o card.
