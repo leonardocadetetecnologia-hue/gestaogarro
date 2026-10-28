@@ -82,8 +82,10 @@ export default async function DemandPage({ params }: { params: Promise<{ id: str
                     <option value="">Editor</option>
                     {editors.map((editor) => <option key={editor.id} value={editor.id}>{editor.name}</option>)}
                   </select>
-                  <input type="datetime-local" name="editorDueAt" aria-label="Prazo do editor" />
-                  <input type="datetime-local" name="reviewDueAt" aria-label="Prazo de revisão" />
+                  <input type="date" name="editorDueAt" required aria-label="Dia da edição" />
+                  <input type="time" name="editorDueTime" aria-label="Horário da edição, opcional" />
+                  <input type="date" name="reviewDueAt" aria-label="Dia da revisão" />
+                  <input type="time" name="reviewDueTime" aria-label="Horário da revisão, opcional" />
                   <button className="rounded-md bg-[var(--brown)] px-3 py-2 text-white">Delegar</button>
                 </form>
               ) : null}

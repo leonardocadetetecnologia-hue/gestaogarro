@@ -18,6 +18,11 @@ export const addDeliverableSchema = z.object({
   demandId: id,
   title: z.string().trim().min(1, "Informe o nome do entregável.").max(200),
 });
+export const demandMediaSchema = z.object({
+  id,
+  hd: z.string().trim().max(200, "O HD pode ter no máximo 200 caracteres."),
+  drive: link,
+});
 export const renameDeliverableSchema = z.object({
   id,
   title: z.string().trim().min(1, "Informe o nome do entregável.").max(200),
@@ -56,6 +61,19 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
     await tx.auditLog.create({
       data: { userId: user.id, action: "DEMAND_UPDATED", entityType: "Demand", entityId: demand.id, details: { status: demand.status } },
     });
+  });
+}
+
+export async function saveDemandMedia(user: SessionUser, raw: unknown) {
+  assertManager(user);
+  const parsed = demandMediaSchema.safeParse(raw);
+  if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
+  const input = parsed.data;
+  await prisma.$transaction(async tx => {
+    const demand = await tx.demand.findUnique({ where: { id: input.id }, select: { id: true } });
+    if (!demand) throw new CrmFlowError("Demanda não encontrada.");
+    await tx.demand.update({ where: { id: demand.id }, data: { hd: input.hd || null, driveUrl: input.drive || null } });
+    await tx.auditLog.create({ data: { userId: user.id, action: "DEMAND_MEDIA", entityType: "Demand", entityId: demand.id } });
   });
 }
 

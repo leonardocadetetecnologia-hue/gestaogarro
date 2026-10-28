@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit, notify } from "@/lib/audit";
 import { requireManager, requireUser } from "@/lib/auth";
+import { composeDeadline } from "@/lib/date-input";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import { prisma } from "@/lib/prisma";
 import { reject } from "@/lib/redirect";
@@ -13,6 +14,13 @@ import { CrmFlowError } from "@/modules/crm/send-to-production";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
+}
+
+function deadlineField(formData: FormData, dateKey: string, timeKey: string) {
+  const date = text(formData, dateKey);
+  const time = text(formData, timeKey);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return composeDeadline(date, time);
+  return parseSaoPaulo(date);
 }
 
 const EDITOR_NEXT: Partial<Record<DeliverableStatus, DeliverableStatus[]>> = {
@@ -69,8 +77,8 @@ export async function assignEditor(formData: FormData) {
   try {
     await assignProductionEditor(user, {
       deliverableId, editorId: text(formData, "editorId"),
-      editorDueAt: parseSaoPaulo(text(formData, "editorDueAt")),
-      reviewDueAt: parseSaoPaulo(text(formData, "reviewDueAt")),
+      editorDueAt: deadlineField(formData, "editorDueAt", "editorDueTime"),
+      reviewDueAt: deadlineField(formData, "reviewDueAt", "reviewDueTime"),
     });
   } catch (error) {
     if (error instanceof CrmFlowError) reject("/demandas", error.message);

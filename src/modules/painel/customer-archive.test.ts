@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { State } from "@/lib/data";
-import { buildArchive } from "./customer-archive";
+import { buildArchive, matchesServiceGroup } from "./customer-archive";
 
 const state = {
   customers: [{ id: "ana", kind: "CLIENTE", name: "Ana Cliente", phone: "31999999999", email: "ana@example.test", origin: "Instagram", company: "", city: "", service: "Ensaio", notes: "Prefere manhã", createdAt: "2026-10-01T12:00:00.000Z", attendantName: "Malu" }],
@@ -30,5 +30,15 @@ describe("banco de dados da Gestora", () => {
     ]);
     expect(contact.events[1].author).toBe("Malu");
     expect(contact.events[0].label).toBe("Cadastro");
+  });
+
+  it("agrupa o serviço em evento, ensaio, captação ou plano EXPANSÃO", () => {
+    expect(matchesServiceGroup(["Ensaio PESSOAL"], "Ensaio")).toBe(true);
+    expect(matchesServiceGroup(["Cobertura de evento"], "Evento")).toBe(true);
+    expect(matchesServiceGroup(["Captação de vídeo"], "Captação")).toBe(true);
+    expect(matchesServiceGroup(["Plano EXPANSÃO"], "Plano EXPANSÃO")).toBe(true);
+    expect(matchesServiceGroup(["Workshop"], "Ensaio")).toBe(false);
+    expect(matchesServiceGroup(["Ensaio REPOSICIONAMENTO", "Cobertura de evento"], "Evento")).toBe(true);
+    expect(matchesServiceGroup(["Workshop"], "Todos")).toBe(true);
   });
 });

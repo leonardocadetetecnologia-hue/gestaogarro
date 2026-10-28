@@ -146,6 +146,7 @@ model Customer {
   company   String?
   origin    String?
   notes       String?
+  birthDate   DateTime? @db.Date
   createdById String?
   createdBy   User?   @relation("CustomerCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
@@ -237,6 +238,8 @@ model Demand {
   customer    Customer     @relation(fields: [customerId], references: [id])
   title       String
   description String?
+  hd          String?
+  driveUrl    String?
   status      DemandStatus @default(NOVA)
   clientDueAt DateTime?
   createdAt   DateTime     @default(now())

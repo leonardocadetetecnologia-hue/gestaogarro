@@ -1,5 +1,6 @@
 import type { DemandStatus, DeliverableStatus } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
+import { birthDateKey, birthdayReminders } from "@/lib/birthdays";
 import { kanbanLabelsFrom, type Customer, type ProductionStatus, type State, type TaskStatus } from "@/lib/data";
 import { STAGE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +40,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       origin: c.origin || "Outro", notes: c.notes || "", city: "", service: c.opportunities[0]?.service || "",
       attendantId: c.opportunities[0]?.responsible.id || c.createdBy?.id || "",
       attendantName: c.opportunities[0]?.responsible.name || c.createdBy?.name || "",
+      birthDate: c.birthDate ? birthDateKey(c.birthDate) : "",
       createdAt: c.createdAt.toISOString(),
     }))) : prisma.customer.findMany({
       where: { demands: { some: { deliverables: { some: { editorId: user.id } } } } },
@@ -124,6 +126,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       id: d.id, customerId: d.customerId, title: d.title, service: d.sale?.opportunity.service, description: d.description || "",
       status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
       briefing: d.description || "", links: d.files.find(f => /^https?:\/\//.test(f.storagePath))?.storagePath || "",
+      hd: d.hd || "", drive: d.driveUrl || "",
       createdAt: d.createdAt.toISOString(),
       messages: d.messages.map(m => ({
         id: m.id, demandId: d.id, author: m.sender.name, role: m.sender.role,
@@ -138,7 +141,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),
       clientDeliveredAt: t.clientDeliveredAt?.toISOString(),
     }))),
-    schedule: schedule.map(e => ({
+    schedule: [...schedule.map(e => ({
       id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.demandId ? "Gestão" : "Comercial",
       userId: e.userId, at: e.dueAt.toISOString(), demandId: e.demandId || undefined, done: e.status !== "PENDENTE",
       opportunityId: e.opportunityId || undefined, deliverableId: e.deliverableId || undefined,
@@ -153,7 +156,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       }[e.type],
       status: e.status === "PENDENTE" ? "Pendente" : e.status === "CANCELADO" ? "Cancelado" : "Concluído",
       createdAt: e.createdAt.toISOString(),
-    })),
+    })), ...birthdayReminders(customers, user.role)],
     alerts: notifications.map(n => ({
       id: n.id, userId: user.id, title: n.title, detail: n.message, at: (n.visibleAt ?? n.createdAt).toISOString(),
       read: !!n.readAt, href: n.href || undefined, demandId: n.href?.match(/(?:demandas\/|demanda\?id=)([^/?]+)/)?.[1],

@@ -1,0 +1,2 @@
+ALTER TABLE "Demand" ADD COLUMN "hd" TEXT;
+ALTER TABLE "Demand" ADD COLUMN "driveUrl" TEXT;

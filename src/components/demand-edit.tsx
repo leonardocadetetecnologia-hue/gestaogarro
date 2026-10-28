@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { dateInputSaoPaulo } from "@/lib/date-input";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import type { Demand, Deliverable } from "@/lib/data";
@@ -29,6 +29,24 @@ export function EditDemandModal({ demand, onClose }: { demand: Demand; onClose: 
       <div className="modal-footer"><button type="button" className="button secondary" disabled={busy} onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? "Salvando…" : "Salvar alterações"}</button></div>
     </form>
   </Modal>;
+}
+
+export function DemandMedia({ demand }: { demand: Demand }) {
+  const { role, saveDemandMedia, busy } = useGarro();
+  const [hd, setHd] = useState(demand.hd || "");
+  const [drive, setDrive] = useState(demand.drive || "");
+  useEffect(() => { setHd(demand.hd || ""); setDrive(demand.drive || ""); }, [demand.hd, demand.drive]);
+  const locked = role !== "GESTOR_GARRO" || busy;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    await saveDemandMedia({ id: demand.id, hd, drive });
+  }
+  return <form className="demand-media" onSubmit={submit}>
+    <label>HD<input aria-label="HD" maxLength={200} disabled={locked} value={hd} onChange={event => setHd(event.target.value)} placeholder="Nome ou número do HD"/></label>
+    <label>Drive<input aria-label="Drive" type="url" maxLength={2000} disabled={locked} value={drive} onChange={event => setDrive(event.target.value)} placeholder="https://"/></label>
+    {drive && /^https?:\/\/\S+$/i.test(drive) && <a href={drive} target="_blank" rel="noreferrer" className="text-link">Abrir Drive</a>}
+    {role === "GESTOR_GARRO" && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar HD e Drive"}</button>}
+  </form>;
 }
 
 export function NewDeliverableModal({ demandId, onClose }: { demandId: string; onClose: () => void }) {

@@ -12,7 +12,7 @@ const { tx, transaction } = vi.hoisted(() => {
   return { tx, transaction: vi.fn(async (work: (client: typeof tx) => Promise<unknown>) => work(tx)) };
 });
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
-import { addDeliverable, renameDeliverable, updateDemandDetails } from "./demand-edit";
+import { addDeliverable, renameDeliverable, saveDemandMedia, updateDemandDetails } from "./demand-edit";
 
 const gestora: SessionUser = { id: "gestora", name: "Gestora", email: "gestora@example.test", role: "GESTOR_GARRO" };
 const atendente: SessionUser = { id: "ana", name: "Ana", email: "ana@example.test", role: "ATENDENTE" };
@@ -32,6 +32,13 @@ describe("edição da demanda fora da esteira", () => {
       data: { title: "IANDRA revisada", description: "Briefing completo", clientDueAt: null },
     }));
     expect(tx.demand.update.mock.calls[0][0].data.status).toBeUndefined();
+  });
+
+  it("grava o HD e o link do Drive sem mexer na etapa", async () => {
+    await saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "https://drive.google.com/pasta" });
+    expect(tx.demand.update).toHaveBeenCalledWith({ where: { id: "demand" }, data: { hd: "HD 04", driveUrl: "https://drive.google.com/pasta" } });
+    await expect(saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "pasta-local" })).rejects.toThrow(/link completo/);
+    await expect(saveDemandMedia(atendente, { id: "demand", hd: "HD 04", drive: "" })).rejects.toThrow(/Somente a Gestora/);
   });
 
   it("inclui um entregável novo no fim, sem alterar os existentes", async () => {

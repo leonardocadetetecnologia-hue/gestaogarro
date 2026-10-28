@@ -8,6 +8,7 @@ import { can } from "@/lib/rbac";
 import { attendantOwnsCustomer, canAccessOpportunity } from "@/modules/crm/visibility";
 import { publishSaleClosed } from "@/lib/integration-feed";
 import { formatSaoPaulo } from "@/lib/deadlines";
+import { readBirthDate } from "@/lib/birthdays";
 import { FUTURE_CONTACT_ACTION, isContactDayAllowed } from "@/modules/crm/future-contact";
 import { CrmFlowError, productionSubmissionSchema, sendToProduction } from "@/modules/crm/send-to-production";
 
@@ -15,6 +16,7 @@ const customer = z.object({
   id: z.string().max(80), kind: z.enum(["LEAD", "CLIENTE"]).default("LEAD"), name: z.string().trim().min(2).max(200), phone: z.string().trim().max(40),
   email: z.string().trim().email().or(z.literal("")), origin: z.string().trim().max(80),
   company: z.string().trim().max(200), service: z.string().trim().max(200), notes: z.string().trim().max(10000),
+  birthDate: z.string().trim().max(10).optional().default(""),
 });
 export const crmCommandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createCustomer"), customer, value: z.number().finite().min(0).max(9999999999).nullable() }),
@@ -69,7 +71,9 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     }
     if (input.kind === "createCustomer" || input.kind === "updateCustomer") {
       const c = input.customer;
-      const data = { name: c.name, phone: c.phone || null, email: c.email || null, origin: c.origin || null, company: c.company || null, notes: c.notes || null };
+      const birthDate = readBirthDate(c.birthDate || "");
+      if ("error" in birthDate) throw new CrmFlowError(birthDate.error);
+      const data = { name: c.name, phone: c.phone || null, email: c.email || null, origin: c.origin || null, company: c.company || null, notes: c.notes || null, birthDate: birthDate.date };
       if (input.kind === "updateCustomer") {
         const existing = await tx.customer.findUnique({ where: { id: c.id }, select: { createdById: true, opportunities: { select: { responsibleId: true } } } });
         if (!existing || !attendantOwnsCustomer(user, existing)) throw new CrmFlowError("Contato não encontrado.");

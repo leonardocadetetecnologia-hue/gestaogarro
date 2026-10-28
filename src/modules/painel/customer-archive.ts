@@ -66,6 +66,20 @@ export function buildArchive(state: State): ArchiveContact[] {
   }).sort((a, b) => new Date(b.lastAt || 0).getTime() - new Date(a.lastAt || 0).getTime());
 }
 
+export const serviceGroups = [
+  { label: "Evento", pattern: /evento/i },
+  { label: "Ensaio", pattern: /ensaio/i },
+  { label: "Captação", pattern: /capta/i },
+  { label: "Plano EXPANSÃO", pattern: /expans[aã]o/i },
+] as const;
+
+export function matchesServiceGroup(services: string[], group: string) {
+  if (!group || group === "Todos") return true;
+  const rule = serviceGroups.find(item => item.label === group);
+  if (!rule) return false;
+  return services.some(service => rule.pattern.test(service));
+}
+
 export function archiveMatches(contact: ArchiveContact, filter: string) {
   if (filter === "Leads") return contact.kind === "Lead";
   if (filter === "Clientes") return contact.kind === "Cliente";

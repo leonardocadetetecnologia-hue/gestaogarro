@@ -103,5 +103,5 @@ describe("agenda por perfil e origem", () => {
 it("oferece a própria Gestora como responsável pela edição com confirmação e prazo", () => {
   context.state.editors = [{ id: "manager", name: "Gestora de teste", email: "manager@example.test", active: true, role: "GESTOR_GARRO" }];
   const html = renderToStaticMarkup(createElement(TaskAssignment, { task: { id: "task", demandId: "demand", title: "Vídeo", editorId: "", status: "A iniciar", editorDue: "", reviewDue: "", clientDue: "", progress: 0 } }));
-  expect(html).toContain("eu · Gestora"); expect(html).toContain("Salvar atribuição e prazos"); expect(html).toContain("Prazo da edição (Brasília)");
+  expect(html).toContain("eu · Gestora"); expect(html).toContain("Salvar atribuição e prazos"); expect(html).toContain("Dia da edição"); expect(html).toContain("Horário da edição, opcional"); expect(html).not.toContain("datetime-local");
 });

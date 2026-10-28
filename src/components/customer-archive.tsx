@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { dateFull } from "@/lib/data";
-import { archiveMatches, buildArchive } from "@/modules/painel/customer-archive";
+import { archiveMatches, buildArchive, matchesServiceGroup, serviceGroups } from "@/modules/painel/customer-archive";
 import { useGarro } from "@/lib/store";
 import { Badge, Empty, Metric, SearchBox, ViewTitle } from "./Ui";
 
@@ -14,6 +14,7 @@ export function CustomerArchive() {
   const [filter, setFilter] = useState("Todos");
   const [origin, setOrigin] = useState("Todas");
   const [attendant, setAttendant] = useState("Todas");
+  const [service, setService] = useState("Todos");
   const [selected, setSelected] = useState<string | null>(null);
   const rows = useMemo(() => buildArchive(state), [state]);
   if (role !== "GESTOR_GARRO") return <div className="workspace"><ViewTitle eyebrow="GESTÃO" title="Banco de dados" description="Disponível somente para a Gestora."/><Empty text="Este mapa de contatos não está disponível para este perfil."/></div>;
@@ -21,7 +22,7 @@ export function CustomerArchive() {
   const attendants = ["Todas", ...new Set(rows.flatMap(item => item.attendants))];
   const visible = rows.filter(item => {
     const text = `${item.name} ${item.phone} ${item.email} ${item.services.join(" ")} ${item.origin}`.toLowerCase();
-    return archiveMatches(item, filter) && text.includes(query.toLowerCase()) && (origin === "Todas" || item.origin === origin) && (attendant === "Todas" || item.attendants.includes(attendant));
+    return archiveMatches(item, filter) && matchesServiceGroup(item.services, service) && text.includes(query.toLowerCase()) && (origin === "Todas" || item.origin === origin) && (attendant === "Todas" || item.attendants.includes(attendant));
   });
   const current = visible.find(item => item.id === selected) || null;
   const byOrigin = origins.filter(item => item !== "Todas").map(item => ({ item, count: rows.filter(row => row.origin === item).length }));
@@ -43,6 +44,7 @@ export function CustomerArchive() {
       <select aria-label="Filtrar situação" value={filter} onChange={event => setFilter(event.target.value)}>{filters.map(item => <option key={item}>{item}</option>)}</select>
       <select aria-label="Filtrar origem" value={origin} onChange={event => setOrigin(event.target.value)}>{origins.map(item => <option key={item}>{item}</option>)}</select>
       <select aria-label="Filtrar atendente" value={attendant} onChange={event => setAttendant(event.target.value)}>{attendants.map(item => <option key={item}>{item}</option>)}</select>
+      <select aria-label="Filtrar serviço" value={service} onChange={event => setService(event.target.value)}><option value="Todos">Serviço</option>{serviceGroups.map(item => <option key={item.label} value={item.label}>{item.label}</option>)}</select>
     </div>
     <div className="archive-layout">
       <div className="surface table-wrapper">

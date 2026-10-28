@@ -4,18 +4,21 @@ import { dateInputSaoPaulo } from "@/lib/date-input";
 import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
 import { addDemandMessage, assignEditor, changeDeliverableStatus } from "@/modules/production/actions";
+import { assignManyDeliverables } from "@/modules/production/assignment-service";
 import { createDirectDemand, directDemandSchema } from "@/modules/production/create-demand";
-import { addDeliverable, addDeliverableSchema, renameDeliverable, renameDeliverableSchema, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
+import { addDeliverable, addDeliverableSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
 import { saveDeliverableScript, taskScriptSchema } from "@/modules/production/script-service";
 
 const id = z.string().min(1).max(80);
 const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createDemand"), input: directDemandSchema }),
   z.object({ kind: z.literal("updateDemand"), input: updateDemandSchema }),
+  z.object({ kind: z.literal("demandMedia"), input: demandMediaSchema }),
   z.object({ kind: z.literal("addDeliverable"), input: addDeliverableSchema }),
   z.object({ kind: z.literal("renameDeliverable"), input: renameDeliverableSchema }),
   z.object({ kind: z.literal("script"), input: taskScriptSchema }),
   z.object({ kind: z.literal("assign"), id, editorId: id, editorDue: z.string().datetime({ offset: true }).optional(), reviewDue: z.string().datetime({ offset: true }).or(z.literal("")).optional() }),
+  z.object({ kind: z.literal("assignMany"), demandId: id, deliverableIds: z.array(id).min(1).max(100), editorId: id, editorDue: z.string().datetime({ offset: true }), reviewDue: z.string().datetime({ offset: true }).or(z.literal("")) }),
   z.object({ kind: z.literal("due"), id, field: z.enum(["editorDue", "reviewDue", "clientDue"]), value: z.string().datetime({ offset: true }) }),
   z.object({ kind: z.literal("status"), id, status: z.enum(["A iniciar", "Em edição", "Em revisão", "Correção", "Aprovado"]) }),
   z.object({ kind: z.literal("message"), id, message: z.string().trim().min(1).max(10000) }),
@@ -30,11 +33,19 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   const input = parsed.data;
   if (input.kind === "createDemand") return createDirectDemand(user, input.input);
   if (input.kind === "updateDemand") return updateDemandDetails(user, input.input);
+  if (input.kind === "demandMedia") return saveDemandMedia(user, input.input);
   if (input.kind === "addDeliverable") return addDeliverable(user, input.input);
   if (input.kind === "renameDeliverable") return renameDeliverable(user, input.input);
   if (input.kind === "script") return saveDeliverableScript(user, input.input);
   if (input.kind === "read") {
     await prisma.notification.updateMany({ where: { id: input.id, userId: user.id }, data: { readAt: new Date() } });
+    return;
+  }
+  if (input.kind === "assignMany") {
+    await assignManyDeliverables(user, {
+      demandId: input.demandId, deliverableIds: input.deliverableIds, editorId: input.editorId,
+      editorDueAt: new Date(input.editorDue), reviewDueAt: input.reviewDue ? new Date(input.reviewDue) : null,
+    });
     return;
   }
   if (user.role === "ATENDENTE") throw new CrmFlowError("A produção é gerenciada pela Gestora e pelos editores atribuídos.");
@@ -80,7 +91,7 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   }
   const editorDue = input.editorDue ? new Date(input.editorDue) : task.editorDueAt;
   const reviewDue = input.reviewDue === "" ? null : input.reviewDue ? new Date(input.reviewDue) : task.reviewDueAt;
-  if (!editorDue) throw new CrmFlowError("Defina o prazo do editor antes de atribuir o entregável.");
+  if (!editorDue) throw new CrmFlowError("Informe o dia do prazo de edição.");
   form.set("deliverableId", task.id); form.set("editorId", input.editorId);
   form.set("editorDueAt", dateInputSaoPaulo(editorDue));
   form.set("reviewDueAt", reviewDue ? dateInputSaoPaulo(reviewDue) : "");

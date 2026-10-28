@@ -21,6 +21,11 @@ describe("menu banco de dados", () => {
     expect(html).toContain("Banco de dados");
     expect(html).toContain("Ana Cliente");
     expect(html).toContain("Instagram");
+    expect(html).toContain('aria-label="Filtrar serviço"');
+    expect(html).toContain(">Evento</option>");
+    expect(html).toContain(">Ensaio</option>");
+    expect(html).toContain(">Captação</option>");
+    expect(html).toContain(">Plano EXPANSÃO</option>");
   });
 
   it("não revela a base para outro perfil", () => {

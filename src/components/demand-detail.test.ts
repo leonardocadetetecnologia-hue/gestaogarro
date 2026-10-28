@@ -13,7 +13,7 @@ const { context, push } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/store", () => ({ useGarro: () => context }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-import { DemandDetail } from "./Production";
+import { DemandDetail, EditorHome } from "./Production";
 
 const demand = { id: "iandra", customerId: "customer", title: "IANDRA", description: "Briefing", status: "Nova demanda" as const, clientDue: "2026-11-03T17:58:00.000Z", briefing: "Ainda vou colocar", links: "", createdAt: "2026-10-27T17:59:00.000Z", messages: [] };
 
@@ -34,16 +34,24 @@ beforeEach(() => {
 });
 
 describe("nova demanda dentro do projeto", () => {
-  it("oferece o botão e lista as demandas do mesmo cliente", () => {
+  it("oferece o botão e deixa as demandas do cliente recolhidas", () => {
     const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
     expect(html).toContain("Nova demanda</button>");
     expect(html).toContain(">Editar</button>");
     expect(html).toContain(">Novo</button>");
+    expect(html).toContain(">Atribuir vários</button>");
+    expect(html).toContain('aria-label="HD"');
+    expect(html).toContain('aria-label="Drive"');
+    expect(html).toContain("1- NEW TECH");
+    expect(html).toContain(">Aprovado</span>");
+    expect(html).not.toContain("Salvar atribuição e prazos");
+    expect(html).not.toContain("datetime-local");
     expect(html.indexOf("1- NEW TECH")).toBeLessThan(html.indexOf("8- VINI COM ELE MESMO"));
     expect(html).toContain("Demandas de Iandra Vilaça");
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("IANDRA");
-    expect(html).toContain("Segunda demanda");
-    expect(html).toContain('aria-current="true"');
+    expect(html).not.toContain("Segunda demanda");
+    expect(html).not.toContain('aria-current="true"');
   });
 
   it("não oferece o botão ao editor", () => {
@@ -52,7 +60,32 @@ describe("nova demanda dentro do projeto", () => {
     const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
     expect(html).not.toContain("Nova demanda</button>");
     expect(html).not.toContain(">Novo</button>");
+    expect(html).not.toContain(">Atribuir vários</button>");
     expect(html).not.toContain(">Editar</button>");
     expect(html).not.toContain("Demandas de Iandra Vilaça");
+  });
+});
+
+describe("trabalhos atribuídos da Gestora", () => {
+  it("mostra o cliente em cada trabalho e oferece filtro pelos clientes atribuídos", () => {
+    context.activeEditorId = "manager";
+    context.state.customers.push({ id: "outro", kind: "CLIENTE", name: "Ana Costa", phone: "", email: "", company: "", origin: "Site", notes: "", city: "", service: "" });
+    context.state.demands.push({ ...demand, id: "ana", customerId: "outro", title: "Campanha Ana" });
+    context.state.deliverables.push({ id: "task-ana", demandId: "ana", title: "Reel da Ana", editorId: "manager", status: "Em edição", editorDue: "", reviewDue: "", clientDue: "", progress: 20 });
+    const html = renderToStaticMarkup(createElement(EditorHome));
+    expect(html).toContain("Iandra Vilaça");
+    expect(html).toContain("Ana Costa");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).not.toContain("Reel da Ana");
+    expect(html).not.toContain("8- VINI COM ELE MESMO");
+    expect(html).toContain('aria-label="Filtrar etapa"');
+    expect(html).toContain("Todas as etapas");
+    expect(html).toContain(">Em edição</option>");
+    expect(html).toContain(">Aprovado</option>");
+    expect(html).toContain(">Atrasado</option>");
+    expect(html).toContain(">Concluído</option>");
+    expect(html).toContain('aria-label="Filtrar cliente"');
+    expect(html).toContain("Todos os clientes");
+    expect(html.indexOf(">Ana Costa</option>")).toBeLessThan(html.indexOf(">Iandra Vilaça</option>"));
   });
 });

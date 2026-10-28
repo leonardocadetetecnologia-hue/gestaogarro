@@ -18,6 +18,7 @@ type Ctx = {
   updateOpportunityValue: (id: string, value: number | null) => Save;
   createDemand: (input: DirectDemandInput) => Promise<string | false>;
   updateDemand: (input: { id: string; title: string; description: string; due: string; links: string }) => Save;
+  saveDemandMedia: (input: { id: string; hd: string; drive: string }) => Save;
   addDeliverable: (demandId: string, title: string) => Save;
   renameDeliverable: (id: string, title: string) => Save;
   moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
@@ -31,6 +32,7 @@ type Ctx = {
   saveTaskScript: (id: string, script: string, previous: string) => Save;
   markDelivered: (id: string) => Save;
   assignEditor: (id: string, editorId: string, editorDue?: string, reviewDue?: string) => Save;
+  assignMany: (input: { demandId: string; deliverableIds: string[]; editorId: string; editorDue: string; reviewDue: string }) => Save;
   updateTaskDue: (id: string, field: "editorDue" | "reviewDue" | "clientDue", value: string) => Save;
   readAlert: (id: string) => Save;
 };
@@ -88,6 +90,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
       return result.ok && result.createdId ? result.createdId : false;
     },
     updateDemand: input => done(save({ kind: "updateDemand", input }, true)),
+    saveDemandMedia: input => done(save({ kind: "demandMedia", input }, true)),
     addDeliverable: (demandId, title) => done(save({ kind: "addDeliverable", input: { demandId, title } }, true)),
     renameDeliverable: (id, title) => done(save({ kind: "renameDeliverable", input: { id, title } }, true)),
     moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),
@@ -104,6 +107,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     saveTaskScript: (id, script, previous) => done(save({ kind: "script", input: { id, script, previous } }, true)),
     markDelivered: id => done(save({ kind: "delivered", id }, true)),
     assignEditor: (id, editorId, editorDue, reviewDue) => done(save({ kind: "assign", id, editorId, editorDue, reviewDue }, true)),
+    assignMany: input => done(save({ kind: "assignMany", ...input }, true)),
     updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, true)),
     readAlert: id => done(save({ kind: "read", id }, true)),
   };
