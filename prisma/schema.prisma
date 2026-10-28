@@ -245,9 +245,10 @@ model Demand {
   title       String
   mediaType   DemandMediaType?
   description String?
-  hd          String?
-  driveUrl    String?
-  status      DemandStatus @default(NOVA)
+  hd             String?
+  driveUrl       String?
+  deliveryLinks  Json     @default("[]")
+  status         DemandStatus @default(NOVA)
   clientDueAt DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

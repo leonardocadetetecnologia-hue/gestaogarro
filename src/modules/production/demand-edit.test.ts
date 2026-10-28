@@ -12,10 +12,11 @@ const { tx, transaction } = vi.hoisted(() => {
   return { tx, transaction: vi.fn(async (work: (client: typeof tx) => Promise<unknown>) => work(tx)) };
 });
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
-import { addDeliverable, renameDeliverable, saveDemandMedia, updateDemandDetails } from "./demand-edit";
+import { addDeliverable, renameDeliverable, saveDeliveryLinks, saveDemandMedia, updateDemandDetails } from "./demand-edit";
 
 const gestora: SessionUser = { id: "gestora", name: "Gestora", email: "gestora@example.test", role: "GESTOR_GARRO" };
 const atendente: SessionUser = { id: "ana", name: "Ana", email: "ana@example.test", role: "ATENDENTE" };
+const editor: SessionUser = { id: "editor", name: "Editor", email: "editor@example.test", role: "EDITOR" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -41,6 +42,25 @@ describe("edição da demanda fora da esteira", () => {
     expect(tx.demand.update).toHaveBeenLastCalledWith({ where: { id: "demand" }, data: { hd: "HD 04", driveUrl: "https://drive.google.com/pasta" } });
     await expect(saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "pasta-local" })).rejects.toThrow(/link completo/);
     await expect(saveDemandMedia(atendente, { id: "demand", hd: "HD 04", drive: "" })).rejects.toThrow(/Somente a Gestora/);
+  });
+
+  it("grava vários links de entrega e recusa o que não é endereço", async () => {
+    await expect(saveDeliveryLinks(gestora, { id: "demand", links: ["pasta-local"] })).rejects.toThrow(/endereço http/);
+    expect(transaction).not.toHaveBeenCalled();
+    await saveDeliveryLinks(gestora, {
+      id: "demand",
+      links: ["https://entrega.example/fotos", "drive.google.com/videos", "", "example.com/extra"],
+    });
+    expect(tx.demand.update).toHaveBeenCalledWith({
+      where: { id: "demand" },
+      data: { deliveryLinks: ["https://entrega.example/fotos", "https://drive.google.com/videos", "https://example.com/extra"] },
+    });
+    await saveDeliveryLinks(gestora, { id: "demand", links: ["  ", ""] });
+    expect(tx.demand.update).toHaveBeenLastCalledWith({ where: { id: "demand" }, data: { deliveryLinks: [] } });
+    const calls = transaction.mock.calls.length;
+    await expect(saveDeliveryLinks(atendente, { id: "demand", links: [] })).rejects.toThrow(/Somente a Gestora/);
+    await expect(saveDeliveryLinks(editor, { id: "demand", links: ["https://ok.example"] })).rejects.toThrow(/Somente a Gestora/);
+    expect(transaction.mock.calls.length).toBe(calls);
   });
 
   it("inclui um entregável novo no fim, sem alterar os existentes", async () => {

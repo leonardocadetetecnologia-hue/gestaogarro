@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionUser } from "@/lib/auth";
 const { db } = vi.hoisted(() => ({ db: {
-  customer: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() }, demand: { findMany: vi.fn() },
+  customer: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() }, demand: { findMany: vi.fn() }, deliverable: { findMany: vi.fn() },
   user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() }, kanbanLabel: { findMany: vi.fn() },
 } }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -48,5 +48,32 @@ describe("dados e agenda por perfil", () => {
     db.demand.findMany.mockResolvedValue([row, { ...row, id: "antiga", title: "Arquivo", mediaType: null }]);
     const state = await loadPanelState(user);
     expect(state.demands.map(item => [item.id, item.mediaType])).toEqual([["nova", "FOTO_E_VIDEO"], ["antiga", undefined]]);
+  });
+  it("numera os entregáveis pela criação e publica só links de entrega válidos", async () => {
+    const task = (id: string, createdAt: string, editorId: string | null = null) => ({
+      id, title: id, description: "", status: "AGUARDANDO_EDITOR", editorId, createdAt: new Date(createdAt),
+      editorDueAt: null, reviewDueAt: null, clientDueAt: null, editorDeliveredAt: null, managerApprovedAt: null, clientDeliveredAt: null,
+      scriptAttachments: [],
+    });
+    const demand = {
+      id: "nova", customerId: "c", title: "Casamento", description: "", status: "EM_PRODUCAO", clientDueAt: null,
+      hd: null, driveUrl: null, mediaType: "FOTO_E_VIDEO", createdAt: new Date("2026-10-28T15:00:00.000Z"),
+      deliveryLinks: ["https://entrega.example/album", "texto"],
+      deliverables: [task("segundo", "2026-10-02T12:00:00.000Z"), task("primeiro", "2026-10-01T12:00:00.000Z", "user")],
+      messages: [], files: [], sale: null,
+    };
+    db.demand.findMany.mockResolvedValue([demand]);
+    const state = await loadPanelState(user);
+    expect(state.demands[0].deliveryLinks).toEqual(["https://entrega.example/album"]);
+    expect(state.deliverables.map(item => [item.number, item.id])).toEqual([[1, "primeiro"], [2, "segundo"]]);
+
+    db.demand.findMany.mockResolvedValue([{ ...demand, deliverables: [task("meu", "2026-10-02T12:00:00.000Z", "user")] }]);
+    db.deliverable.findMany.mockResolvedValue([
+      { id: "outro", demandId: "nova", createdAt: new Date("2026-10-01T12:00:00.000Z") },
+      { id: "meu", demandId: "nova", createdAt: new Date("2026-10-02T12:00:00.000Z") },
+    ]);
+    const editor = await loadPanelState({ ...user, role: "EDITOR" });
+    expect(editor.deliverables.map(item => [item.id, item.number])).toEqual([["meu", 2]]);
+    expect(editor.demands[0].deliveryLinks).toEqual(["https://entrega.example/album"]);
   });
 });

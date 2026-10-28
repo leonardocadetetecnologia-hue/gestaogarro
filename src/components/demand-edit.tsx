@@ -5,6 +5,7 @@ import { dateInputSaoPaulo } from "@/lib/date-input";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import type { Demand, Deliverable } from "@/lib/data";
 import { useGarro } from "@/lib/store";
+import { deliveryHref } from "@/modules/production/delivery-links";
 import { Field, Modal } from "./Ui";
 
 export function EditDemandModal({ demand, onClose }: { demand: Demand; onClose: () => void }) {
@@ -49,6 +50,76 @@ export function DemandMedia({ demand }: { demand: Demand }) {
     <label>Drive<input aria-label="Drive" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} maxLength={2000} readOnly={!canEdit} disabled={canEdit && busy} value={drive} onChange={event => setDrive(event.target.value)} placeholder="https://"/></label>
     {canEdit && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar HD e Drive"}</button>}
     {driveHref && <a href={driveHref} target="_blank" rel="noreferrer" className="text-link">Abrir Drive</a>}
+  </form>;
+}
+
+function deliveryRows(demand: Demand, canEdit: boolean) {
+  const saved = demand.deliveryLinks ?? [];
+  if (saved.length) return saved;
+  if (!canEdit) return [];
+  return demand.mediaType === "FOTO_E_VIDEO" ? ["", ""] : [""];
+}
+
+function deliveryPlaceholder(index: number, mediaType: Demand["mediaType"]) {
+  if (mediaType === "FOTO_E_VIDEO" && index === 0) return "Link das fotos";
+  if (mediaType === "FOTO_E_VIDEO" && index === 1) return "Link dos vídeos";
+  return "https://";
+}
+
+export function DeliveryLinks({ demand }: { demand: Demand }) {
+  const { role, saveDeliveryLinks, busy } = useGarro();
+  const canEdit = role === "GESTOR_GARRO";
+  const savedKey = (demand.deliveryLinks ?? []).join("\n");
+  const [links, setLinks] = useState<string[]>(() => deliveryRows(demand, canEdit));
+  const [copied, setCopied] = useState("");
+  useEffect(() => {
+    const saved = savedKey ? savedKey.split("\n") : [];
+    setLinks(saved.length ? saved : !canEdit ? [] : demand.mediaType === "FOTO_E_VIDEO" ? ["", ""] : [""]);
+  }, [savedKey, demand.mediaType, canEdit]);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(""), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+  async function copy(value: string) {
+    const href = deliveryHref(value);
+    if (!href) return;
+    try {
+      await navigator.clipboard.writeText(href);
+      setCopied(href);
+    } catch {
+      setCopied("");
+    }
+  }
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!canEdit) return;
+    await saveDeliveryLinks({ id: demand.id, links });
+  }
+  return <form className="delivery-links" onSubmit={submit} aria-label="Link de Entrega">
+    <div className="delivery-links-head">
+      <h3>Link de Entrega</h3>
+      {canEdit && <button className="button secondary small" type="button" aria-label="Incluir outro link de entrega" disabled={busy} onClick={() => setLinks(current => [...current, ""])}>+</button>}
+    </div>
+    {canEdit && demand.mediaType === "FOTO_E_VIDEO" && <p>Foto e vídeo: um link para cada. O + inclui outros.</p>}
+    {!canEdit && links.length === 0 && <p>Nenhum link de entrega informado.</p>}
+    {links.map((link, index) => {
+      const href = deliveryHref(link);
+      const label = `Link de entrega ${index + 1}`;
+      return <div className="delivery-link-row" key={`${index}-${savedKey}`}>
+        <label>
+          <span>{label}</span>
+          <input aria-label={label} type="text" inputMode="url" autoCapitalize="none" spellCheck={false} maxLength={2000} readOnly={!canEdit} disabled={canEdit && busy} value={link} placeholder={deliveryPlaceholder(index, demand.mediaType)} onChange={event => setLinks(current => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} />
+        </label>
+        <div className="delivery-link-actions">
+          {href && <button className="button ghost small" type="button" onClick={() => void copy(href)}>{copied === href ? "Copiado" : "Copiar"}</button>}
+          {href && <a href={href} target="_blank" rel="noreferrer" className="text-link">Abrir</a>}
+          {canEdit && <button className="button ghost small" type="button" aria-label={`Remover link de entrega ${index + 1}`} disabled={busy} onClick={() => setLinks(current => current.filter((_, itemIndex) => itemIndex !== index))}>Remover</button>}
+        </div>
+      </div>;
+    })}
+    {canEdit && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar links"}</button>}
+    <span className="sr-only" role="status">{copied ? "Link copiado." : ""}</span>
   </form>;
 }
 

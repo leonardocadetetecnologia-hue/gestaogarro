@@ -20,6 +20,7 @@ type Ctx = {
   createDemand: (input: DirectDemandInput) => Promise<string | false>;
   updateDemand: (input: { id: string; title: string; description: string; due: string; links: string }) => Save;
   saveDemandMedia: (input: { id: string; hd: string; drive: string }) => Save;
+  saveDeliveryLinks: (input: { id: string; links: string[] }) => Save;
   addDeliverable: (demandId: string, title: string) => Save;
   renameDeliverable: (id: string, title: string) => Save;
   moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
@@ -94,6 +95,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     },
     updateDemand: input => done(save({ kind: "updateDemand", input }, true)),
     saveDemandMedia: input => done(save({ kind: "demandMedia", input }, true)),
+    saveDeliveryLinks: input => done(save({ kind: "deliveryLinks", input }, true)),
     addDeliverable: (demandId, title) => done(save({ kind: "addDeliverable", input: { demandId, title } }, true)),
     renameDeliverable: (id, title) => done(save({ kind: "renameDeliverable", input: { id, title } }, true)),
     moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),

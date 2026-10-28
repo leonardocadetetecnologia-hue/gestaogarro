@@ -19,6 +19,7 @@ export function DeliveryStatement() {
   const [service, setService] = useState("");
   const [group, setGroup] = useState<StatementGroup>("cliente");
   const [span, setSpan] = useState("all");
+  const [month, setMonth] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [statement, setStatement] = useState<StatementResponse | null>(null);
@@ -29,8 +30,12 @@ export function DeliveryStatement() {
     const params = new URLSearchParams({ group });
     if (customerId) params.set("customerId", customerId);
     if (service) params.set("service", service);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
+    if (span === "month") {
+      if (month) params.set("month", month);
+    } else {
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+    }
     const controller = new AbortController();
     setLoading(true);
     fetch(`${base}/api/reports/delivery-statement?${params}`, { cache: "no-store", signal: controller.signal })
@@ -48,21 +53,30 @@ export function DeliveryStatement() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [base, customerId, service, group, from, to]);
+  }, [base, customerId, service, group, span, month, from, to]);
 
   function openPdf() {
     const params = new URLSearchParams({ group, imprimir: "1" });
     if (customerId) params.set("customerId", customerId);
     if (service) params.set("service", service);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
+    if (span === "month") {
+      if (month) params.set("month", month);
+    } else {
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+    }
     window.open(`${base}/painel/extrato?${params}`, "_blank", "noopener");
   }
 
   function changeSpan(value: string) {
     setSpan(value);
-    if (value === "all") { setFrom(""); setTo(""); return; }
-    if (value === "custom") return;
+    if (value === "all" || value === "month" || value === "custom") {
+      setFrom("");
+      setTo("");
+      if (value !== "month") setMonth("");
+      return;
+    }
+    setMonth("");
     const period = periodEnding(Number(value));
     setFrom(period.from);
     setTo(period.to);
@@ -102,9 +116,16 @@ export function DeliveryStatement() {
             <option value="3">Últimos 3 meses</option>
             <option value="6">Últimos 6 meses</option>
             <option value="12">Últimos 12 meses</option>
+            <option value="month">Um mês</option>
             <option value="custom">Datas específicas</option>
           </select>
         </label>
+        {span === "month" && (
+          <label className="field">
+            <span>Mês</span>
+            <input aria-label="Mês do extrato" type="month" value={month} onChange={event => setMonth(event.target.value)} />
+          </label>
+        )}
         {span === "custom" && <>
           <label className="field">
             <span>De</span>
@@ -135,7 +156,7 @@ export function DeliveryStatement() {
               {section.activities.map(activity => (
                 <li key={activity.id}>
                   <div>
-                    <strong>{activity.title}</strong>
+                    <strong>{activity.number ? `${activity.number}. ${activity.title}` : activity.title}</strong>
                     <span>{group === "cliente" ? activity.service : activity.customerName}</span>
                   </div>
                   <p>{activity.description}</p>

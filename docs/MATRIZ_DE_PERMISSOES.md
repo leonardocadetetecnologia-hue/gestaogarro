@@ -19,6 +19,9 @@
 | Aprovar e entregar ao cliente | Sim | Não | Não |
 | Agenda Global | Sim | Não | Não |
 | Extrato de entregas concluídas | Sim | Não | Não |
+| Gravar links de entrega | Sim | Não | Não |
+| Ver e copiar links de entrega | Sim | Não | Nas demandas que já abre |
+| Exportar PDF da demanda concluída | Sim | Não | Não |
 | Agenda própria | Sim | Sim, comercial | Sim, atribuições próprias |
 | Criar/editar/ativar editor e redefinir senha | Sim | Não | Não |
 

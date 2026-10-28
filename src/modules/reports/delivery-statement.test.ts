@@ -92,4 +92,50 @@ describe("extrato de entregas concluídas", () => {
     expect(period.sections[0].activities.map(item => item.title)).toEqual(["Vídeo principal"]);
     expect(() => parseStatementFilters(new URLSearchParams("from=2026-11-01&to=2026-10-01"))).toThrow(/Período inválido/);
   });
+
+  it("numera pela criação e conserva o número quando um item do meio não foi entregue", () => {
+    const activities = activitiesFromDemand(demand({
+      deliverables: [
+        { id: "c", title: "Terceiro", description: "Entregue por último.", status: "ENTREGUE", clientDeliveredAt: deliveredAt, createdAt: new Date("2026-10-03T12:00:00.000Z") },
+        { id: "a", title: "Primeiro", description: "Entregue primeiro.", status: "CONCLUIDO", clientDeliveredAt: deliveredAt, createdAt: new Date("2026-10-01T12:00:00.000Z") },
+        { id: "b", title: "Segundo", description: "Ainda na revisão.", status: "EM_REVISAO", clientDeliveredAt: null, createdAt: new Date("2026-10-02T12:00:00.000Z") },
+      ],
+    }));
+    expect(activities.map(item => [item.number, item.title])).toEqual([[1, "Primeiro"], [3, "Terceiro"]]);
+    expect(JSON.stringify(activities)).not.toMatch(/value|valor|preco|preço|contato|arquivo/i);
+  });
+
+  it("aceita um mês ou duas datas e limita o relatório à demanda", () => {
+    expect(parseStatementFilters(new URLSearchParams("month=2024-02"))).toMatchObject({ from: "2024-02-01", to: "2024-02-29", month: "2024-02" });
+    expect(parseStatementFilters(new URLSearchParams("month=2026-02")).to).toBe("2026-02-28");
+    expect(() => parseStatementFilters(new URLSearchParams("month=2026-13"))).toThrow(/Mês inválido/);
+    expect(() => parseStatementFilters(new URLSearchParams("month=2026-10&from=2026-10-01"))).toThrow(/mês ou um intervalo/);
+    expect(() => parseStatementFilters(new URLSearchParams("demandId=../x"))).toThrow(/Demanda inválida/);
+
+    const other = demand({
+      id: "demand-2",
+      deliverables: [{ id: "item-x", title: "Outra demanda", description: "Outro projeto.", status: "ENTREGUE", clientDeliveredAt: deliveredAt }],
+    });
+    const old = demand({
+      id: "demand-antiga",
+      deliverables: [{ id: "item-antiga", title: "Entrega antiga", description: "Trabalho de meses atrás.", status: "ENTREGUE", clientDeliveredAt: new Date("2026-01-10T15:00:00.000Z") }],
+    });
+    const october = buildStatement([demand(), other, old], parseStatementFilters(new URLSearchParams("month=2026-10&demandId=demand-1")));
+    expect(october.total).toBe(1);
+    expect(october.sections[0].activities.map(item => [item.number, item.title])).toEqual([[1, "Vídeo principal"]]);
+
+    const ordered = buildStatement([demand({
+      deliverables: [
+        { id: "late", title: "Segundo", description: "Caiu depois.", status: "ENTREGUE", clientDeliveredAt: new Date("2026-10-20T18:00:00.000Z"), createdAt: new Date("2026-10-02T12:00:00.000Z") },
+        { id: "early", title: "Primeiro", description: "Nasceu antes.", status: "ENTREGUE", clientDeliveredAt: new Date("2026-10-05T18:00:00.000Z"), createdAt: new Date("2026-10-01T12:00:00.000Z") },
+      ],
+    })], parseStatementFilters(new URLSearchParams("demandId=demand-1&month=2026-10")));
+    expect(ordered.sections[0].activities.map(item => item.title)).toEqual(["Primeiro", "Segundo"]);
+
+    const january = buildStatement([demand(), old], parseStatementFilters(new URLSearchParams("demandId=demand-1&from=2026-01-01&to=2026-01-31")));
+    expect(january.total).toBe(0);
+    const model = statementOrExample([], parseStatementFilters(new URLSearchParams("demandId=demand-1&month=2026-10")));
+    expect(model.example).toBe(false);
+    expect(model.total).toBe(0);
+  });
 });

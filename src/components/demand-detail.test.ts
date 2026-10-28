@@ -42,6 +42,10 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).toContain(">Atribuir vários</button>");
     expect(html).toContain('aria-label="HD"');
     expect(html).toContain('aria-label="Drive"');
+    expect(html).toContain("Link de Entrega");
+    expect(html).toContain('aria-label="Incluir outro link de entrega"');
+    expect(html).toContain("Salvar links");
+    expect(html).not.toContain("Exportar PDF");
     expect(html).toContain("1- NEW TECH");
     expect(html).toContain(">Aprovado</span>");
     expect(html).not.toContain("Salvar atribuição e prazos");
@@ -63,6 +67,50 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).not.toContain(">Atribuir vários</button>");
     expect(html).not.toContain(">Editar</button>");
     expect(html).not.toContain("Demandas de Iandra Vilaça");
+    expect(html).toContain("Nenhum link de entrega informado.");
+    expect(html).not.toContain("Incluir outro link de entrega");
+    expect(html).not.toContain("Salvar links");
+    expect(html).not.toContain("Exportar PDF");
+  });
+
+  it("abre dois links quando a demanda é foto e vídeo e numera pela criação", () => {
+    context.state.demands[0] = { ...demand, mediaType: "FOTO_E_VIDEO", deliveryLinks: [] };
+    context.state.deliverables = [
+      { id: "task-1", demandId: "iandra", title: "Segundo corte", number: 2, createdAt: "2026-10-28T12:00:00.000Z", editorId: "manager", status: "Aprovado", editorDue: "", reviewDue: "", clientDue: "", progress: 100 },
+      { id: "task-8", demandId: "iandra", title: "Primeiro corte", number: 1, createdAt: "2026-10-27T12:00:00.000Z", editorId: "manager", status: "A iniciar", editorDue: "", reviewDue: "", clientDue: "", progress: 0 },
+    ];
+    const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(html).toContain('aria-label="Link de entrega 1"');
+    expect(html).toContain('aria-label="Link de entrega 2"');
+    expect(html).toContain('placeholder="Link das fotos"');
+    expect(html).toContain('placeholder="Link dos vídeos"');
+    const first = html.indexOf('class="task-number">1<');
+    const title = html.indexOf("Primeiro corte");
+    const second = html.indexOf('class="task-number">2<');
+    expect(first).toBeGreaterThan(-1);
+    expect(first).toBeLessThan(title);
+    expect(title).toBeLessThan(second);
+    expect(second).toBeLessThan(html.indexOf("Segundo corte"));
+  });
+
+  it("mostra o link salvo para o editor copiar e o PDF só na demanda entregue", () => {
+    context.role = "EDITOR";
+    context.activeEditorId = "manager";
+    context.state.demands[0] = { ...demand, deliveryLinks: ["https://entrega.example/fotos"] };
+    const editorHtml = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(editorHtml).toContain("https://entrega.example/fotos");
+    expect(editorHtml).toContain(">Copiar</button>");
+    expect(editorHtml).toContain('href="https://entrega.example/fotos"');
+    expect(editorHtml).not.toContain("Incluir outro link de entrega");
+    expect(editorHtml).not.toContain("Exportar PDF");
+
+    context.role = "GESTOR_GARRO";
+    context.state.demands[0] = { ...demand, status: "Entregue" };
+    const doneHtml = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(doneHtml).toContain("Exportar PDF");
+    expect(doneHtml).toContain('aria-label="Mês do relatório"');
+    expect(doneHtml).toContain('aria-label="Tipo de período do relatório"');
+    expect(doneHtml).not.toContain('aria-label="Início do período"');
   });
 });
 

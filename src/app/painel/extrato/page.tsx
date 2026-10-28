@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { GarroBrand } from "@/components/garro-brand";
-import { formatDeliveredAt, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, StatementError } from "@/modules/reports/delivery-statement";
+import { formatDeliveredAt, formatMonth, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, StatementError } from "@/modules/reports/delivery-statement";
 import { StatementPrint } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -22,37 +22,52 @@ export default async function DeliveryStatementPage({
   const group = one(params.group);
   const from = one(params.from);
   const to = one(params.to);
+  const month = one(params.month);
+  const demandId = one(params.demandId);
   if (customerId) query.set("customerId", customerId);
   if (service) query.set("service", service);
   if (group) query.set("group", group);
-  if (from) query.set("from", from);
-  if (to) query.set("to", to);
+  if (demandId) query.set("demandId", demandId);
+  if (month) query.set("month", month);
+  else {
+    if (from) query.set("from", from);
+    if (to) query.set("to", to);
+  }
 
   try {
     const statement = await loadDeliveryStatement(user, parseStatementFilters(query));
     const customer = statement.customers.find(item => item.id === customerId)?.name || "Todos os clientes";
     const serviceLabel = service || "Todos os tipos";
     const issuedAt = formatDeliveredAt(new Date().toISOString());
-    const periodLabel = from || to ? `${from ? formatPeriodDay(from) : "início"} a ${to ? formatPeriodDay(to) : "hoje"}` : "Todo o período";
+    const periodLabel = month ? formatMonth(month) : from || to ? `${from ? formatPeriodDay(from) : "início"} a ${to ? formatPeriodDay(to) : "hoje"}` : "Todo o período";
     return (
       <main className="statement-sheet">
         <StatementPrint auto={one(params.imprimir) === "1"} />
         <header>
           <GarroBrand size={64} wordmarkWidth={200} priority />
           <div>
-            <p>Extrato de entregas</p>
-            <h1>O que a Garro entregou</h1>
+            <p>{statement.focus ? "Relatório de entrega" : "Extrato de entregas"}</p>
+            <h1>{statement.focus?.title || "O que a Garro entregou"}</h1>
           </div>
         </header>
-        <dl>
-          <div><dt>Cliente</dt><dd>{customer}</dd></div>
-          <div><dt>Tipo de entrega</dt><dd>{serviceLabel}</dd></div>
-          <div><dt>Agrupamento</dt><dd>{statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"}</dd></div>
-          <div><dt>Período</dt><dd>{periodLabel}</dd></div>
-          <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
-        </dl>
+        {statement.focus ? (
+          <dl>
+            <div><dt>Projeto</dt><dd>{statement.focus.title}</dd></div>
+            <div><dt>Cliente</dt><dd>{statement.focus.customerName}</dd></div>
+            <div><dt>Período</dt><dd>{periodLabel}</dd></div>
+            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
+          </dl>
+        ) : (
+          <dl>
+            <div><dt>Cliente</dt><dd>{customer}</dd></div>
+            <div><dt>Tipo de entrega</dt><dd>{serviceLabel}</dd></div>
+            <div><dt>Agrupamento</dt><dd>{statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"}</dd></div>
+            <div><dt>Período</dt><dd>{periodLabel}</dd></div>
+            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
+          </dl>
+        )}
         {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}
-        <p className="statement-note">Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu.</p>
+        <p className="statement-note">{statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período. Cada entregável mantém o número da criação." : "Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu."}</p>
         {!statement.example && statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {statement.sections.map(section => (
           <section key={section.label}>
@@ -60,7 +75,7 @@ export default async function DeliveryStatementPage({
             {section.activities.map(activity => (
               <article key={activity.id}>
                 <div>
-                  <h3>{activity.title}</h3>
+                  <h3>{activity.number ? `${activity.number}. ${activity.title}` : activity.title}</h3>
                   <p>{statement.group === "servico" ? activity.customerName : activity.service}</p>
                 </div>
                 <time dateTime={activity.deliveredAt}>{formatDeliveredAt(activity.deliveredAt)}</time>

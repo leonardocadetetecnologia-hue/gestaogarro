@@ -6,7 +6,7 @@ import { CrmFlowError } from "@/modules/crm/send-to-production";
 import { addDemandMessage, assignEditor, changeDeliverableStatus } from "@/modules/production/actions";
 import { assignManyDeliverables } from "@/modules/production/assignment-service";
 import { createDirectDemand, directDemandSchema } from "@/modules/production/create-demand";
-import { addDeliverable, addDeliverableSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
+import { addDeliverable, addDeliverableSchema, deliveryLinksInputSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDeliveryLinks, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
 import { saveDeliverableScript, taskScriptSchema } from "@/modules/production/script-service";
 
 const id = z.string().min(1).max(80);
@@ -14,6 +14,7 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createDemand"), input: directDemandSchema }),
   z.object({ kind: z.literal("updateDemand"), input: updateDemandSchema }),
   z.object({ kind: z.literal("demandMedia"), input: demandMediaSchema }),
+  z.object({ kind: z.literal("deliveryLinks"), input: deliveryLinksInputSchema }),
   z.object({ kind: z.literal("addDeliverable"), input: addDeliverableSchema }),
   z.object({ kind: z.literal("renameDeliverable"), input: renameDeliverableSchema }),
   z.object({ kind: z.literal("script"), input: taskScriptSchema }),
@@ -36,6 +37,7 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "createDemand") return createDirectDemand(user, input.input);
   if (input.kind === "updateDemand") return updateDemandDetails(user, input.input);
   if (input.kind === "demandMedia") return saveDemandMedia(user, input.input);
+  if (input.kind === "deliveryLinks") return saveDeliveryLinks(user, input.input);
   if (input.kind === "addDeliverable") return addDeliverable(user, input.input);
   if (input.kind === "renameDeliverable") return renameDeliverable(user, input.input);
   if (input.kind === "script") return saveDeliverableScript(user, input.input);

@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { creationRank } from "@/modules/production/deliverable-order";
 
 const completedDemand = ["ENTREGUE", "CONCLUIDO"] as const;
 const completedDeliverable = new Set(["ENTREGUE", "CONCLUIDO"]);
@@ -19,17 +20,26 @@ export type StatementFilters = {
   group: StatementGroup;
   from: string;
   to: string;
+  month?: string;
+  demandId?: string;
 };
 
 export type StatementActivity = {
   id: string;
+  demandId: string;
   customerId: string;
   customerName: string;
   service: string;
   title: string;
   description: string;
   deliveredAt: string;
+  number?: number;
 };
+
+export type StatementFocus = {
+  title: string;
+  customerName: string;
+} | null;
 
 export type StatementSection = {
   label: string;
@@ -50,6 +60,7 @@ export type CompletedDemandInput = {
     description: string | null;
     status: string;
     clientDeliveredAt: Date | null;
+    createdAt?: Date | null;
   }[];
 };
 
@@ -58,6 +69,20 @@ export function assertStatementAccess(user: Pick<SessionUser, "role">) {
 }
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
+const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function monthPeriod(month: string) {
+  if (!monthPattern.test(month)) return null;
+  const [year, mon] = month.split("-").map(Number);
+  const last = new Date(Date.UTC(year, mon, 0)).getUTCDate();
+  return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
+}
+
+export function formatMonth(month: string) {
+  const [year, mon] = month.split("-").map(Number);
+  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, mon - 1, 1)));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 export function saoPauloDay(iso: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -89,12 +114,18 @@ export function parseStatementFilters(params: URLSearchParams): StatementFilters
   const group: StatementGroup = params.get("group") === "servico" ? "servico" : "cliente";
   const from = params.get("from")?.trim() || "";
   const to = params.get("to")?.trim() || "";
+  const month = params.get("month")?.trim() || "";
+  const demandId = params.get("demandId")?.trim() || "";
   if (customerId && !/^[a-zA-Z0-9_-]{1,80}$/.test(customerId)) throw new StatementError("Cliente inválido.", 400);
+  if (demandId && !/^[a-zA-Z0-9_-]{1,80}$/.test(demandId)) throw new StatementError("Demanda inválida.", 400);
   if (service.length > 120) throw new StatementError("Tipo de entrega inválido.", 400);
+  if (month && !monthPattern.test(month)) throw new StatementError("Mês inválido.", 400);
+  if (month && (from || to)) throw new StatementError("Escolha um mês ou um intervalo de datas.", 400);
   if ((from && !dayPattern.test(from)) || (to && !dayPattern.test(to)) || (from && to && from > to)) {
     throw new StatementError("Período inválido.", 400);
   }
-  return { customerId, service, group, from, to };
+  const period = month ? monthPeriod(month) : null;
+  return { customerId, service, group, from: period?.from || from, to: period?.to || to, month, demandId };
 }
 
 export function formatDeliveredAt(iso: string) {
@@ -117,10 +148,11 @@ function narrative(value: string | null | undefined) {
 export function activitiesFromDemand(demand: CompletedDemandInput): StatementActivity[] {
   if (!completedDemand.includes(demand.status as (typeof completedDemand)[number])) return [];
   const service = demand.service?.trim() || demand.title.trim() || "Serviço não informado";
-  const delivered = demand.deliverables.filter(item => completedDeliverable.has(item.status));
+  const delivered = creationRank(demand.deliverables).filter(({ item }) => completedDeliverable.has(item.status));
   if (!delivered.length) {
     return [{
       id: demand.id,
+      demandId: demand.id,
       customerId: demand.customer.id,
       customerName: demand.customer.name,
       service,
@@ -129,8 +161,10 @@ export function activitiesFromDemand(demand: CompletedDemandInput): StatementAct
       deliveredAt: demand.updatedAt.toISOString(),
     }];
   }
-  return delivered.map(item => ({
+  return delivered.map(({ item, number }) => ({
     id: item.id,
+    demandId: demand.id,
+    number,
     customerId: demand.customer.id,
     customerName: demand.customer.name,
     service,
@@ -194,6 +228,7 @@ export function exampleDemands(): CompletedDemandInput[] {
 
 export function statementOrExample(demands: CompletedDemandInput[], filters: StatementFilters) {
   const real = buildStatement(demands, filters);
+  if (filters.demandId) return { ...real, example: false };
   if (real.customers.length === 0 && real.services.length === 0) {
     return { ...buildStatement(exampleDemands(), filters), example: true };
   }
@@ -208,6 +243,7 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
   const filtered = all.filter(item => {
     const day = saoPauloDay(item.deliveredAt);
     return (!filters.customerId || item.customerId === filters.customerId) &&
+      (!filters.demandId || item.demandId === filters.demandId) &&
       (!filters.service || item.service === filters.service) &&
       (!filters.from || day >= filters.from) &&
       (!filters.to || day <= filters.to);
@@ -223,7 +259,10 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
     .sort(([left], [right]) => byName(left, right))
     .map(([label, activities]) => ({
       label,
-      activities: activities.sort((left, right) => right.deliveredAt.localeCompare(left.deliveredAt)),
+      activities: activities.sort((left, right) => {
+        if (filters.demandId && left.number && right.number) return left.number - right.number;
+        return right.deliveredAt.localeCompare(left.deliveredAt);
+      }),
     }));
   return { customers, services, sections, total: filtered.length, group: filters.group };
 }
@@ -231,24 +270,32 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
 export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, filters: StatementFilters) {
   assertStatementAccess(user);
   const demands = await prisma.demand.findMany({
-    where: { status: { in: [...completedDemand] } },
+    where: {
+      status: { in: [...completedDemand] },
+      ...(filters.demandId ? { id: filters.demandId } : {}),
+    },
     orderBy: { updatedAt: "desc" },
     include: {
       customer: { select: { id: true, name: true } },
       sale: { select: { opportunity: { select: { service: true } } } },
       deliverables: {
-        select: { id: true, title: true, description: true, status: true, clientDeliveredAt: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, title: true, description: true, status: true, clientDeliveredAt: true, createdAt: true },
       },
     },
   });
-  return statementOrExample(demands.map(demand => ({
-    id: demand.id,
-    title: demand.title,
-    description: demand.description,
-    status: demand.status,
-    updatedAt: demand.updatedAt,
-    customer: demand.customer,
-    service: demand.sale?.opportunity.service ?? null,
-    deliverables: demand.deliverables,
-  })), filters);
+  const focused = filters.demandId ? demands.find(demand => demand.id === filters.demandId) : undefined;
+  return {
+    ...statementOrExample(demands.map(demand => ({
+      id: demand.id,
+      title: demand.title,
+      description: demand.description,
+      status: demand.status,
+      updatedAt: demand.updatedAt,
+      customer: demand.customer,
+      service: demand.sale?.opportunity.service ?? null,
+      deliverables: demand.deliverables,
+    })), filters),
+    focus: focused ? { title: focused.title, customerName: focused.customer.name } satisfies StatementFocus : null,
+  };
 }

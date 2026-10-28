@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { returnDueLostOpportunities } from "@/modules/crm/loss-return";
 import { customerScope, opportunityScope } from "@/modules/crm/visibility";
 import { attachmentSelect } from "@/modules/production/attachment-service";
+import { readDeliveryLinks } from "@/modules/production/delivery-links";
+import { creationRank } from "@/modules/production/deliverable-order";
 
 const demandLabels: Record<DemandStatus, ProductionStatus> = {
   NOVA: "Nova demanda", PLANEJAMENTO: "Planejamento", AGUARDANDO_EDITOR: "Planejamento",
@@ -107,6 +109,16 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     select: { opportunityId: true, userId: true, user: { select: { name: true } } },
   }) : [];
   const returns = new Map(returnEvents.flatMap(event => event.opportunityId ? [[event.opportunityId, event] as const] : []));
+  const fullOrder = user.role === "EDITOR" && demands.length
+    ? await prisma.deliverable.findMany({
+      where: { demandId: { in: demands.map(item => item.id) } },
+      select: { id: true, demandId: true, createdAt: true },
+    })
+    : null;
+  const numbersFor = (demandId: string, own: { id: string; createdAt: Date }[]) => {
+    const source = fullOrder ? fullOrder.filter(row => row.demandId === demandId) : own;
+    return new Map(creationRank(source).map(({ item, number }) => [item.id, number]));
+  };
   return {
     customers,
     opportunities: opportunities.map(o => ({
@@ -130,20 +142,28 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
       briefing: d.description || "", links: d.files.find(f => /^https?:\/\//.test(f.storagePath))?.storagePath || "",
       hd: d.hd || "", drive: d.driveUrl || "",
+      deliveryLinks: readDeliveryLinks(d.deliveryLinks),
       createdAt: d.createdAt.toISOString(),
       messages: d.messages.map(m => ({
         id: m.id, demandId: d.id, author: m.sender.name, role: m.sender.role,
         message: m.content, createdAt: m.createdAt.toISOString(),
       })),
     })),
-    deliverables: demands.flatMap(d => d.deliverables.map(t => ({
-      id: t.id, demandId: d.id, title: t.title, script: t.description || "", editorId: t.editorId || "", status: taskLabels[t.status],
-      attachments: (t.scriptAttachments || []).map(a => ({ ...a, createdAt: a.createdAt.toISOString() })),
-      editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
-      clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
-      editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),
-      clientDeliveredAt: t.clientDeliveredAt?.toISOString(),
-    }))),
+    deliverables: demands.flatMap(d => {
+      const numbers = numbersFor(d.id, d.deliverables);
+      return [...d.deliverables]
+        .sort((left, right) => (numbers.get(left.id) ?? 0) - (numbers.get(right.id) ?? 0) || (left.id < right.id ? -1 : 1))
+        .map(t => ({
+          id: t.id, demandId: d.id, title: t.title, script: t.description || "", editorId: t.editorId || "", status: taskLabels[t.status],
+          attachments: (t.scriptAttachments || []).map(a => ({ ...a, createdAt: a.createdAt.toISOString() })),
+          editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
+          clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
+          editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),
+          clientDeliveredAt: t.clientDeliveredAt?.toISOString(),
+          createdAt: t.createdAt.toISOString(),
+          number: numbers.get(t.id),
+        }));
+    }),
     schedule: [...schedule.map((e): ScheduleItem => ({
       id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.demandId ? "Gestão" : "Comercial",
       userId: e.userId, at: e.dueAt.toISOString(), demandId: e.demandId || undefined, done: e.status !== "PENDENTE",

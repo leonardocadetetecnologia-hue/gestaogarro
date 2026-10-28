@@ -8,7 +8,7 @@ O endpoint estável de entrada também testa origem ausente/divergente, formato 
 
 Script por entregável: testes cobrem limite exato de 10.000 caracteres, rejeição de excesso, preservação de texto, limpeza, autorização, idempotência e conflito entre sessões. A renderização confirma que a caixa começa oculta mesmo com script salvo. O teste PostgreSQL isolado verifica persistência real, acesso do editor somente às próprias atribuições e rollback da alteração se a auditoria falhar. Não são inseridos dados de teste em produção.
 
-O extrato de entregas concluídas cobre exclusão de demanda em andamento, descrição e data da atividade, filtro por cliente ou tipo e agrupamento. Não inclui valor comercial.
+O extrato de entregas concluídas cobre exclusão de demanda em andamento, descrição e data da atividade, filtro por cliente ou tipo e agrupamento. Não inclui valor comercial. Os links de entrega cobrem protocolo ausente, texto que não é endereço, lista vazia, mais de dois endereços e o bloqueio de quem não é Gestora. A numeração segue a criação, permanece quando um item do meio ainda não foi entregue e, para o editor, usa a posição na demanda inteira. O período do relatório aceita um mês, inclusive fevereiro bissexto, ou duas datas, e recusa mês inválido ou mês misturado com intervalo. O PDF de uma demanda sem entrega no período não usa o modelo ilustrativo.
 
 A caixa de notificações cobre a seleção de cada linha e do cabeçalho, o botão Ler selecionadas só com itens escolhidos e a separação entre a caixa e o clique da linha. A marcação em lote grava `readAt` só para a pessoa logada: Ler todos alcança as não lidas visíveis além da tela e não altera aviso futuro nem de outro usuário. Repetir a leitura de uma notificação já lida conclui sem erro.
 

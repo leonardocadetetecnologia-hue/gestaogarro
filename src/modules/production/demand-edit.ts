@@ -1,8 +1,9 @@
 import { z } from "zod";
-import type { DemandStatus } from "@prisma/client";
+import type { DemandStatus, Prisma } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
+import { normalizeWebLink, prepareDeliveryLinks } from "@/modules/production/delivery-links";
 
 const id = z.string().min(1).max(80);
 const link = z.string().trim().max(2000).refine(value => value === "" || /^https?:\/\/\S+$/i.test(value), "Informe um link completo ou deixe em branco.");
@@ -26,6 +27,15 @@ export const demandMediaSchema = z.object({
 export const renameDeliverableSchema = z.object({
   id,
   title: z.string().trim().min(1, "Informe o nome do entregável.").max(200),
+});
+const httpAddress = z.string().max(2000).refine(value => /^https?:\/\/\S+$/i.test(value), "Informe um endereço http ou https.");
+export const deliveryLinksSchema = z.object({
+  id,
+  links: z.array(httpAddress).max(30, "São permitidos até 30 links de entrega."),
+});
+export const deliveryLinksInputSchema = z.object({
+  id,
+  links: z.array(z.string().max(2000)).max(30, "São permitidos até 30 links de entrega."),
 });
 
 function assertManager(user: SessionUser) {
@@ -66,9 +76,12 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
 
 function withDriveProtocol(raw: unknown) {
   if (!raw || typeof raw !== "object" || !("drive" in raw)) return raw;
-  const drive = String(raw.drive ?? "").trim();
-  const normalized = drive && !/^https?:\/\//i.test(drive) && /^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(drive) ? `https://${drive}` : drive;
-  return { ...raw, drive: normalized };
+  return { ...raw, drive: normalizeWebLink(String(raw.drive ?? "")) };
+}
+
+function withDeliveryProtocols(raw: unknown) {
+  if (!raw || typeof raw !== "object" || !("links" in raw)) return raw;
+  return { ...raw, links: prepareDeliveryLinks(raw.links) };
 }
 
 export async function saveDemandMedia(user: SessionUser, raw: unknown) {
@@ -81,6 +94,24 @@ export async function saveDemandMedia(user: SessionUser, raw: unknown) {
     if (!demand) throw new CrmFlowError("Demanda não encontrada.");
     await tx.demand.update({ where: { id: demand.id }, data: { hd: input.hd || null, driveUrl: input.drive || null } });
     await tx.auditLog.create({ data: { userId: user.id, action: "DEMAND_MEDIA", entityType: "Demand", entityId: demand.id } });
+  });
+}
+
+export async function saveDeliveryLinks(user: SessionUser, raw: unknown) {
+  assertManager(user);
+  const parsed = deliveryLinksSchema.safeParse(withDeliveryProtocols(raw));
+  if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
+  const input = parsed.data;
+  await prisma.$transaction(async tx => {
+    const demand = await tx.demand.findUnique({ where: { id: input.id }, select: { id: true } });
+    if (!demand) throw new CrmFlowError("Demanda não encontrada.");
+    await tx.demand.update({
+      where: { id: demand.id },
+      data: { deliveryLinks: input.links as Prisma.InputJsonValue },
+    });
+    await tx.auditLog.create({
+      data: { userId: user.id, action: "DEMAND_DELIVERY_LINKS", entityType: "Demand", entityId: demand.id, details: { count: input.links.length } },
+    });
   });
 }
 
