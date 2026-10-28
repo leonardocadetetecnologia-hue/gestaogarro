@@ -36,6 +36,8 @@ type Ctx = {
   assignMany: (input: { demandId: string; deliverableIds: string[]; editorId: string; editorDue: string; reviewDue: string }) => Save;
   updateTaskDue: (id: string, field: "editorDue" | "reviewDue" | "clientDue", value: string) => Save;
   readAlert: (id: string) => Save;
+  readSelectedAlerts: (ids: string[]) => Save;
+  readAllAlerts: () => Save;
 };
 const Context = createContext<Ctx | null>(null);
 
@@ -111,6 +113,8 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     assignMany: input => done(save({ kind: "assignMany", ...input }, true)),
     updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, true)),
     readAlert: id => done(save({ kind: "read", id }, true)),
+    readSelectedAlerts: ids => done(save({ kind: "readSelected", ids }, true)),
+    readAllAlerts: () => done(save({ kind: "readAll" }, true)),
   };
   return <Context.Provider value={value}>
     {(error || notice) && <div className={`panel-feedback ${error ? "panel-feedback-error" : ""}`} role={error ? "alert" : "status"}>

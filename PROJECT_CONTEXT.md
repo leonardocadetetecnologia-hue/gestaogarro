@@ -1007,6 +1007,8 @@ Cada notificação deve conter:
 
 Notificações in-app são suficientes para a primeira versão.
 
+- Ler todos marca todas as não lidas visíveis da pessoa logada; Ler selecionadas marca só as escolhidas e fica oculto sem seleção.
+
 ---
 
 ## 15. ENTIDADES DO BANCO

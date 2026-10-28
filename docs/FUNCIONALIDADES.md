@@ -65,6 +65,10 @@ Kanbans têm colunas, textos e dados maiores. As agendas compartilham calendári
 
 Somente a Gestora vê a Agenda Global. Atendente e Editor recebem no servidor somente seus eventos permitidos; filtros de interface não concedem acesso adicional.
 
+## Notificações
+
+Na caixa de notificações, cada aviso da pessoa logada tem uma caixa **Selecionar**, separada do clique que abre o registro. O cabeçalho da lista seleciona ou limpa só as notificações visíveis. **Ler selecionadas** aparece quando há seleção e marca somente essas. **Ler todos** marca, de uma vez e no servidor, todas as não lidas já visíveis da pessoa, inclusive as que não couberam na tela. Avisos com data futura continuam ocultos até o dia. Não é possível marcar a notificação de outra pessoa. Marcar de novo uma já lida não falha. A contagem de não lidas e o selo Nova acompanham o estado do painel, sem recarregar a página. No celular, as ações ficam na própria caixa e quebram para a linha de baixo.
+
 ## Persistência
 
 O painel usa PostgreSQL e ações autenticadas, com atualização periódica. Dados demonstrativos do antigo estado local não são importados para produção. O armazenamento local guarda apenas rascunhos dos formulários que já possuem esse recurso; a conclusão exige resposta de sucesso do servidor.

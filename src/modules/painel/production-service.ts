@@ -24,6 +24,8 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("message"), id, message: z.string().trim().min(1).max(10000) }),
   z.object({ kind: z.literal("delivered"), id }),
   z.object({ kind: z.literal("read"), id }),
+  z.object({ kind: z.literal("readSelected"), ids: z.array(id).min(1, "Escolha ao menos uma notificação.").max(100, "Selecione no máximo as notificações visíveis.") }),
+  z.object({ kind: z.literal("readAll") }),
 ]);
 export type ProductionCommand = z.infer<typeof schema>;
 
@@ -37,8 +39,14 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "addDeliverable") return addDeliverable(user, input.input);
   if (input.kind === "renameDeliverable") return renameDeliverable(user, input.input);
   if (input.kind === "script") return saveDeliverableScript(user, input.input);
-  if (input.kind === "read") {
-    await prisma.notification.updateMany({ where: { id: input.id, userId: user.id }, data: { readAt: new Date() } });
+  if (input.kind === "read" || input.kind === "readSelected" || input.kind === "readAll") {
+    const now = new Date();
+    await prisma.notification.updateMany({
+      where: input.kind === "readAll"
+        ? { userId: user.id, readAt: null, OR: [{ visibleAt: null }, { visibleAt: { lte: now } }] }
+        : { userId: user.id, id: input.kind === "read" ? input.id : { in: input.ids } },
+      data: { readAt: now },
+    });
     return;
   }
   if (input.kind === "assignMany") {
