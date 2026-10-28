@@ -13,12 +13,15 @@ export function TaskAssignment({ task }: { task: Deliverable }) {
   const [editorTime, setEditorTime] = useState(editorParts.time);
   const [reviewDate, setReviewDate] = useState(reviewParts.date);
   const [reviewTime, setReviewTime] = useState(reviewParts.time);
+  const [formError, setFormError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (reviewTime && !reviewDate) { setFormError("Informe o dia da revisão ou apague o horário."); return; }
     const due = composeDeadline(editorDate, editorTime);
     if (!due) return;
     const review = reviewDate ? composeDeadline(reviewDate, reviewTime) : null;
     if (reviewDate && !review) return;
+    setFormError("");
     await assignEditor(task.id, editorId, due.toISOString(), review?.toISOString() || "");
   }
   return <form className="task-assignment" onSubmit={submit} aria-busy={busy}>
@@ -40,5 +43,6 @@ export function TaskAssignment({ task }: { task: Deliverable }) {
       </span>
     </label>
     <button type="submit" className="button primary small" disabled={busy}>{busy ? "Salvando…" : "Salvar atribuição e prazos"}</button>
+    {formError && <p role="alert" className="form-error">{formError}</p>}
   </form>;
 }

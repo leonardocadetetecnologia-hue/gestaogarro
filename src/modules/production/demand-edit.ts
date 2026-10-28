@@ -64,9 +64,16 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
   });
 }
 
+function withDriveProtocol(raw: unknown) {
+  if (!raw || typeof raw !== "object" || !("drive" in raw)) return raw;
+  const drive = String(raw.drive ?? "").trim();
+  const normalized = drive && !/^https?:\/\//i.test(drive) && /^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(drive) ? `https://${drive}` : drive;
+  return { ...raw, drive: normalized };
+}
+
 export async function saveDemandMedia(user: SessionUser, raw: unknown) {
   assertManager(user);
-  const parsed = demandMediaSchema.safeParse(raw);
+  const parsed = demandMediaSchema.safeParse(withDriveProtocol(raw));
   if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
   const input = parsed.data;
   await prisma.$transaction(async tx => {

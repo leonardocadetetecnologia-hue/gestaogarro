@@ -14,15 +14,18 @@ export function BulkAssignModal({ demandId, tasks, onClose }: { demandId: string
   const [editorTime, setEditorTime] = useState("");
   const [reviewDate, setReviewDate] = useState("");
   const [reviewTime, setReviewTime] = useState("");
+  const [formError, setFormError] = useState("");
   function toggle(id: string) {
     setSelected(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (reviewTime && !reviewDate) { setFormError("Informe o dia da revisão ou apague o horário."); return; }
     const due = composeDeadline(editorDate, editorTime);
     if (!due || !selected.length) return;
     const review = reviewDate ? composeDeadline(reviewDate, reviewTime) : null;
     if (reviewDate && !review) return;
+    setFormError("");
     if (await assignMany({ demandId, deliverableIds: selected, editorId, editorDue: due.toISOString(), reviewDue: review?.toISOString() || "" })) onClose();
   }
   const allSelected = tasks.length > 0 && selected.length === tasks.length;
@@ -46,7 +49,7 @@ export function BulkAssignModal({ demandId, tasks, onClose }: { demandId: string
         <Field label="Horário da revisão"><input type="time" aria-label="Horário da revisão, opcional" disabled={busy} value={reviewTime} onChange={e => setReviewTime(e.target.value)}/></Field>
       </div>
       <p className="muted">O horário é opcional. Sem ele, o prazo vale até o fim do dia.</p>
-      {error && <p role="alert" className="form-error">{error}</p>}
+      {(formError || error) && <p role="alert" className="form-error">{formError || error}</p>}
       <div className="modal-footer"><button type="button" className="button secondary" disabled={busy} onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !selected.length}>{busy ? "Atribuindo…" : `Atribuir ${selected.length}`}</button></div>
     </form>
   </Modal>;

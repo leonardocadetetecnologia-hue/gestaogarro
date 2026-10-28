@@ -22,6 +22,8 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Desde 27/10/2026, a Gestora pode atribuir vários entregáveis do mesmo projeto a um editor de uma vez, e ainda alterar cada item depois. No prazo de edição, o dia é obrigatório e o horário é opcional.
 - Desde 27/10/2026, cada atendente vê somente os próprios atendimentos. Uma conta nova não herda o Kanban da outra. A Gestora vê os dois Kanbans, com o nome da atendente em cada item e ação.
 - Desde 27/10/2026, a data de nascimento informada no lead ou na edição do cliente vira lembrete de aniversário na agenda. A Visão geral lista os próximos 30 dias apenas de clientes ativos.
+- Desde 27/10/2026, o HD e o Drive ficam em Referências. Um link sem protocolo recebe `https://`. A barra de status dos entregáveis aparece no cartão e na lista.
+- Medido em 27/10/2026 no banco de produção: o Kanban da atendente com mais cards (28 oportunidades) responde em cerca de 2 ms. O quadro não é o gargalo nesse volume. O painel recarrega o estado a cada 30 segundos e a cada abertura.
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.

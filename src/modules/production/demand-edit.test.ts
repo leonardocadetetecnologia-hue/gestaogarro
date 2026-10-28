@@ -37,6 +37,8 @@ describe("edição da demanda fora da esteira", () => {
   it("grava o HD e o link do Drive sem mexer na etapa", async () => {
     await saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "https://drive.google.com/pasta" });
     expect(tx.demand.update).toHaveBeenCalledWith({ where: { id: "demand" }, data: { hd: "HD 04", driveUrl: "https://drive.google.com/pasta" } });
+    await saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "drive.google.com/pasta" });
+    expect(tx.demand.update).toHaveBeenLastCalledWith({ where: { id: "demand" }, data: { hd: "HD 04", driveUrl: "https://drive.google.com/pasta" } });
     await expect(saveDemandMedia(gestora, { id: "demand", hd: "HD 04", drive: "pasta-local" })).rejects.toThrow(/link completo/);
     await expect(saveDemandMedia(atendente, { id: "demand", hd: "HD 04", drive: "" })).rejects.toThrow(/Somente a Gestora/);
   });

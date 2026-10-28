@@ -18,8 +18,8 @@ export function DeliverableStatusBar({ tasks }: { tasks: { status: string }[] })
   const parts = deliverableStatusSummary(tasks);
   const total = parts.reduce((sum, item) => sum + item.count, 0);
   if (!total) return null;
-  return <div className="deliverable-status" role="img" aria-label={`${total} ${total === 1 ? "entregável" : "entregáveis"}: ${parts.map(item => item.label).join(", ")}`}>
-    <div className="deliverable-status-bar">{parts.map(item => <span key={item.status} className={`deliverable-status-${item.tone}`} style={{ flex: item.count }} title={item.label}/>)}</div>
-    <div className="deliverable-status-legend">{parts.map(item => <span key={item.status}><i className={`deliverable-status-${item.tone}`}/>{item.label}</span>)}</div>
-  </div>;
+  return <span className="deliverable-status" role="img" aria-label={`${total} ${total === 1 ? "entregável" : "entregáveis"}: ${parts.map(item => item.label).join(", ")}`}>
+    <span className="deliverable-status-bar">{parts.map(item => <span key={item.status} className={`deliverable-status-${item.tone}`} style={{ flex: item.count }} title={item.label}/>)}</span>
+    <span className="deliverable-status-legend">{parts.map(item => <span key={item.status}><i className={`deliverable-status-${item.tone}`}/>{item.label}</span>)}</span>
+  </span>;
 }

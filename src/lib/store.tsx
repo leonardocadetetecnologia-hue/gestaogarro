@@ -81,8 +81,8 @@ export function GarroProvider({ children, role, userName, userId, initialState }
 
   const value: Ctx = {
     state, role, ready: true, activeEditorId: userId, userName, busy, error,
-    updateCustomer: customer => done(save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD" } })),
-    addCustomer: (customer, amount) => done(save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD" }, value: amount })),
+    updateCustomer: customer => done(save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "" } })),
+    addCustomer: (customer, amount) => done(save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "" }, value: amount })),
     addOpportunity: (customerId, service) => done(save({ kind: "createOpportunity", customerId, service })),
     updateOpportunityValue: (id, amount) => done(save({ kind: "value", id, value: amount })),
     createDemand: async input => {

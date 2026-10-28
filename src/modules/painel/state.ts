@@ -1,7 +1,7 @@
 import type { DemandStatus, DeliverableStatus } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { birthDateKey, birthdayReminders } from "@/lib/birthdays";
-import { kanbanLabelsFrom, type Customer, type ProductionStatus, type State, type TaskStatus } from "@/lib/data";
+import { kanbanLabelsFrom, type Customer, type ProductionStatus, type ScheduleItem, type State, type TaskStatus } from "@/lib/data";
 import { STAGE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { returnDueLostOpportunities } from "@/modules/crm/loss-return";
@@ -141,7 +141,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),
       clientDeliveredAt: t.clientDeliveredAt?.toISOString(),
     }))),
-    schedule: [...schedule.map(e => ({
+    schedule: [...schedule.map((e): ScheduleItem => ({
       id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.demandId ? "Gestão" : "Comercial",
       userId: e.userId, at: e.dueAt.toISOString(), demandId: e.demandId || undefined, done: e.status !== "PENDENTE",
       opportunityId: e.opportunityId || undefined, deliverableId: e.deliverableId || undefined,

@@ -36,16 +36,19 @@ export function DemandMedia({ demand }: { demand: Demand }) {
   const [hd, setHd] = useState(demand.hd || "");
   const [drive, setDrive] = useState(demand.drive || "");
   useEffect(() => { setHd(demand.hd || ""); setDrive(demand.drive || ""); }, [demand.hd, demand.drive]);
-  const locked = role !== "GESTOR_GARRO" || busy;
+  const canEdit = role === "GESTOR_GARRO";
   async function submit(event: FormEvent) {
     event.preventDefault();
-    await saveDemandMedia({ id: demand.id, hd, drive });
+    if (!canEdit) return;
+    const saved = await saveDemandMedia({ id: demand.id, hd, drive });
+    if (saved && drive && !/^https?:\/\//i.test(drive)) setDrive(`https://${drive.trim()}`);
   }
+  const driveHref = /^https?:\/\/\S+$/i.test(drive.trim()) ? drive.trim() : /^[\w.-]+\.[a-z]{2,}/i.test(drive.trim()) ? `https://${drive.trim()}` : "";
   return <form className="demand-media" onSubmit={submit}>
-    <label>HD<input aria-label="HD" maxLength={200} disabled={locked} value={hd} onChange={event => setHd(event.target.value)} placeholder="Nome ou número do HD"/></label>
-    <label>Drive<input aria-label="Drive" type="url" maxLength={2000} disabled={locked} value={drive} onChange={event => setDrive(event.target.value)} placeholder="https://"/></label>
-    {drive && /^https?:\/\/\S+$/i.test(drive) && <a href={drive} target="_blank" rel="noreferrer" className="text-link">Abrir Drive</a>}
-    {role === "GESTOR_GARRO" && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar HD e Drive"}</button>}
+    <label>HD<input aria-label="HD" maxLength={200} readOnly={!canEdit} disabled={canEdit && busy} value={hd} onChange={event => setHd(event.target.value)} placeholder="Nome ou número do HD"/></label>
+    <label>Drive<input aria-label="Drive" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} maxLength={2000} readOnly={!canEdit} disabled={canEdit && busy} value={drive} onChange={event => setDrive(event.target.value)} placeholder="https://"/></label>
+    {canEdit && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar HD e Drive"}</button>}
+    {driveHref && <a href={driveHref} target="_blank" rel="noreferrer" className="text-link">Abrir Drive</a>}
   </form>;
 }
 
