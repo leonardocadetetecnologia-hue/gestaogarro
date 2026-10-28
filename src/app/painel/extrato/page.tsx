@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { GarroBrand } from "@/components/garro-brand";
-import { formatDeliveredAt, formatMonth, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, StatementError } from "@/modules/reports/delivery-statement";
+import { formatDeliveredAt, formatMonth, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, saoPauloDay, StatementError } from "@/modules/reports/delivery-statement";
 import { StatementPrint } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +24,12 @@ export default async function DeliveryStatementPage({
   const to = one(params.to);
   const month = one(params.month);
   const demandId = one(params.demandId);
+  const demandIds = one(params.demandIds);
   if (customerId) query.set("customerId", customerId);
   if (service) query.set("service", service);
   if (group) query.set("group", group);
   if (demandId) query.set("demandId", demandId);
+  if (demandIds) query.set("demandIds", demandIds);
   if (month) query.set("month", month);
   else {
     if (from) query.set("from", from);
@@ -36,6 +38,7 @@ export default async function DeliveryStatementPage({
 
   try {
     const statement = await loadDeliveryStatement(user, parseStatementFilters(query));
+    const selection = Boolean(demandIds);
     const customer = statement.customers.find(item => item.id === customerId)?.name || "Todos os clientes";
     const serviceLabel = service || "Todos os tipos";
     const issuedAt = formatDeliveredAt(new Date().toISOString());
@@ -50,7 +53,11 @@ export default async function DeliveryStatementPage({
             <h1>{statement.focus?.title || "O que a Garro entregou"}</h1>
           </div>
         </header>
-        {statement.focus ? (
+        {selection ? (
+          <dl>
+            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
+          </dl>
+        ) : statement.focus ? (
           <dl>
             <div><dt>Projeto</dt><dd>{statement.focus.title}</dd></div>
             <div><dt>Cliente</dt><dd>{statement.focus.customerName}</dd></div>
@@ -67,7 +74,7 @@ export default async function DeliveryStatementPage({
           </dl>
         )}
         {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}
-        <p className="statement-note">{statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período. Cada entregável mantém o número da criação." : "Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu."}</p>
+        <p className="statement-note">{selection ? "Cliente, o que foi feito e a data da entrega. O registro continua no sistema." : statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período. Cada entregável mantém o número da criação." : "Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu."}</p>
         {!statement.example && statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {statement.sections.map(section => (
           <section key={section.label}>
@@ -76,9 +83,9 @@ export default async function DeliveryStatementPage({
               <article key={activity.id}>
                 <div>
                   <h3>{activity.number ? `${activity.number}. ${activity.title}` : activity.title}</h3>
-                  <p>{statement.group === "servico" ? activity.customerName : activity.service}</p>
+                  {!selection && <p>{statement.group === "servico" ? activity.customerName : activity.service}</p>}
                 </div>
-                <time dateTime={activity.deliveredAt}>{formatDeliveredAt(activity.deliveredAt)}</time>
+                <time dateTime={activity.deliveredAt}>{selection ? formatPeriodDay(saoPauloDay(activity.deliveredAt)) : formatDeliveredAt(activity.deliveredAt)}</time>
                 <p>{activity.description}</p>
               </article>
             ))}

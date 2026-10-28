@@ -137,5 +137,13 @@ describe("extrato de entregas concluídas", () => {
     const model = statementOrExample([], parseStatementFilters(new URLSearchParams("demandId=demand-1&month=2026-10")));
     expect(model.example).toBe(false);
     expect(model.total).toBe(0);
+
+    const picked = parseStatementFilters(new URLSearchParams("demandIds=demand-1,demand-antiga"));
+    expect(picked.demandIds).toEqual(["demand-1", "demand-antiga"]);
+    const selection = buildStatement([demand(), other, old], picked);
+    expect(selection.sections.flatMap((section) => section.activities.map((item) => item.demandId)).sort()).toEqual(["demand-1", "demand-antiga"]);
+    expect(() => parseStatementFilters(new URLSearchParams("demandIds=../x"))).toThrow(/Seleção de entregas inválida/);
+    const emptySelection = statementOrExample([], parseStatementFilters(new URLSearchParams("demandIds=demand-1")));
+    expect(emptySelection.example).toBe(false);
   });
 });

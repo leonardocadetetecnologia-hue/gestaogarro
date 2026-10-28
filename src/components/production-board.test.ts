@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { State } from "@/lib/data";
 
+const session = { role: "EDITOR" };
 const state: State = {
   customers: [{ id: "dani", kind: "CLIENTE", name: "Danielle Portella", phone: "", email: "", company: "", origin: "", notes: "", city: "", service: "" }],
   opportunities: [], editors: [{ id: "editor", name: "Lia", email: "lia@garro.test", active: true }], schedule: [], alerts: [],
@@ -13,7 +14,7 @@ const state: State = {
   ],
 };
 
-vi.mock("@/lib/store", () => ({ useGarro: () => ({ state }) }));
+vi.mock("@/lib/store", () => ({ useGarro: () => ({ state, role: session.role }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 import { ProductionBoard } from "./production-board";
 
@@ -29,7 +30,9 @@ describe("quadro de produção", () => {
     expect(html).toContain('aria-label="Separar por"');
     expect(html).toContain(">Projeto</button>");
     expect(html).toContain(">Entregável</button>");
+    expect(html).toContain('aria-label="Filtrar mês"');
     expect(html).toContain('aria-label="Filtrar tipo"');
+    expect(html).not.toContain(">Entregues</button>");
     expect(html).toContain(">Foto</option>");
     expect(html).toContain(">Vídeo</option>");
     expect(html).toContain(">Plano EXPANSÃO</option>");
@@ -39,6 +42,17 @@ describe("quadro de produção", () => {
     expect(html).not.toContain("Foto e vídeo");
     expect(columnChunk(html, "Em produção")).toContain("Ensaio REPOSICIONAMENTO");
     expect(columnChunk(html, "Nova demanda")).not.toContain("Ensaio REPOSICIONAMENTO");
+  });
+
+  it("mostra o histórico de entregues só para a gestora", () => {
+    session.role = "GESTOR_GARRO";
+    try {
+      const html = renderToStaticMarkup(createElement(ProductionBoard));
+      expect(html).toContain(">Entregues</button>");
+      expect(html).toContain('aria-label="Filtrar mês"');
+    } finally {
+      session.role = "EDITOR";
+    }
   });
 
   it("por entregável coloca cada material na coluna da etapa dele", () => {

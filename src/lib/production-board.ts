@@ -87,6 +87,60 @@ function matchesQuery(parts: string[], query: string) {
   return parts.some((part) => plain(part).includes(needle));
 }
 
+export function saoPauloMonth(iso?: string) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(date);
+}
+
+export function currentProductionMonth(now = new Date()) {
+  return saoPauloMonth(now.toISOString());
+}
+
+export function deliveryMoment(demand: Pick<Demand, "status" | "createdAt">, tasks: Pick<Deliverable, "clientDeliveredAt">[]) {
+  const stamps = tasks.map((task) => task.clientDeliveredAt).filter((value): value is string => Boolean(value)).sort();
+  if (stamps.length) return stamps[stamps.length - 1];
+  return demand.status === "Entregue" ? demand.createdAt : "";
+}
+
+export type DeliveredRecord = {
+  id: string;
+  title: string;
+  customerId: string;
+  customerName: string;
+  month: string;
+  year: string;
+  deliveredAt: string;
+  done: string;
+};
+
+export function deliveredRecords(
+  demands: Demand[],
+  deliverables: Deliverable[],
+  customers: { id: string; name: string }[],
+): DeliveredRecord[] {
+  return demands
+    .filter((demand) => demand.status === "Entregue")
+    .map((demand) => {
+      const tasks = deliverables.filter((task) => task.demandId === demand.id);
+      const deliveredAt = deliveryMoment(demand, tasks);
+      const month = saoPauloMonth(deliveredAt);
+      const done = tasks.map((task) => task.title).filter(Boolean).join(", ") || demand.title;
+      return {
+        id: demand.id,
+        title: demand.title,
+        customerId: demand.customerId,
+        customerName: customers.find((item) => item.id === demand.customerId)?.name || "Cliente não informado",
+        month,
+        year: month.slice(0, 4),
+        deliveredAt,
+        done,
+      };
+    })
+    .sort((left, right) => right.deliveredAt.localeCompare(left.deliveredAt));
+}
+
 export function productionCards(input: {
   demands: Demand[];
   deliverables: Deliverable[];
@@ -95,6 +149,7 @@ export function productionCards(input: {
   kind: "Todos" | ProductionKind;
   editorId: string;
   query: string;
+  month?: string;
 }): ProductionCard[] {
   const customerName = (id: string) => input.customers.find((item) => item.id === id)?.name ?? "";
   const cards: ProductionCard[] = [];
@@ -105,15 +160,18 @@ export function productionCards(input: {
       const editorOk = input.editorId === "Todos" || tasks.some((task) => task.editorId === input.editorId);
       const kindOk = demandMatchesKind(demand, tasks, input.kind);
       const queryOk = matchesQuery([customer, demand.title, demand.service ?? "", ...tasks.map((task) => task.title)], input.query);
-      if (editorOk && kindOk && queryOk) cards.push({ split: "projeto", id: demand.id, column: demand.status, demand, tasks });
+      const monthOk = !input.month || demand.status !== "Entregue" || saoPauloMonth(deliveryMoment(demand, tasks)) === input.month;
+      if (editorOk && kindOk && queryOk && monthOk) cards.push({ split: "projeto", id: demand.id, column: demand.status, demand, tasks });
       continue;
     }
     for (const task of tasks) {
       const editorOk = input.editorId === "Todos" || task.editorId === input.editorId;
       const kindOk = input.kind === "Todos" || deliverableKinds(task, demand).includes(input.kind);
       const queryOk = matchesQuery([customer, demand.title, demand.service ?? "", task.title], input.query);
-      if (!editorOk || !kindOk || !queryOk) continue;
-      cards.push({ split: "entregavel", id: task.id, column: deliverableColumn(task, demand), demand, task });
+      const column = deliverableColumn(task, demand);
+      const monthOk = !input.month || column !== "Entregue" || saoPauloMonth(task.clientDeliveredAt || deliveryMoment(demand, tasks)) === input.month;
+      if (!editorOk || !kindOk || !queryOk || !monthOk) continue;
+      cards.push({ split: "entregavel", id: task.id, column, demand, task });
     }
   }
   return cards;

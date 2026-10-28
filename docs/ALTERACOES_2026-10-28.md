@@ -60,6 +60,12 @@ O que muda: no Kanban, só a Gestora alterna entre Operação, Valores e Categor
 
 Como: Valores separa estimado, proposta, fechado e sem valor. Categorias separa Evento, Ensaio, Captação, Plano EXPANSÃO e o restante. O valor contado é o fechado; se não houver, a proposta; se não houver, o estimado. Os cards continuam na coluna.
 
+## Entregue sai do quadro e fica no histórico
+
+O que muda: a coluna Entregue mostra só as entregas do mês escolhido no topo do quadro. O mês atual já vem marcado. Uma entrega de outro mês deixa de aparecer ali. Ela não é apagada. A Gestora abre Entregues, vê a lista por mês e pode filtrar cliente ou ano. Um clique exporta o PDF daquela entrega. Várias marcações saem num extrato só, com o logo da Garro, o cliente, o que foi feito e a data. Quem vê o quadro usa o filtro de mês. O botão e o PDF ficam só com a Gestora.
+
+Como: a data da entrega é a última marcação ao cliente, no horário de Brasília. Sem essa data, vale a criação da demanda. O quadro filtra a coluna Entregue por esse mês. O histórico lê as demandas com status Entregue. O PDF reutiliza o extrato e aceita uma lista de demandas.
+
 ## Conferência
 
 166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.

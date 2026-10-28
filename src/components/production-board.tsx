@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ClipboardList, FolderOpen, Plus } from "lucide-react";
 import { productionStages } from "@/lib/data";
 import { demandMediaTypeLabel } from "@/lib/demand-media-type";
-import { productionCards, productionKindOptions, type ProductionCard, type ProductionKind, type ProductionSplit } from "@/lib/production-board";
+import { currentProductionMonth, productionCards, productionKindOptions, type ProductionCard, type ProductionKind, type ProductionSplit } from "@/lib/production-board";
 import { useGarro } from "@/lib/store";
 import { BoardScroll } from "./board-scroll";
 import { DeliverableStatusBar } from "./deliverable-status";
+import { DeliveredArchive } from "./delivered-archive";
 import { NewDemandModal } from "./new-demand";
 import { Badge, Deadline, Empty, SearchBox, ViewTitle } from "./Ui";
 
@@ -39,16 +40,18 @@ export function ProductionBoard({
   initialView?: "kanban" | "lista";
 }) {
   const [newOpen, setNewOpen] = useState(false);
-  const { state } = useGarro();
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const { state, role } = useGarro();
   const router = useRouter();
   const [editorId, setEditorId] = useState("Todos");
   const [kind, setKind] = useState<"Todos" | ProductionKind>(initialKind);
+  const [month, setMonth] = useState(currentProductionMonth);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"kanban" | "lista">(initialView);
   const [split, setSplit] = useState<ProductionSplit>(initialSplit);
   const cards = useMemo(
-    () => productionCards({ demands: state.demands, deliverables: state.deliverables, customers: state.customers, split, kind, editorId, query }),
-    [state.demands, state.deliverables, state.customers, split, kind, editorId, query],
+    () => productionCards({ demands: state.demands, deliverables: state.deliverables, customers: state.customers, split, kind, editorId, query, month }),
+    [state.demands, state.deliverables, state.customers, split, kind, editorId, query, month],
   );
   const openDemand = (id: string) => router.push(`/painel/demanda?id=${id}`);
 
@@ -64,9 +67,11 @@ export function ProductionBoard({
           <button type="button" className={split === "projeto" ? "active" : ""} onClick={() => setSplit("projeto")}>Projeto</button>
           <button type="button" className={split === "entregavel" ? "active" : ""} onClick={() => setSplit("entregavel")}>Entregável</button>
         </div>
+        {role === "GESTOR_GARRO" && <button type="button" className="button secondary" onClick={() => setArchiveOpen(true)}>Entregues</button>}
       </div>
       <div className="toolbar-end">
         <SearchBox value={query} onChange={setQuery} placeholder={split === "entregavel" ? "Buscar entregável" : "Buscar demanda"} />
+        <input aria-label="Filtrar mês" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
         <select aria-label="Filtrar tipo" value={kind} onChange={(event) => setKind(event.target.value as "Todos" | ProductionKind)}>
           <option value="Todos">Todos os tipos</option>
           {productionKindOptions.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -88,6 +93,7 @@ export function ProductionBoard({
       </section>;
     })}</BoardScroll> : <div className="surface"><BoardList cards={cards} customers={state.customers} editors={state.editors} onOpen={openDemand} /></div>}
     {newOpen && <NewDemandModal onClose={() => setNewOpen(false)} />}
+    {archiveOpen && <DeliveredArchive onClose={() => setArchiveOpen(false)} />}
   </div>;
 }
 

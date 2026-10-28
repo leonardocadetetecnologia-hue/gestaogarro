@@ -22,6 +22,7 @@ export type StatementFilters = {
   to: string;
   month?: string;
   demandId?: string;
+  demandIds?: string[];
 };
 
 export type StatementActivity = {
@@ -116,8 +117,10 @@ export function parseStatementFilters(params: URLSearchParams): StatementFilters
   const to = params.get("to")?.trim() || "";
   const month = params.get("month")?.trim() || "";
   const demandId = params.get("demandId")?.trim() || "";
+  const demandIds = [...new Set((params.get("demandIds") || "").split(",").map((item) => item.trim()).filter(Boolean))];
   if (customerId && !/^[a-zA-Z0-9_-]{1,80}$/.test(customerId)) throw new StatementError("Cliente inválido.", 400);
   if (demandId && !/^[a-zA-Z0-9_-]{1,80}$/.test(demandId)) throw new StatementError("Demanda inválida.", 400);
+  if (demandIds.length > 40 || demandIds.some((item) => !/^[a-zA-Z0-9_-]{1,80}$/.test(item))) throw new StatementError("Seleção de entregas inválida.", 400);
   if (service.length > 120) throw new StatementError("Tipo de entrega inválido.", 400);
   if (month && !monthPattern.test(month)) throw new StatementError("Mês inválido.", 400);
   if (month && (from || to)) throw new StatementError("Escolha um mês ou um intervalo de datas.", 400);
@@ -125,7 +128,7 @@ export function parseStatementFilters(params: URLSearchParams): StatementFilters
     throw new StatementError("Período inválido.", 400);
   }
   const period = month ? monthPeriod(month) : null;
-  return { customerId, service, group, from: period?.from || from, to: period?.to || to, month, demandId };
+  return { customerId, service, group, from: period?.from || from, to: period?.to || to, month, demandId, demandIds };
 }
 
 export function formatDeliveredAt(iso: string) {
@@ -228,7 +231,7 @@ export function exampleDemands(): CompletedDemandInput[] {
 
 export function statementOrExample(demands: CompletedDemandInput[], filters: StatementFilters) {
   const real = buildStatement(demands, filters);
-  if (filters.demandId) return { ...real, example: false };
+  if (filters.demandId || filters.demandIds?.length) return { ...real, example: false };
   if (real.customers.length === 0 && real.services.length === 0) {
     return { ...buildStatement(exampleDemands(), filters), example: true };
   }
@@ -244,6 +247,7 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
     const day = saoPauloDay(item.deliveredAt);
     return (!filters.customerId || item.customerId === filters.customerId) &&
       (!filters.demandId || item.demandId === filters.demandId) &&
+      (!filters.demandIds?.length || filters.demandIds.includes(item.demandId)) &&
       (!filters.service || item.service === filters.service) &&
       (!filters.from || day >= filters.from) &&
       (!filters.to || day <= filters.to);
@@ -260,7 +264,7 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
     .map(([label, activities]) => ({
       label,
       activities: activities.sort((left, right) => {
-        if (filters.demandId && left.number && right.number) return left.number - right.number;
+        if ((filters.demandId || filters.demandIds?.length === 1) && left.number && right.number) return left.number - right.number;
         return right.deliveredAt.localeCompare(left.deliveredAt);
       }),
     }));
@@ -272,7 +276,7 @@ export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, fil
   const demands = await prisma.demand.findMany({
     where: {
       status: { in: [...completedDemand] },
-      ...(filters.demandId ? { id: filters.demandId } : {}),
+      ...(filters.demandIds?.length ? { id: { in: filters.demandIds } } : filters.demandId ? { id: filters.demandId } : {}),
     },
     orderBy: { updatedAt: "desc" },
     include: {

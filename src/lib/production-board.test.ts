@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Deliverable, Demand } from "@/lib/data";
-import { deliverableColumn, deliverableKinds, demandMatchesKind, productionCards } from "./production-board";
+import { deliverableColumn, deliverableKinds, deliveredRecords, demandMatchesKind, productionCards } from "./production-board";
 
 const demand = (patch: Partial<Demand> = {}): Demand => ({
   id: "ensaio", customerId: "dani", title: "Ensaio REPOSICIONAMENTO", description: "", status: "Em produção",
@@ -128,6 +128,36 @@ describe("cartões do quadro", () => {
     expect(demandMatchesKind(photoOnly, [], "Vídeo")).toBe(false);
     expect(demandMatchesKind(demand({ title: "Plano EXPANSÃO", mediaType: "FOTO" }), [], "Plano EXPANSÃO")).toBe(true);
     expect(demandMatchesKind(demand({ title: "Plano EXPANSÃO", mediaType: "FOTO" }), [], "Vídeo")).toBe(false);
+  });
+
+  it("mantém no quadro só a entrega do mês escolhido e guarda o restante no histórico", () => {
+    const older = demand({ id: "setembro", status: "Entregue", createdAt: "2026-09-02T15:00:00.000Z" });
+    const current = demand({ id: "outubro", title: "Analu", status: "Entregue", createdAt: "2026-10-02T15:00:00.000Z" });
+    const active = demand();
+    const cards = productionCards({
+      ...base,
+      demands: [active, older, current],
+      deliverables: [
+        task(),
+        task({ id: "setembro-item", demandId: "setembro", status: "Aprovado", clientDeliveredAt: "2026-09-20T18:00:00.000Z" }),
+        task({ id: "outubro-item", demandId: "outubro", title: "Revelação", status: "Aprovado", clientDeliveredAt: "2026-10-18T18:00:00.000Z" }),
+      ],
+      split: "projeto",
+      month: "2026-10",
+    });
+    expect(cards.map((card) => card.id)).toEqual(["ensaio", "outubro"]);
+    const history = deliveredRecords(
+      [older, current],
+      [
+        task({ id: "setembro-item", demandId: "setembro", title: "ESSENCE", status: "Aprovado", clientDeliveredAt: "2026-09-20T18:00:00.000Z" }),
+        task({ id: "outubro-item", demandId: "outubro", title: "Revelação", status: "Aprovado", clientDeliveredAt: "2026-10-18T18:00:00.000Z" }),
+      ],
+      base.customers,
+    );
+    expect(history.map((row) => [row.id, row.month, row.done])).toEqual([
+      ["outubro", "2026-10", "Revelação"],
+      ["setembro", "2026-09", "ESSENCE"],
+    ]);
   });
 
   it("respeita editor, cliente e acento na busca", () => {
