@@ -120,6 +120,12 @@ O que muda: em Demandas, a Gestora atribui uma função isolada a uma atendente,
 
 Como: a função é um compromisso novo, sem vínculo com a demanda de produção. O aviso chega para a atendente na hora. O compromisso pessoal não avisa ninguém.
 
+## Backup diário em arquivos diferentes
+
+O que muda: todo dia, às 03:15 de Brasília, o sistema grava um arquivo do banco e um da aplicação. O de hoje não substitui o de ontem. Os dois sobem para a pasta de backups do Google Drive, separados por mês e por tipo.
+
+Como: o banco sai inteiro, no formato do PostgreSQL. A aplicação sai compactada, com o código e a configuração da VPS, sem dependências nem a pasta de build. No disco e no Drive o caminho é `AAAA-MM/banco/AAAA-MM-DD.dump` e `AAAA-MM/aplicacao/AAAA-MM-DD.tar.gz`. O dump feito antes de uma migration continua separado e ainda guarda só os 14 mais novos.
+
 ## Conferência
 
 218 testes passaram e 1 ficou de fora de propósito. O typecheck passou. Não há migration nova. O deploy não roda seed.

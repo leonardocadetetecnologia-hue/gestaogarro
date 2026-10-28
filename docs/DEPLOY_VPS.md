@@ -76,18 +76,25 @@ Ordem do script:
 bash scripts/backup-postgres.sh
 ```
 
-Grava `pg_dump` em formato custom em `/var/backups/garro`, com permissão `600`, e mantém os 14 arquivos mais novos. O volume Docker não substitui esse backup.
+Grava `pg_dump` em formato custom em `/var/backups/garro`, com permissão `600`, e mantém os 14 arquivos mais novos. Esse arquivo é a rede de segurança antes de uma migration. O volume Docker não substitui esse backup.
 
-A rotina diária grava o dump local e envia uma cópia para uma pasta privada do Google Drive do operador. O agendamento na VPS, às 03:15 no horário de São Paulo:
+A rotina diária, às 03:15 no horário de São Paulo, grava o sistema inteiro: um dump do banco e um arquivo da aplicação. Cada dia é um arquivo diferente. Rodar de novo no mesmo dia substitui só o daquele dia. Os dias anteriores permanecem.
 
 ```cron
 CRON_TZ=America/Sao_Paulo
 15 3 * * * root cd /opt/garro && bash scripts/backup-daily.sh >> /var/log/garro-backup.log 2>&1
 ```
 
-O arquivo fica em `/etc/cron.d/garro-backup`. O local continua em `/var/backups/garro`, com os 14 dumps mais novos. O Drive fica em `Garro/backups` e guarda 30, configurável por `BACKUP_DRIVE_DIR` e `BACKUP_DRIVE_KEEP`. O remote do rclone é `BACKUP_DRIVE_REMOTE`. Sem esse valor, o script só faz o backup local.
+O arquivo fica em `/etc/cron.d/garro-backup`. No disco, a data é a de São Paulo:
 
-O token do Google Drive fica em `/root/.config/rclone/rclone.conf`, com permissão `600`. Ele não entra no Git nem no `.env`. A pasta do Drive não deve ser compartilhada publicamente: o dump contém dados de clientes.
+```text
+/var/backups/garro/AAAA-MM/banco/AAAA-MM-DD.dump
+/var/backups/garro/AAAA-MM/aplicacao/AAAA-MM-DD.tar.gz
+```
+
+Os dois vão para a pasta do Google Drive `1cCGKVRnIpwMu7m_0-WOcJmUozQo367bW`, na mesma organização de mês e tipo. O remote padrão é `garro-drive`. `BACKUP_DRIVE_REMOTE` e `BACKUP_DRIVE_FOLDER_ID` trocam isso. O arquivo da aplicação inclui o código e o `.env` da VPS, sem `node_modules`, `.next` nem `.git`, e fica com permissão `600`.
+
+O token do Google Drive fica em `/root/.config/rclone/rclone.conf`, com permissão `600`. Ele não entra no Git nem no `.env`. O dump contém dados de clientes. A pasta do Drive não deve ficar aberta para quem não opera o sistema.
 
 A autorização é feita uma vez, numa máquina com navegador:
 
@@ -95,15 +102,15 @@ A autorização é feita uma vez, numa máquina com navegador:
 rclone authorize "drive" "drive.file"
 ```
 
-O escopo `drive.file` deixa o rclone ver apenas os arquivos que ele mesmo criou. O resultado desse comando é o token colado na configuração do remote `garro-drive` na VPS. Testar a restauração em uma base separada quando o primeiro dump existir.
+O escopo `drive.file` deixa o rclone ver apenas os arquivos que ele mesmo criou. A pasta diária precisa ser acessível por esse remote. Se a cópia falhar, os arquivos do dia permanecem na VPS. O resultado desse comando é o token colado na configuração do remote `garro-drive` na VPS. Testar a restauração em uma base separada quando o primeiro dump existir.
 
 ## Restauração
 
 ```bash
-bash scripts/restore-postgres.sh /var/backups/garro/garro-AAAAMMDDTHHMMSSZ.dump --yes
+bash scripts/restore-postgres.sh /var/backups/garro/AAAA-MM/banco/AAAA-MM-DD.dump --yes
 ```
 
-Para a aplicação, encerra conexões do banco, restaura com `pg_restore` e sobe a aplicação de novo. Não remove o volume.
+O dump com data no nome, em `banco/`, é o arquivo diário. O `garro-AAAAMMDDTHHMMSSZ.dump` da raiz continua sendo o da véspera de uma migration. A restauração encerra as conexões do banco, restaura com `pg_restore` e sobe a aplicação de novo. Não remove o volume. O arquivo em `aplicacao/` é a cópia do sistema daquele dia, com o `.env`.
 
 ## Rollback
 

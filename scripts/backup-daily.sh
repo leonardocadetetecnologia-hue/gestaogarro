@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Backup local e, se o rclone estiver configurado, cópia para o Google Drive.
-# O token do Drive fica só na VPS, em /root/.config/rclone/rclone.conf.
+# Backup diário do sistema: banco e aplicação, um arquivo por dia.
+# A cópia vai para a pasta informada do Google Drive. O token fica só na VPS.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,12 +25,21 @@ get_env() {
   printf '%s' "$value"
 }
 
-bash "$ROOT/scripts/backup-postgres.sh"
+day="$(TZ=America/Sao_Paulo date +%F)"
+BACKUP_DAY="$day" bash "$ROOT/scripts/backup-system.sh"
 
 remote="$(get_env BACKUP_DRIVE_REMOTE)"
-if [[ -z "$remote" ]]; then
-  echo "Cópia para o Google Drive desligada. Defina BACKUP_DRIVE_REMOTE no .env."
-  exit 0
+remote="${remote:-garro-drive}"
+folder_id="$(get_env BACKUP_DRIVE_FOLDER_ID)"
+folder_id="${folder_id:-1cCGKVRnIpwMu7m_0-WOcJmUozQo367bW}"
+
+if [[ ! "$remote" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "BACKUP_DRIVE_REMOTE inválido. O backup local foi gravado e não foi enviado." >&2
+  exit 1
+fi
+if [[ ! "$folder_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "BACKUP_DRIVE_FOLDER_ID inválido. O backup local foi gravado e não foi enviado." >&2
+  exit 1
 fi
 
 if ! command -v rclone >/dev/null 2>&1; then
@@ -43,31 +52,25 @@ if ! rclone listremotes | grep -qx "${remote}:"; then
   exit 1
 fi
 
-dir="$(get_env BACKUP_DRIVE_DIR)"
-dir="${dir:-Garro/backups}"
-dir="${dir#/}"
-dir="${dir%/}"
-keep="$(get_env BACKUP_DRIVE_KEEP)"
-keep="${keep:-30}"
-if [[ ! "$keep" =~ ^[0-9]+$ ]] || [[ "$keep" -lt 1 ]]; then
-  echo "BACKUP_DRIVE_KEEP deve ser um número maior que zero." >&2
-  exit 1
-fi
-
 backup_dir="$(get_env BACKUP_DIR)"
 backup_dir="${backup_dir:-/var/backups/garro}"
-latest="$(ls -1t "$backup_dir"/garro-*.dump | head -n 1)"
-name="$(basename "$latest")"
+month="${day:0:7}"
+db_file="${backup_dir}/${month}/banco/${day}.dump"
+app_file="${backup_dir}/${month}/aplicacao/${day}.tar.gz"
 
-rclone mkdir "${remote}:${dir}"
-rclone copyto "$latest" "${remote}:${dir}/${name}" --retries 3 --low-level-retries 10
+copy_one() {
+  local src="$1"
+  local dest="$2"
+  timeout 180 rclone copyto \
+    --retries 2 \
+    --low-level-retries 5 \
+    --contimeout 20s \
+    --timeout 150s \
+    --drive-root-folder-id "$folder_id" \
+    "$src" "${remote}:${dest}"
+}
 
-mapfile -t remote_files < <(rclone lsf "${remote}:${dir}" --files-only | grep -E '^garro-[0-9]{8}T[0-9]{6}Z\.dump$' | sort || true)
-if [[ ${#remote_files[@]} -gt "$keep" ]]; then
-  remove=$(( ${#remote_files[@]} - keep ))
-  for ((i = 0; i < remove; i++)); do
-    rclone deletefile "${remote}:${dir}/${remote_files[$i]}"
-  done
-fi
+copy_one "$db_file" "${month}/banco/${day}.dump"
+copy_one "$app_file" "${month}/aplicacao/${day}.tar.gz"
 
-echo "Cópia enviada ao Google Drive: ${dir}/${name}"
+echo "Cópia enviada ao Google Drive: ${month}/banco/${day}.dump e ${month}/aplicacao/${day}.tar.gz"

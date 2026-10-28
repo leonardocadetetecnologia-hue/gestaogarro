@@ -229,6 +229,8 @@ Proxy reverso.
     ├── scripts/
     │   ├── deploy.sh
     │   ├── backup-postgres.sh
+    │   ├── backup-daily.sh
+    │   ├── backup-system.sh
     │   └── restore-postgres.sh
     │
     ├── docs/
@@ -1463,7 +1465,7 @@ URL pública definida: `https://cadete.tech/gestaogarro`. O site já existente e
 
 Acesso operacional verificado em 14/10/2026: VPS `2.25.229.131`, usuário SSH `root`, chave existente do operador, aplicação em `/opt/garro` e branch `main`. Segredos permanecem no `.env` privado da VPS; referências de acesso em `docs/ACESSOS_E_CREDENCIAIS.md`.
 
-Destino dos backups definido em 15/10/2026: dump diário com `scripts/backup-daily.sh`, cópia local em `/var/backups/garro` e cópia privada no Google Drive do operador, pasta `Garro/backups`. O token do rclone permanece só na VPS.
+Destino dos backups definido em 15/10/2026 e ajustado em 28/10/2026: todo dia, `scripts/backup-daily.sh` grava um arquivo do banco e um da aplicação em `/var/backups/garro/AAAA-MM/banco` e `aplicacao`, e copia os dois para a pasta do Google Drive `1cCGKVRnIpwMu7m_0-WOcJmUozQo367bW`. Cada dia é um arquivo diferente. O token do rclone permanece só na VPS. O dump avulso antes de migration continua em `/var/backups/garro`, com os 14 mais novos.
 
 Ainda devem ser definidos:
 
