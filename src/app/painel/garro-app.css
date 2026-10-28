@@ -326,20 +326,28 @@
   .notification-open .row-main { flex: 1 1 140px; }
 }
 
-/* Todas as etapas dividem a tela: sem sobra e sem coluna para fora. */
+/* As etapas dividem a largura. A coluna cresce para baixo e a página inteira rola. */
 .main-column { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
 .app-content { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
-.app-content:has(.kanban-grid),
-.app-content:has(.production-grid) { overflow: hidden; }
 .workspace:has(.kanban-grid),
 .workspace:has(.production-grid) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding-bottom: 12px;
+  display: block;
+  flex: none;
+  height: auto;
+  overflow: visible;
+  padding: 14px 18px 28px;
 }
+.workspace:has(.kanban-grid) > .view-title,
+.workspace:has(.production-grid) > .view-title { margin-bottom: 10px; }
+.workspace:has(.kanban-grid) > .view-title h1,
+.workspace:has(.production-grid) > .view-title h1 { font-size: 22px; margin: 0 0 2px; }
+.workspace:has(.kanban-grid) > .metric-grid { margin-bottom: 10px; gap: 8px; }
+.workspace:has(.kanban-grid) > .metric-grid .metric { min-height: 0; padding: 8px 12px; }
+.workspace:has(.kanban-grid) > .metric-grid .metric-label { margin-bottom: 4px; }
+.workspace:has(.kanban-grid) > .metric-grid .metric strong { font-size: 18px; }
+.workspace:has(.kanban-grid) > .metric-grid .metric small { margin-top: 2px; }
+.workspace:has(.kanban-grid) > .board-toolbar,
+.workspace:has(.production-grid) > .board-toolbar { margin-bottom: 8px; }
 .workspace:has(.kanban-grid) > .view-title,
 .workspace:has(.kanban-grid) > .metric-grid,
 .workspace:has(.kanban-grid) > .board-toolbar,
@@ -355,20 +363,21 @@
 .attendant-task-list strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
 .attendant-task-list span { display: block; color: var(--muted); font-size: 11px; }
 @media (max-width: 900px) { .attendant-task-form { grid-template-columns: 1fr 1fr; } }
-.workspace:has(.kanban-grid) .commercial-shell { flex: 1; min-height: 0; align-items: stretch; }
-.board-flex { min-height: 0; height: 100%; display: flex; flex-direction: column; }
-.board-scroll { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.workspace:has(.kanban-grid) .commercial-shell { align-items: flex-start; height: auto; min-height: 0; }
+.board-flex { min-height: 0; height: auto; display: block; }
+.board-scroll { min-height: 0; min-width: 0; height: auto; display: flex; flex-direction: column; }
 .board-scroll > .kanban-grid,
 .board-scroll > .production-grid {
   display: grid;
+  grid-template-rows: 1fr;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: calc(100dvh - 300px);
   min-width: 0;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
+  overflow: visible;
   gap: 6px;
-  padding-bottom: 0;
+  padding-bottom: 8px;
+  align-items: stretch;
 }
 .kanban-grid > .kanban-column,
 .production-grid > .production-column,
@@ -379,13 +388,16 @@
   flex: initial;
   flex-basis: auto;
   min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
 }
 .kanban-column { display: flex; flex-direction: column; }
-.column-content { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
-.production-column { display: flex; flex-direction: column; overflow: auto; }
+.column-head,
+.production-heading { position: sticky; top: 0; z-index: 2; }
+.column-head { min-height: 0; padding: 8px 10px; background: #f8f3ee; }
+.column-content { flex: 1 0 auto; min-width: 0; overflow: visible; gap: 6px; padding: 6px; }
+.production-column { display: flex; flex-direction: column; overflow: visible; }
+.production-heading { background: #efe9e1; }
 .column-head, .column-head strong, .column-head span,
 .crm-card, .crm-card-head, .crm-card-head strong, .crm-card-head small,
 .production-card, .production-card strong, .production-card small, .production-card > span,

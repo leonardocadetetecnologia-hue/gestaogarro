@@ -86,9 +86,9 @@ Como: a janela parte das entregas já filtradas. Cada campo tem uma caixa. Sem d
 
 ## Kanban na largura da tela
 
-O que muda: no CRM e na produção, as etapas ocupam a largura toda, juntas. Não sobra faixa vazia e nenhuma coluna sai da tela. O texto quebra dentro do cartão. Muitos cartões rolam para baixo, dentro da coluna.
+O que muda: no CRM e na produção, as etapas ocupam a largura toda, juntas. Não sobra faixa vazia e nenhuma coluna sai da tela. O texto quebra dentro do cartão. A coluna fica mais alta e mostra mais cartões empilhados. A rolagem é a da página inteira, não uma barra curta dentro da coluna.
 
-Como: cada quadro recebe o número real de etapas e divide a área em partes iguais. A largura fixa das colunas saiu. Com o detalhe do lead aberto, as etapas dividem o que resta.
+Como: cada quadro recebe o número real de etapas e divide a área em partes iguais. A largura fixa das colunas saiu. O título e os números de cima ficam mais baixos para sobrar altura aos cartões. Se a etapa tem muitos cartões, a página desce até o último. O nome da etapa permanece visível enquanto se rola. Com o detalhe do lead aberto, as etapas dividem o que resta.
 
 ## Sino com janela
 
