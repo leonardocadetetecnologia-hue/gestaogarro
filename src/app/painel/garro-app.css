@@ -348,6 +348,39 @@
 .workspace:has(.kanban-grid) > .metric-grid .metric small { margin-top: 2px; }
 .workspace:has(.kanban-grid) > .board-toolbar,
 .workspace:has(.production-grid) > .board-toolbar { margin-bottom: 8px; }
+.workspace:has(.commercial-shell) > .board-toolbar,
+.workspace:has(.production-grid) > .board-toolbar {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.workspace:has(.commercial-shell) .toolbar-end,
+.workspace:has(.production-grid) .toolbar-end {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: 0;
+}
+.workspace:has(.commercial-shell) .toolbar-end > .search-box,
+.workspace:has(.production-grid) .toolbar-end > .search-box {
+  flex: 0 1 220px;
+  width: auto;
+  min-width: 150px;
+}
+.workspace:has(.commercial-shell) .toolbar-end > select,
+.workspace:has(.production-grid) .toolbar-end > select,
+.workspace:has(.production-grid) .toolbar-end > input[type="month"] {
+  width: auto;
+  max-width: 210px;
+  flex: 0 0 auto;
+}
+@media (max-width: 900px) {
+  .workspace:has(.commercial-shell) > .board-toolbar,
+  .workspace:has(.production-grid) > .board-toolbar,
+  .workspace:has(.commercial-shell) .toolbar-end,
+  .workspace:has(.production-grid) .toolbar-end { flex-wrap: wrap; }
+}
 .workspace:has(.kanban-grid) > .view-title,
 .workspace:has(.kanban-grid) > .metric-grid,
 .workspace:has(.kanban-grid) > .board-toolbar,
