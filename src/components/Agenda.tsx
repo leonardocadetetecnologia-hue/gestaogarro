@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, Search, UserRound } from "lucide-react";
-import { agendaDayKey, agendaOriginLink, calendarDays, nextCalendarFocus, type AgendaMode } from "@/lib/agenda";
+import { agendaDayKey, agendaOriginLink, agendaTiming, calendarDays, nextCalendarFocus, type AgendaMode } from "@/lib/agenda";
 import { dateFull, type ScheduleItem } from "@/lib/data";
 import { useGarro } from "@/lib/store";
-import { Badge, Empty, Metric, Modal, ViewTitle } from "./Ui";
+import { Empty, Metric, Modal, ViewTitle } from "./Ui";
 import styles from "./agenda.module.css";
 
 const modes: { key: AgendaMode; label: string }[] = [{ key: "dia", label: "Dia" }, { key: "semana", label: "Semana" }, { key: "mes", label: "Mês" }, { key: "lista", label: "Lista" }];
@@ -17,22 +17,13 @@ const labelDate = (key: string, options: Intl.DateTimeFormatOptions) => new Intl
 const searchText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const responsibleLabel = (event: ScheduleItem) => `${event.responsibleRole === "GESTOR_GARRO" ? "Gestora" : event.responsibleRole === "ATENDENTE" ? "Atendente" : event.responsibleRole === "EDITOR" ? "Editor" : "Responsável"} · ${event.responsibleName || "Não informado"}`;
 
-function eventStatus(event: ScheduleItem) {
-  if (event.status === "Cancelado") return { label: "Cancelado", kind: "neutral" };
-  if (event.done) return { label: "Concluído", kind: "success" };
-  if (new Date(event.at).getTime() < Date.now()) return { label: "Atrasado", kind: "danger" };
-  return { label: "No prazo", kind: "neutral" };
-}
-
 function EventCard({ event, onOpen, compact = false }: { event: ScheduleItem; onOpen: () => void; compact?: boolean }) {
-  const status = eventStatus(event);
+  const status = agendaTiming(event);
   return <button type="button" className={`${styles.event} ${styles[categoryStyle[event.category]]} ${compact ? styles.compact : ""}`} onClick={onOpen} aria-label={`Ver detalhes: ${event.title}, ${dateFull(event.at)}`}>
-    <span className={styles.eventTop}><span className={styles.eventTime}><Clock3 size={14}/>{time(event.at)}</span><Badge kind={status.kind}>{status.label}</Badge></span>
+    <span className={styles.eventTop}><span className={styles.eventTime}><Clock3 size={12}/>{time(event.at)}</span><span className={`${styles.status} ${status.tone === "neutral" ? "" : styles[status.tone]}`}>{status.label}</span></span>
     <strong className={styles.eventTitle}>{event.title}</strong>
-    <span className={styles.eventType}>{event.typeLabel || event.category}</span>
-    {event.customerName && <span className={styles.eventCustomer}>{event.customerName}</span>}
-    <span className={styles.eventBottom}><span>{event.origin || "Agenda"}</span><span className={styles.detailsHint}>Detalhes <ChevronRight size={14}/></span></span>
-    {event.responsibleName && <span className={styles.responsible}><UserRound size={15}/>{responsibleLabel(event)}</span>}
+    <span className={styles.eventMeta}>{event.typeLabel || event.category}{event.customerName ? ` · ${event.customerName}` : ""}</span>
+    <span className={styles.eventBottom}><span>{event.origin || "Agenda"}</span>{event.responsibleName && <span className={styles.responsible}><UserRound size={12}/>{responsibleLabel(event)}</span>}</span>
   </button>;
 }
 
@@ -45,6 +36,16 @@ export function AgendaView() {
   const [query, setQuery] = useState("");
   const [showDone, setShowDone] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const saved = Number(localStorage.getItem("garro-agenda-zoom"));
+    if (saved >= 0.8 && saved <= 1.2) setZoom(saved);
+  }, []);
+  function changeZoom(value: number) {
+    const next = Math.min(1.2, Math.max(0.8, value));
+    setZoom(next);
+    localStorage.setItem("garro-agenda-zoom", String(next));
+  }
   useEffect(() => { if (window.matchMedia("(max-width: 767px)").matches) setMode("lista"); }, []);
   const allowed = state.schedule.filter(e => role === "GESTOR_GARRO" || e.userId === activeEditorId);
   const items = allowed.filter(e => (showDone || !e.done) && (filter === "Todos" || e.category === filter) && (responsible === "Todos" || e.userId === responsible) && searchText(`${e.title} ${e.customerName || ""} ${e.responsibleName || ""} ${e.origin || ""}`).includes(searchText(query))).sort((a,b) => a.at.localeCompare(b.at));
@@ -63,10 +64,13 @@ export function AgendaView() {
       <Metric name="Atrasados" value={allowed.filter(e => !e.done && new Date(e.at).getTime() < Date.now()).length}/>
       <Metric name="Hoje" value={allowed.filter(e => !e.done && agendaDayKey(e.at) === today).length}/>
     </div>
-    <section className={`surface ${styles.surface}`}>
+    <section className={`surface ${styles.surface}`} style={{ ["--agenda-zoom" as string]: zoom }}>
       <div className={styles.toolbar}>
         <div className={styles.calendarTitle}><CalendarDays size={25}/><div><h2>Calendário de compromissos</h2><p>Clique em um compromisso para ver detalhes e origem.</p></div></div>
-        <div className={styles.modeBar} role="group" aria-label="Visualização da agenda">{modes.map(item => <button type="button" key={item.key} aria-pressed={mode === item.key} className={mode === item.key ? styles.activeMode : ""} onClick={() => setMode(item.key)}>{item.label}</button>)}</div>
+        <div className={styles.toolbarEnd}>
+          <label className={styles.zoom}>Zoom<input aria-label="Zoom da agenda" type="range" min="0.8" max="1.2" step="0.05" value={zoom} onChange={e => changeZoom(Number(e.target.value))}/></label>
+          <div className={styles.modeBar} role="group" aria-label="Visualização da agenda">{modes.map(item => <button type="button" key={item.key} aria-pressed={mode === item.key} className={mode === item.key ? styles.activeMode : ""} onClick={() => setMode(item.key)}>{item.label}</button>)}</div>
+        </div>
       </div>
       <div className={styles.filters}>
         <label className={styles.search}><Search size={18}/><input aria-label="Buscar compromisso, cliente ou responsável" placeholder="Buscar compromisso, cliente ou responsável" value={query} onChange={e => setQuery(e.target.value)}/></label>
@@ -86,13 +90,11 @@ export function AgendaView() {
         <div className={`${styles.calendar} ${mode === "mes" ? styles.month : mode === "dia" ? styles.day : styles.week}`}>
           {days.map(key => {
             const events = items.filter(e => agendaDayKey(e.at) === key);
-            const shown = mode === "mes" ? events.slice(0,3) : events;
             return <section className={`${styles.dayColumn} ${key === today ? styles.today : ""} ${mode === "mes" && key.slice(0,7) !== focus.slice(0,7) ? styles.otherMonth : ""}`} key={key}>
-              <header className={styles.dayHeader}><span>{labelDate(key, { weekday: "short" })}</span><strong>{key.slice(-2)}</strong><small>{events.length} {events.length === 1 ? "compromisso" : "compromissos"}</small></header>
+              <header className={styles.dayHeader}><span>{labelDate(key, { weekday: "short" })}</span><strong>{Number(key.slice(-2))}</strong><small>{events.length} {events.length === 1 ? "compromisso" : "compromissos"}</small></header>
               <div className={styles.dayEvents}>
-                {shown.map(e => <EventCard key={e.id} event={e} compact={mode === "mes"} onOpen={() => setSelected(e.id)}/>)}
+                {events.map(e => <EventCard key={e.id} event={e} compact={mode === "mes"} onOpen={() => setSelected(e.id)}/>)}
                 {events.length === 0 && <p className={styles.emptyDay}>Sem compromissos</p>}
-                {mode === "mes" && events.length > 3 && <button type="button" className={styles.moreEvents} onClick={() => { setFocus(key); setMode("dia"); }}>Ver todos os {events.length} compromissos <ChevronRight size={15}/></button>}
               </div>
             </section>;
           })}
@@ -101,7 +103,7 @@ export function AgendaView() {
     </section>
     {event && <Modal title="Detalhes do compromisso" description={event.typeLabel || event.category} width="700px" onClose={() => setSelected(null)}>
       <div className={styles.eventDetail}>
-        <div className={styles.detailHeading}><h3>{event.title}</h3><Badge kind={eventStatus(event).kind}>{eventStatus(event).label}</Badge></div>
+        <div className={styles.detailHeading}><h3>{event.title}</h3><span className={`${styles.status} ${agendaTiming(event).tone === "neutral" ? "" : styles[agendaTiming(event).tone]}`}>{agendaTiming(event).label}</span></div>
         <dl className={styles.detailGrid}>
           <div><dt>Data e horário de Brasília</dt><dd>{dateFull(event.at)}</dd></div>
           <div><dt>Responsável</dt><dd>{responsibleLabel(event)}</dd></div>

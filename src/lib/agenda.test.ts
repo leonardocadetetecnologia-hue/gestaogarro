@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agendaDayKey, agendaOriginLink, calendarDays, nextCalendarFocus } from "./agenda";
+import { agendaDayKey, agendaOriginLink, agendaTiming, calendarDays, nextCalendarFocus } from "./agenda";
 import type { ScheduleItem } from "./data";
 
 describe("agenda", () => {
@@ -19,5 +19,14 @@ describe("agenda", () => {
     expect(agendaOriginLink({ ...event, opportunityId: "opportunity" })?.href).toBe("/painel/crm?o=opportunity");
     expect(agendaOriginLink({ ...event, demandId: "demand" })?.href).toBe("/painel/demanda?id=demand");
     expect(agendaOriginLink(event)).toBeNull();
+  });
+  it("marca atraso e as seis horas anteriores ao horário", () => {
+    const now = new Date("2026-10-28T18:00:00.000Z").getTime();
+    expect(agendaTiming({ at: "2026-10-28T12:00:00.000Z" }, now).label).toBe("Atrasado");
+    expect(agendaTiming({ at: "2026-10-28T20:00:00.000Z" }, now)).toEqual({ label: "Próximo do atraso", tone: "soon" });
+    expect(agendaTiming({ at: "2026-10-29T00:00:00.000Z" }, now).label).toBe("Próximo do atraso");
+    expect(agendaTiming({ at: "2026-10-29T01:00:00.000Z" }, now).label).toBe("No prazo");
+    expect(agendaTiming({ at: "2026-10-28T12:00:00.000Z", done: true }, now).label).toBe("Concluído");
+    expect(agendaTiming({ at: "2026-10-28T12:00:00.000Z", status: "Cancelado" }, now).label).toBe("Cancelado");
   });
 });

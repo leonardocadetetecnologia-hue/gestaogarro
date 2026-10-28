@@ -72,6 +72,12 @@ O que muda: ao criar a demanda, Foto, Vídeo e Foto e vídeo ficam na mesma linh
 
 Como: a gravação continua no campo que já existia. Demanda antiga, sem tipo, pode receber um ao ser editada. Sem uma nova escolha, o tipo que já estava gravado permanece.
 
+## Agenda mais compacta
+
+O que muda: a agenda mostra mais compromissos na mesma página, com quadros e tipos menores, no desenho de uma agenda de verdade. O zoom é um controle curto ao lado de Dia, Semana, Mês e Lista. O compromisso vencido ganha a tag Atrasado. Faltando até seis horas, a tag é Próximo do atraso. As duas ficam no terracota da Garro. Horário, tipo, cliente, origem e responsável continuam no cartão.
+
+Como: a densidade padrão foi reduzida e o zoom só multiplica esse tamanho. O mês lista todos os compromissos do dia, sem cortar em três. O prazo é o horário do próprio compromisso, em Brasília.
+
 ## Conferência
 
 166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.

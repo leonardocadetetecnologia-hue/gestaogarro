@@ -63,7 +63,7 @@ Em **Editores**, Editar editor abre a administração de usuários. Nome e e-mai
 
 ## Agendas e legibilidade
 
-Kanbans têm colunas, textos e dados maiores. As agendas compartilham calendário amplo com dia, semana, mês e lista, pesquisa, filtros e cartões que mostram horário, cliente, origem e responsável com perfil/nome. Detalhes exibem contexto e links para a oportunidade ou demanda de origem. Horários e agrupamentos usam America/Sao_Paulo. No celular, a lista facilita a leitura.
+Kanbans têm colunas, textos e dados maiores. A agenda cabe mais compromissos na mesma página: dia, semana, mês e lista, com pesquisa, filtros e cartões menores que continuam mostrando horário, tipo, cliente, origem e responsável. Um controle de zoom, ao lado da visão, só ajusta a densidade. Compromisso vencido leva a tag Atrasado. Faltando até seis horas para o horário, a tag é Próximo do atraso. As duas usam o mesmo tom de terracota, sem um vermelho solto. O dia de hoje marca o número num círculo. Detalhes exibem contexto e links para a oportunidade ou demanda de origem. Horários e agrupamentos usam America/Sao_Paulo. No celular, a lista facilita a leitura.
 
 Somente a Gestora vê a Agenda Global. Atendente e Editor recebem no servidor somente seus eventos permitidos; filtros de interface não concedem acesso adicional.
 

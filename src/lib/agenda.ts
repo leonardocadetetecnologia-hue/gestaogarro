@@ -21,6 +21,17 @@ export function nextCalendarFocus(focus: string, mode: AgendaMode, step: number)
   else date.setUTCDate(date.getUTCDate() + step * (mode === "semana" ? 7 : 1));
   return keyOfDate(date);
 }
+const sixHours = 6 * 60 * 60 * 1000;
+
+export function agendaTiming(event: Pick<ScheduleItem, "at" | "done" | "status">, now = Date.now()) {
+  if (event.status === "Cancelado") return { label: "Cancelado", tone: "neutral" as const };
+  if (event.done || event.status === "Concluído") return { label: "Concluído", tone: "done" as const };
+  const when = new Date(event.at).getTime();
+  if (Number.isNaN(when) || when - now > sixHours) return { label: "No prazo", tone: "neutral" as const };
+  if (when < now) return { label: "Atrasado", tone: "late" as const };
+  return { label: "Próximo do atraso", tone: "soon" as const };
+}
+
 export function agendaOriginLink(event: ScheduleItem) {
   if (event.demandId) return { href: `/painel/demanda?id=${encodeURIComponent(event.demandId)}`, label: "Abrir demanda de produção" };
   if (event.opportunityId) return { href: `/painel/crm?o=${encodeURIComponent(event.opportunityId)}`, label: "Abrir atendimento no CRM" };

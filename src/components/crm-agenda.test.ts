@@ -95,6 +95,16 @@ describe("agenda por perfil e origem", () => {
     const html = renderToStaticMarkup(createElement(AgendaView));
     expect(html).toContain("Agenda Global"); expect(html).toContain("Gestora · Gestora de teste"); expect(html).toContain("Produção");
     expect(html).toContain("Ver detalhes: Revisar entrega");
+    expect(html).toContain('aria-label="Zoom da agenda"');
+  });
+  it("sinaliza atraso e a proximidade de seis horas", () => {
+    context.state.schedule = [
+      { ...event, id: "late", title: "Entrega vencida", at: "2026-10-14T15:00:00Z" },
+      { ...event, id: "soon", title: "Entrega próxima", at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() },
+    ];
+    const html = renderToStaticMarkup(createElement(AgendaView));
+    expect(html).toContain("Atrasado");
+    expect(html).toContain("Próximo do atraso");
   });
   it("restringe a agenda da atendente aos seus compromissos", () => {
     context.role = "ATENDENTE"; context.activeEditorId = "attendant";
