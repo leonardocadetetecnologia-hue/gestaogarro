@@ -3,6 +3,7 @@ import type { DemandStatus, Prisma } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
+import { demandMediaTypeSchema } from "@/lib/demand-media-type";
 import { normalizeWebLink, prepareDeliveryLinks } from "@/modules/production/delivery-links";
 
 const id = z.string().min(1).max(80);
@@ -14,6 +15,7 @@ export const updateDemandSchema = z.object({
   description: z.string().trim().max(10000),
   due: z.string().datetime({ offset: true }).or(z.literal("")),
   links: link,
+  mediaType: demandMediaTypeSchema.or(z.literal("")).optional(),
 });
 export const addDeliverableSchema = z.object({
   demandId: id,
@@ -53,7 +55,15 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
   await prisma.$transaction(async tx => {
     const demand = await tx.demand.findUnique({ where: { id: input.id }, select: { id: true, status: true } });
     if (!demand) throw new CrmFlowError("Demanda não encontrada.");
-    await tx.demand.update({ where: { id: demand.id }, data: { title: input.title, description: input.description, clientDueAt: due } });
+    await tx.demand.update({
+      where: { id: demand.id },
+      data: {
+        title: input.title,
+        description: input.description,
+        clientDueAt: due,
+        ...(input.mediaType ? { mediaType: input.mediaType } : {}),
+      },
+    });
     if (due) {
       await tx.scheduleEvent.updateMany({
         where: { demandId: demand.id, type: "ENTREGA_CLIENTE", status: "PENDENTE" },

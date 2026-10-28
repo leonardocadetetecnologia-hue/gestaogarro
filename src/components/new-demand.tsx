@@ -1,8 +1,9 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { demandMediaTypeLabels, demandMediaTypeOptions, isDemandMediaType } from "@/lib/demand-media-type";
+import { isDemandMediaType } from "@/lib/demand-media-type";
 import { useGarro } from "@/lib/store";
 import { parseSaoPaulo } from "@/lib/deadlines";
+import { MediaTypeChoice } from "./media-type-choice";
 import { Field, Modal } from "./Ui";
 
 export function NewDemandModal({ onClose, customerId: lockedCustomerId, onCreated }: { onClose: () => void; customerId?: string; onCreated?: (id: string) => void }) {
@@ -30,10 +31,7 @@ export function NewDemandModal({ onClose, customerId: lockedCustomerId, onCreate
       </select></Field>}
       {!lockedCustomer && customerId === "new" && <div className="form-grid"><Field label="Nome do cliente *"><input required minLength={2} value={name} onChange={e => setName(e.target.value)}/></Field><Field label="E-mail"><input type="email" value={email} onChange={e => setEmail(e.target.value)}/></Field><Field label="Telefone"><input value={phone} onChange={e => setPhone(e.target.value)}/></Field></div>}
       <Field label="Título da demanda *"><input required minLength={2} maxLength={200} value={title} onChange={e => setTitle(e.target.value)}/></Field>
-      <Field label="Tipo *"><select required value={mediaType} onChange={e => setMediaType(e.target.value)}>
-        <option value="">Selecione o tipo</option>
-        {demandMediaTypeOptions.map(type => <option key={type} value={type}>{demandMediaTypeLabels[type]}</option>)}
-      </select></Field>
+      <MediaTypeChoice required value={mediaType} disabled={busy} onChange={setMediaType} />
       <Field label="Briefing *"><textarea required minLength={3} rows={4} value={description} onChange={e => setDescription(e.target.value)}/></Field>
       <Field label="Prazo do cliente (horário de Brasília) *"><input required type="datetime-local" value={due} onChange={e => setDue(e.target.value)}/></Field>
       <Field label="Entregáveis (um por linha) *"><textarea required rows={3} value={items} onChange={e => setItems(e.target.value)}/></Field>

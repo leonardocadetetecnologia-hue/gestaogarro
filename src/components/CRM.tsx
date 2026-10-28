@@ -9,11 +9,12 @@ import {useGarro} from "@/lib/store";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { parseSaoPaulo } from "@/lib/deadlines";
-import { demandMediaTypeLabels, demandMediaTypeOptions, isDemandMediaType } from "@/lib/demand-media-type";
+import { isDemandMediaType } from "@/lib/demand-media-type";
 import { strategyLines, type StrategyView } from "@/lib/kanban-strategy";
 import { BoardScroll } from "./board-scroll";
 import { ColumnStrategy } from "./kanban-strategy";
 import { ReturnContactModal } from "./return-contact";
+import { MediaTypeChoice } from "./media-type-choice";
 import {Badge,Deadline,Empty,Field,Metric,Modal,SearchBox,SectionHead,ViewTitle} from "./Ui";
 
 const stageKind:Record<Stage,string>={"Lead":"neutral","Tentativa de contato":"warning","Em tratativa":"info","Sem interesse":"attention","Reunião agendada":"info","Reunião realizada":"info","Bolo":"attention","Fechado com sucesso":"success","Fechado sem sucesso":"danger"};
@@ -83,10 +84,7 @@ export function ClosingModal({opportunity,onClose}:{opportunity:Opportunity;onCl
     <Field label="Valor fechado (R$) *"><input type="number" required min="0.01" step="0.01" disabled={busy} value={amount} onChange={e=>setAmount(e.target.value)}/></Field>
     <Field label="Prazo do cliente (horário de Brasília) *"><input type="datetime-local" required disabled={busy} value={due} onChange={e=>setDue(e.target.value)}/></Field>
    </div>
-   <Field label="Tipo *"><select required disabled={busy} value={mediaType} onChange={e=>setMediaType(e.target.value)}>
-    <option value="">Selecione o tipo</option>
-    {demandMediaTypeOptions.map(type=><option key={type} value={type}>{demandMediaTypeLabels[type]}</option>)}
-   </select></Field>
+   <MediaTypeChoice required disabled={busy} value={mediaType} onChange={setMediaType} />
    <Field label="Briefing e detalhes da produção *"><textarea required minLength={3} disabled={busy} rows={4} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Descreva o que foi combinado com o cliente."/></Field>
    <Field label="Entregáveis (um por linha) *"><textarea required disabled={busy} rows={4} value={items} onChange={e=>setItems(e.target.value)} placeholder={"Vídeo principal\nReel para redes sociais"}/></Field>
    <div className="info-note">A demanda será criada na trilha de produção da Gestora, com briefing, entregáveis e prazo. A atribuição aos editores será feita pela Gestora.</div>

@@ -33,6 +33,11 @@ describe("edição da demanda fora da esteira", () => {
       data: { title: "IANDRA revisada", description: "Briefing completo", clientDueAt: null },
     }));
     expect(tx.demand.update.mock.calls[0][0].data.status).toBeUndefined();
+    await updateDemandDetails(gestora, { id: "demand", title: "IANDRA revisada", description: "Briefing completo", due: "", links: "", mediaType: "FOTO" });
+    expect(tx.demand.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ mediaType: "FOTO" }),
+    }));
+    await expect(updateDemandDetails(gestora, { id: "demand", title: "IANDRA revisada", description: "", due: "", links: "", mediaType: "EVENTO" })).rejects.toThrow(/tipo/i);
   });
 
   it("grava o HD e o link do Drive sem mexer na etapa", async () => {

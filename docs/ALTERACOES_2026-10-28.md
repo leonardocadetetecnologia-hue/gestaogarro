@@ -66,6 +66,12 @@ O que muda: a coluna Entregue mostra só as entregas do mês escolhido no topo d
 
 Como: a data da entrega é a última marcação ao cliente, no horário de Brasília. Sem essa data, vale a criação da demanda. O quadro filtra a coluna Entregue por esse mês. O histórico lê as demandas com status Entregue. O PDF reutiliza o extrato e aceita uma lista de demandas.
 
+## Tipo da demanda em uma linha, e editável depois
+
+O que muda: ao criar a demanda, Foto, Vídeo e Foto e vídeo ficam na mesma linha. Se a escolha sair errada, a Gestora corrige em Editar. A marcação aparece na linha do cartão, junto da quantidade de entregáveis e do serviço.
+
+Como: a gravação continua no campo que já existia. Demanda antiga, sem tipo, pode receber um ao ser editada. Sem uma nova escolha, o tipo que já estava gravado permanece.
+
 ## Conferência
 
 166 testes passaram e 1 ficou de fora de propósito. O typecheck passou. O deploy aplica as duas colunas novas com `prisma migrate deploy`, sem seed.

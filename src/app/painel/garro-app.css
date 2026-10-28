@@ -286,6 +286,11 @@
   .delivery-link-row { grid-template-columns: 1fr; }
   .delivery-link-actions { justify-content: flex-start; }
 }
+.media-type-choice { border: 0; margin: 0; padding: 0; min-width: 0; }
+.media-type-choice legend { font-size: 11px; font-weight: 500; color: #6d5143; margin-bottom: 7px; padding: 0; }
+.media-type-choice div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.media-type-choice label { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: 13px; }
+.media-type-choice input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 .archive-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .archive-filters select { background: var(--surface); border: 1px solid var(--line-strong); color: var(--text); border-radius: 8px; padding: 10px 13px; min-height: 36px; font-size: 12px; }
 .archive-month { margin: 16px 0 0; font-size: 13px; }

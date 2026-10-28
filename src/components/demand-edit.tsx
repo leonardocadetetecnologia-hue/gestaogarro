@@ -4,8 +4,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import { dateInputSaoPaulo } from "@/lib/date-input";
 import { parseSaoPaulo } from "@/lib/deadlines";
 import type { Demand, Deliverable } from "@/lib/data";
+import { isDemandMediaType } from "@/lib/demand-media-type";
 import { useGarro } from "@/lib/store";
 import { deliveryHref } from "@/modules/production/delivery-links";
+import { MediaTypeChoice } from "./media-type-choice";
 import { Field, Modal } from "./Ui";
 
 export function EditDemandModal({ demand, onClose }: { demand: Demand; onClose: () => void }) {
@@ -14,15 +16,17 @@ export function EditDemandModal({ demand, onClose }: { demand: Demand; onClose: 
   const [description, setDescription] = useState(demand.briefing || demand.description || "");
   const [due, setDue] = useState(demand.clientDue ? dateInputSaoPaulo(demand.clientDue) : "");
   const [links, setLinks] = useState(demand.links || "");
+  const [mediaType, setMediaType] = useState(demand.mediaType || "");
   async function submit(e: FormEvent) {
     e.preventDefault();
     const parsed = due ? parseSaoPaulo(due) : null;
     if (due && !parsed) return;
-    if (await updateDemand({ id: demand.id, title, description, due: parsed ? parsed.toISOString() : "", links })) onClose();
+    if (await updateDemand({ id: demand.id, title, description, due: parsed ? parsed.toISOString() : "", links, mediaType: isDemandMediaType(mediaType) ? mediaType : "" })) onClose();
   }
-  return <Modal title="Editar demanda" description="A correção vale em qualquer etapa. A ordem dos entregáveis não muda." onClose={() => { if (!busy) onClose(); }}>
+  return <Modal title="Editar demanda" description="A correção vale em qualquer etapa. O tipo aparece no cartão do quadro. A ordem dos entregáveis não muda." onClose={() => { if (!busy) onClose(); }}>
     <form className="form-stack" onSubmit={submit} aria-busy={busy}>
       <Field label="Nome da demanda *"><input required minLength={2} maxLength={200} disabled={busy} value={title} onChange={e => setTitle(e.target.value)}/></Field>
+      <MediaTypeChoice value={mediaType} disabled={busy} onChange={setMediaType} />
       <Field label="Briefing"><textarea rows={4} maxLength={10000} disabled={busy} value={description} onChange={e => setDescription(e.target.value)}/></Field>
       <Field label="Prazo do cliente (horário de Brasília)"><input type="datetime-local" disabled={busy} value={due} onChange={e => setDue(e.target.value)}/></Field>
       <Field label="Link de referência"><input type="url" disabled={busy} value={links} onChange={e => setLinks(e.target.value)} placeholder="https://"/></Field>
