@@ -129,7 +129,7 @@ export async function moveOpportunity(id: string, stage: OpportunityStage) {
     where: { id },
     data: { stage, lastActivityAt: new Date() },
   });
-  await audit(user.id, "OPPORTUNITY_MOVED", "Opportunity", id, { stage });
+  await audit(user.id, "OPPORTUNITY_MOVED", "Opportunity", id, { stage, from: current.stage });
   revalidatePath("/crm");
 }
 

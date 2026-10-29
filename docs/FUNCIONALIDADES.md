@@ -27,6 +27,8 @@ Colunas: Lead → Tentativa de contato → Em tratativa → Sem interesse → Re
 
 Cada oportunidade fica com a atendente responsável. Uma atendente nova começa sem cards, clientes, follow-ups, histórico ou agenda da outra. A Gestora vê o Kanban das duas, com etiqueta do nome em cada card, na lista, no detalhe, nos follow-ups, no histórico e nos cadastros. O filtro Atendente mostra só uma delas. Essa separação é aplicada no servidor; a etiqueta não concede acesso.
 
+No menu Monitoramento, só a Gestora vê os últimos 90 dias do que cada atendente fez: entrada, saída, inclusão de contato, alteração de cadastro e movimento de card. A saída é o clique em Sair. Atendente e editor não abrem essa tela.
+
 Em Configurações, a Gestora edita somente os nomes exibidos das colunas. A ordem e o significado de cada etapa não mudam, e os nomes não podem se repetir.
 
 No Kanban, a Gestora troca a visão sem sair do quadro. Operação é a lista de cards. Valores mostra, em cada coluna, quanto está estimado, em proposta, fechado ou sem valor. Categorias mostra, na mesma coluna, quanto está em Evento, Ensaio, Captação, Plano EXPANSÃO e no restante. O número usado é o mais avançado do card: fechado, senão proposta, senão estimado. A atendente não vê essas visões.

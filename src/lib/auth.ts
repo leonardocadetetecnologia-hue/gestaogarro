@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
+import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { sessionCookiePath } from "@/lib/public-path";
 import { can, type Permission } from "@/lib/rbac";
@@ -72,7 +73,9 @@ export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (token) {
+    const session = await prisma.session.findUnique({ where: { tokenHash: hashToken(token) }, select: { userId: true } });
     await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } });
+    if (session) await audit(session.userId, "LOGOUT", "User", session.userId);
   }
   jar.set(COOKIE, "", {
     httpOnly: true,

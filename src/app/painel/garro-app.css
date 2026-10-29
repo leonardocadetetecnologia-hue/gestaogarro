@@ -170,6 +170,10 @@
 .archive-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .archive-chips span { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: #f6efe8; color: #6d5346; font-size: 13px; }
 .archive-chips strong { color: #3c2a22; }
+.monitor-people { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.monitor-people article { padding: 12px 14px; }
+.monitor-people strong { display: block; margin-bottom: 6px; }
+.monitor-people span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .archive-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr); gap: 12px; align-items: start; }
 .archive-layout tr { cursor: pointer; }
 .archive-selected { background: #f8efe8; }

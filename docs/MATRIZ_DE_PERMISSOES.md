@@ -12,6 +12,7 @@
 | Editar demanda e incluir entregável em qualquer etapa | Sim | Não | Não |
 | Ver todas as demandas | Sim | Não | Não |
 | Banco de dados de leads e clientes | Sim | Não | Não |
+| Monitoramento das atendentes, com login e saída | Sim | Não | Não |
 | Ver/executar entregáveis próprios | Sim | Não | Sim |
 | Consultar Script do entregável | Todos | Não | Apenas atribuições próprias |
 | Editar/salvar Script do entregável | Sim | Não | Não |

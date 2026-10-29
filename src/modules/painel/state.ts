@@ -9,6 +9,7 @@ import { customerScope, opportunityScope } from "@/modules/crm/visibility";
 import { attachmentSelect } from "@/modules/production/attachment-service";
 import { readDeliveryLinks } from "@/modules/production/delivery-links";
 import { creationRank } from "@/modules/production/deliverable-order";
+import { loadAttendantMonitor } from "@/modules/painel/attendant-monitor";
 
 const demandLabels: Record<DemandStatus, ProductionStatus> = {
   NOVA: "Nova demanda", PLANEJAMENTO: "Planejamento", AGUARDANDO_EDITOR: "Planejamento",
@@ -110,6 +111,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     select: { opportunityId: true, userId: true, user: { select: { name: true } } },
   }) : [];
   const returns = new Map(returnEvents.flatMap(event => event.opportunityId ? [[event.opportunityId, event] as const] : []));
+  const activity = user.role === "GESTOR_GARRO" ? await loadAttendantMonitor() : [];
   const fullOrder = user.role === "EDITOR" && demands.length
     ? await prisma.deliverable.findMany({
       where: { demandId: { in: demands.map(item => item.id) } },
@@ -190,5 +192,6 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     })),
     kanbanLabels: kanbanLabelsFrom(labelRows),
     assignees,
+    activity,
   };
 }

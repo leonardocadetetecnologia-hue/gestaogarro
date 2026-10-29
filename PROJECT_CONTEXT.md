@@ -36,6 +36,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Desde 28/10/2026, o quadro de produção filtra Foto, Vídeo e Plano EXPANSÃO. A visão por entregável coloca cada material na coluna da etapa dele, em vez de juntar o projeto inteiro num cartão só.
 - Desde 28/10/2026, Nova demanda e o envio para produção pedem Foto, Vídeo ou Foto e vídeo numa linha só. A Gestora corrige o tipo em Editar, e o cartão do quadro mostra essa marcação. Com tipo, a esteira usa esse valor; sem tipo, continua pelo nome. Plano EXPANSÃO segue separado, pelo texto de expansão.
 - Desde 28/10/2026, a Gestora grava os links de entrega ao lado de HD e Drive. Cada entregável mostra o número da criação. Na demanda já entregue, a Gestora exporta o PDF do que foi concluído naquele mês ou intervalo.
+- Desde 29/10/2026, o menu Monitoramento é só da Gestora. Ali entram entrada, saída e o histórico de inclusão, alteração e movimento de card das atendentes, nos últimos 90 dias. A lista do Edifício Contemporâneo foi atribuída somente a `ana.atendente`; a outra atendente não vê esses cards.
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.
 - Painel alimentado pelo PostgreSQL, sem demonstrações locais em produção.

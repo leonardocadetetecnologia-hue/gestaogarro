@@ -160,7 +160,7 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       }
       await tx.crmInteraction.create({ data: { opportunityId: current.id, userId: user.id, channel: "Sistema", summary, occurredAt: new Date() } });
       if (terminal) await tx.scheduleEvent.updateMany({ where: { opportunityId: current.id, demandId: null, status: "PENDENTE", type: { not: "CONTATO_FUTURO" } }, data: { status: "CANCELADO" } });
-      await tx.auditLog.create({ data: { userId: user.id, action: lost ? "OPPORTUNITY_LOST" : "OPPORTUNITY_MOVED", entityType: "Opportunity", entityId: current.id, details: { stage } } });
+      await tx.auditLog.create({ data: { userId: user.id, action: lost ? "OPPORTUNITY_LOST" : "OPPORTUNITY_MOVED", entityType: "Opportunity", entityId: current.id, details: { stage, from: current.stage } } });
       if (stage === "FECHADO" && current.stage !== "FECHADO") saleNotice = {
         opportunityId: current.id, customerName: current.customer.name, serviceTitle: current.service, previousStage: current.stage,
       };

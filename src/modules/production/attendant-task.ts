@@ -85,5 +85,8 @@ export async function completeAttendantTask(user: SessionUser, id: string) {
   const task = await loadTask(id);
   if (task.status !== "PENDENTE") throw new CrmFlowError("Esta função já foi encerrada.");
   if (!canCompleteAttendantTask(user, task)) throw new CrmFlowError("Só a responsável ou a Gestora conclui esta função.");
-  await prisma.scheduleEvent.update({ where: { id: task.id }, data: { status: "CONCLUIDO", completedAt: new Date() } });
+  await prisma.$transaction(async (tx) => {
+    await tx.scheduleEvent.update({ where: { id: task.id }, data: { status: "CONCLUIDO", completedAt: new Date() } });
+    await tx.auditLog.create({ data: { userId: user.id, action: "ATTENDANT_TASK_COMPLETED", entityType: "ScheduleEvent", entityId: task.id } });
+  });
 }
