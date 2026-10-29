@@ -17,11 +17,15 @@ describe("janela de ajuste do relatório", () => {
     expect(html).toContain('aria-label="Ajustar o relatório"');
     expect(html).toContain(">Um relatório só</button>");
     expect(html).toContain(">Um para cada entrega</button>");
-    expect(html).toContain("Informação");
+    expect(html).toContain("Nome do cliente");
+    expect(html).toContain("value=\"Ana Lima\"");
     expect(html).toContain("Descrição");
-    expect(html).toContain('aria-label="Formato do período"');
-    expect(html).toContain('aria-label="Período em texto"');
+    expect(html).toContain("Data de entrega");
+    expect(html).toContain("value=\"2026-10-18\"");
+    expect(html).not.toContain("Informação");
+    expect(html).not.toContain("Formato do período");
     expect(html).not.toContain("1. Revelação");
+    expect(html).not.toContain(">Revelação<");
     expect(html).not.toContain("O que a Garro entregou");
     expect(html).not.toContain("Inserir observação");
     expect(html).not.toContain("Incluir este item");

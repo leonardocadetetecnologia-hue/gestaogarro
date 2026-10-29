@@ -96,11 +96,11 @@ O que muda: o sino abre uma janela com as notificações novas, sem ir para a p�
 
 Como: limpar marca o aviso como lido, o mesmo registro de antes. A janela mostra só as não lidas da pessoa logada.
 
-## Relatório só com informação, data e descrição
+## Relatório só com nome, descrição e data
 
-O que muda: o ajuste do PDF não mostra mais “O que a Garro entregou” nem o número na frente do item. Ficam a informação, a data e a descrição. O período pode ser escrito em texto ou informado com duas datas.
+O que muda: no ajuste do PDF, os campos para preencher são o nome do cliente, a descrição e a data de entrega. O nome já entra com o nome inicial do cliente.
 
-Como: desmarcar informação ou data tira esse trecho do documento. A descrição em branco também não sai. O texto do período, ou o intervalo de datas, aparece uma vez no relatório.
+Como: o texto do item, o período e a numeração não aparecem para editar. A prévia mostra esse nome, a data e a descrição. O registro da demanda não muda.
 
 ## Observação no relatório, sem item vazio
 
