@@ -50,8 +50,17 @@ export type ReportPart = {
 export type ReportDocument = {
   key: string;
   title: string;
+  period: string;
   parts: ReportPart[];
 };
+
+export function formatReportPeriod(kind: "texto" | "datas", text: string, from: string, to: string) {
+  if (kind === "texto") return text.trim();
+  const start = from ? formatPeriodDay(from) : "";
+  const end = to ? formatPeriodDay(to) : "";
+  if (start && end) return `${start} a ${end}`;
+  return start || end;
+}
 
 export function draftsFromActivities(activities: StatementActivity[]): DraftDelivery[] {
   const order: string[] = [];
@@ -98,12 +107,10 @@ export function draftsFromActivities(activities: StatementActivity[]): DraftDeli
 
 function lineOf(line: DraftLine): ReportLine | null {
   if (!line.include) return null;
-  const number = line.showNumber && line.number != null ? `${line.number}. ` : "";
-  const heading = line.showTitle ? `${number}${line.title}`.trim() : number.trim();
+  const heading = line.showTitle ? line.title.trim() : "";
   const description = line.showDescription ? line.description.trim() : "";
-  const service = line.showService ? line.service.trim() : "";
-  if (!heading && !description && !service) return null;
-  return { id: line.id, heading, description, service };
+  if (!heading && !description) return null;
+  return { id: line.id, heading, description, service: "" };
 }
 
 function partOf(draft: DraftDelivery): ReportPart | null {
@@ -115,19 +122,19 @@ function partOf(draft: DraftDelivery): ReportPart | null {
   return { key: draft.demandId, customer, date, lines, note };
 }
 
-export function reportDocuments(drafts: DraftDelivery[], mode: ReportMode): ReportDocument[] {
+export function reportDocuments(drafts: DraftDelivery[], mode: ReportMode, period = ""): ReportDocument[] {
   const chosen = drafts.filter((draft) => draft.include);
   if (mode === "cada") {
     return chosen.flatMap((draft) => {
       const part = partOf(draft);
       if (!part) return [];
       const title = draft.lines.find((line) => line.showTitle && line.title.trim())?.title.trim() || draft.label || "Entrega";
-      return [{ key: draft.demandId, title, parts: [part] }];
+      return [{ key: draft.demandId, title, period, parts: [part] }];
     });
   }
   const parts = chosen.flatMap((draft) => {
     const part = partOf(draft);
     return part ? [part] : [];
   });
-  return parts.length ? [{ key: "junto", title: "O que a Garro entregou", parts }] : [];
+  return parts.length ? [{ key: "junto", title: "Relatório de entrega", period, parts }] : [];
 }

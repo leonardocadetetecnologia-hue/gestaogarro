@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftsFromActivities, reportDocuments } from "./statement-draft";
+import { draftsFromActivities, formatReportPeriod, reportDocuments } from "./statement-draft";
 import type { StatementActivity } from "@/modules/reports/delivery-statement";
 
 const video: StatementActivity = {
@@ -18,9 +18,12 @@ describe("prévia editável do extrato", () => {
       ["demand-1", "2026-10-10", false],
       ["demand-2", "2026-09-02", false],
     ]);
-    const together = reportDocuments(drafts, "junto");
+    const together = reportDocuments(drafts, "junto", "outubro de 2026");
     expect(together).toHaveLength(1);
+    expect(together[0].title).toBe("Relatório de entrega");
+    expect(together[0].period).toBe("outubro de 2026");
     expect(together[0].parts.map((part) => part.customer)).toEqual(["Ana Lima", "Igor Cardoso"]);
+    expect(together[0].parts[0].lines[0].heading).toBe("Vídeo principal");
     const each = reportDocuments(drafts.map((draft, index) => index === 1 ? { ...draft, include: false } : draft), "cada");
     expect(each.map((document) => document.title)).toEqual(["Vídeo principal"]);
   });
@@ -47,6 +50,8 @@ describe("prévia editável do extrato", () => {
     expect(document.parts[0].customer).toBe("");
     expect(document.parts[0].lines[0]).toEqual({ id: "item-1", heading: "Vídeo principal", description: "", service: "" });
     expect(document.parts[0].note).toBe("Entrega combinada sem hora.\n\nSegunda observação.");
+    expect(formatReportPeriod("texto", "  primeira quinzena  ", "", "")).toBe("primeira quinzena");
+    expect(formatReportPeriod("datas", "", "2026-10-01", "2026-10-28")).toContain(" a ");
     const empty = reportDocuments([{ ...hidden, notes: [], lines: hidden.lines.map((line) => ({ ...line, include: false })) }], "junto");
     expect(empty).toEqual([]);
   });

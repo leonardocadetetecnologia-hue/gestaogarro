@@ -50,7 +50,7 @@ export default async function DeliveryStatementPage({
           <GarroBrand size={64} wordmarkWidth={200} priority />
           <div>
             <p>{statement.focus ? "Relatório de entrega" : "Extrato de entregas"}</p>
-            <h1>{statement.focus?.title || "O que a Garro entregou"}</h1>
+            <h1>{statement.focus?.title || periodLabel}</h1>
           </div>
         </header>
         {selection ? (
@@ -74,7 +74,7 @@ export default async function DeliveryStatementPage({
           </dl>
         )}
         {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}
-        <p className="statement-note">{selection ? "Cliente, o que foi feito e a data da entrega. O registro continua no sistema." : statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período. Cada entregável mantém o número da criação." : "Somente demandas concluídas na produção. Cada item registra a atividade entregue e a data em que isso aconteceu."}</p>
+        <p className="statement-note">{selection ? "Informação, data e descrição. O registro continua no sistema." : statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período." : "Somente demandas concluídas na produção. Cada item traz a informação, a data e a descrição."}</p>
         {!statement.example && statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {statement.sections.map(section => (
           <section key={section.label}>
@@ -82,7 +82,7 @@ export default async function DeliveryStatementPage({
             {section.activities.map(activity => (
               <article key={activity.id}>
                 <div>
-                  <h3>{activity.number ? `${activity.number}. ${activity.title}` : activity.title}</h3>
+                  <h3>{activity.title}</h3>
                   {!selection && <p>{statement.group === "servico" ? activity.customerName : activity.service}</p>}
                 </div>
                 <time dateTime={activity.deliveredAt}>{selection ? formatPeriodDay(saoPauloDay(activity.deliveredAt)) : formatDeliveredAt(activity.deliveredAt)}</time>

@@ -145,7 +145,7 @@ export function DeliveryStatement() {
               {section.activities.map(activity => (
                 <li key={activity.id}>
                   <div>
-                    <strong>{activity.number ? `${activity.number}. ${activity.title}` : activity.title}</strong>
+                    <strong>{activity.title}</strong>
                     <span>{group === "cliente" ? activity.service : activity.customerName}</span>
                   </div>
                   <p>{activity.description}</p>

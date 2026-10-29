@@ -96,11 +96,15 @@ O que muda: o sino abre uma janela com as notificações novas, sem ir para a p�
 
 Como: limpar marca o aviso como lido, o mesmo registro de antes. A janela mostra só as não lidas da pessoa logada.
 
+## Relatório só com informação, data e descrição
+
+O que muda: o ajuste do PDF não mostra mais “O que a Garro entregou” nem o número na frente do item. Ficam a informação, a data e a descrição. O período pode ser escrito em texto ou informado com duas datas.
+
+Como: desmarcar informação ou data tira esse trecho do documento. A descrição em branco também não sai. O texto do período, ou o intervalo de datas, aparece uma vez no relatório.
+
 ## Observação no relatório, sem item vazio
 
-O que muda: no ajuste do PDF, cada item mostra o nome. Clicar no espaço ao lado não cria linha em branco. Inserir observação abre um texto. Outra observação abre mais um. Observação vazia não sai no documento.
-
-Como: item sem nome e sem texto nem entra na lista. A observação é um campo à parte, não um entregável novo.
+O campo de observação saiu. No lugar ficam informação, data e descrição. Item sem texto continua fora do documento.
 
 ## Pizzas na visão geral
 

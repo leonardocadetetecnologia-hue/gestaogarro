@@ -243,7 +243,8 @@
 .statement-draft{display:grid;gap:8px;padding:12px;border:1px solid #eaded2;border-radius:10px;background:#fffdfa}
 .statement-draft .statement-line{display:grid;gap:8px;padding-top:8px;border-top:1px solid #f0e6dc}
 .statement-field{display:grid;gap:6px}
-.statement-field input,.statement-field textarea,.statement-draft>textarea{width:100%;border:1px solid #dacbbd;border-radius:7px;background:#fffcf9;padding:8px 10px;font-size:12px}
+.statement-field input,.statement-field textarea,.statement-field select,.statement-draft>textarea{width:100%;border:1px solid #dacbbd;border-radius:7px;background:#fffcf9;padding:8px 10px;font-size:12px}
+.statement-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .statement-flag{display:inline-flex;align-items:center;gap:6px;justify-self:start;width:max-content;max-width:100%;font-size:12px;color:#6d5143}
 .statement-flag input{width:15px;height:15px;margin:0;accent-color:var(--accent)}
 .statement-preview{display:grid;gap:16px}
