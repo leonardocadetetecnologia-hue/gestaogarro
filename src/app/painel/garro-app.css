@@ -472,5 +472,9 @@
 .variation-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .check-line { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .service-price { white-space: pre-wrap; }
+.tracking-tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tracking-tasks li { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; min-width: 0; }
+.tracking-tasks li > span { flex: 1 1 100%; font-size: 12px; line-height: 1.4; }
+.tracking-tasks small { color: var(--muted); font-size: 10px; }
 .service-groups td .badge, .service-archived td .badge { margin-left: 8px; }
 @media (max-width: 720px) { .variation-row { grid-template-columns: 1fr; } }

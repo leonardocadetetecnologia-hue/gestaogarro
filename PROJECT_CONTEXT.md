@@ -39,6 +39,7 @@ As regras atuais do fluxo comercial, produção, cadastros e agendas estão em [
 - Desde 29/10/2026, o menu Monitoramento é só da Gestora. Ali entram entrada, saída e o histórico de inclusão, alteração e movimento de card das atendentes, nos últimos 90 dias. A lista do Edifício Contemporâneo foi atribuída somente a `ana.atendente`; a outra atendente não vê esses cards.
 - Desde 30/10/2026, a Gestora volta um entregável aprovado para correção ou revisão, e arquiva o que foi criado errado. O arquivado sai da esteira, do quadro, do extrato e da agenda do editor, e pode ser restaurado. O número dos demais não muda.
 - Desde 30/10/2026, o mês da coluna Entregue é uma lista. O mês atual vem selecionado e os meses anteriores, e os que já têm entrega, podem ser escolhidos.
+- Desde 30/10/2026, a atendente tem o menu Acompanhamento. É o quadro de produção da Gestora, só para consulta: cliente, demanda, entregáveis, etapa e prazo. A edição continua no quadro da Gestora.
 - Desde 30/10/2026, o menu Serviços guarda o catálogo da Garro. A Gestora edita e gera o PDF. A atendente vê a tabela de venda, sem o custo, e só propõe mudanças. A mudança entra depois da autorização. O editor não acessa. Arquivar tira das novas escolhas; excluir só o que nunca foi usado. O catálogo não reescreve projeto já fechado.
 - A Gestora edita editores e pode executar seus próprios entregáveis, mantendo o perfil administrativo.
 - Agendas e Kanbans ampliados; eventos têm detalhes, origem e identificação do responsável. Agenda Global exclusiva da Gestora, com restrições aplicadas no servidor.

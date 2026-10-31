@@ -26,9 +26,17 @@ describe("dados e agenda por perfil", () => {
       include: expect.objectContaining({ deliverables: expect.objectContaining({ orderBy: [{ createdAt: "asc" }, { id: "asc" }] }) }),
     }));
   });
-  it("não consulta a produção para a atendente e filtra sua agenda comercial no servidor", async () => {
+  it("entrega à atendente só o andamento da produção e filtra sua agenda comercial no servidor", async () => {
     const state = await loadPanelState({ ...user, role: "ATENDENTE" });
-    expect(db.demand.findMany).not.toHaveBeenCalled();
+    expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({
+        title: true,
+        customer: { select: { name: true } },
+        deliverables: expect.objectContaining({ where: { archivedAt: null } }),
+      }),
+    }));
+    expect(db.demand.findMany.mock.calls[0][0].select.messages).toBeUndefined();
+    expect(db.demand.findMany.mock.calls[0][0].include).toBeUndefined();
     expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { active: true, OR: [{ id: user.id }, { role: "GESTOR_GARRO" }] } }));
     expect(state.demands).toEqual([]); expect(state.deliverables).toEqual([]);
     expect(db.scheduleEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id, demandId: null }) }));

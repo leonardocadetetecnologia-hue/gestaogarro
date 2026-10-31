@@ -113,6 +113,19 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
   }) : [];
   const returns = new Map(returnEvents.flatMap(event => event.opportunityId ? [[event.opportunityId, event] as const] : []));
   const activity = user.role === "GESTOR_GARRO" ? await loadAttendantMonitor() : [];
+  const tracking = user.role === "ATENDENTE" ? await prisma.demand.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, customerId: true, title: true, status: true, clientDueAt: true, mediaType: true, createdAt: true,
+      customer: { select: { name: true } },
+      sale: { select: { opportunity: { select: { service: true } } } },
+      deliverables: {
+        where: { archivedAt: null },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, title: true, status: true, editorDueAt: true, reviewDueAt: true, clientDueAt: true, clientDeliveredAt: true, createdAt: true },
+      },
+    },
+  }) : [];
   const catalog = commercial ? await loadCommercialServices(user) : { services: [], serviceProposals: [] };
   const fullOrder = user.role === "EDITOR" && demands.length
     ? await prisma.deliverable.findMany({
@@ -142,7 +155,12 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       history: o.interactions.map(i => ({ at: i.occurredAt.toISOString(), description: i.summary, author: i.user.name })),
     })),
     editors,
-    demands: demands.map(d => ({
+    demands: user.role === "ATENDENTE" ? tracking.map(d => ({
+      id: d.id, customerId: d.customerId, customerName: d.customer.name, title: d.title,
+      service: d.sale?.opportunity.service, mediaType: d.mediaType ?? undefined,
+      description: "", status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
+      briefing: "", links: "", createdAt: d.createdAt.toISOString(), messages: [],
+    })) : demands.map(d => ({
       id: d.id, customerId: d.customerId, title: d.title, service: d.sale?.opportunity.service, mediaType: d.mediaType ?? undefined, description: d.description || "",
       status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
       briefing: d.description || "", links: d.files.find(f => /^https?:\/\//.test(f.storagePath))?.storagePath || "",
@@ -154,7 +172,12 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
         message: m.content, createdAt: m.createdAt.toISOString(),
       })),
     })),
-    deliverables: demands.flatMap(d => {
+    deliverables: user.role === "ATENDENTE" ? tracking.flatMap(d => d.deliverables.map(t => ({
+      id: t.id, demandId: d.id, title: t.title, editorId: "", status: taskLabels[t.status],
+      editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
+      clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
+      clientDeliveredAt: t.clientDeliveredAt?.toISOString(), createdAt: t.createdAt.toISOString(),
+    }))) : demands.flatMap(d => {
       const numbers = numbersFor(d.id, d.deliverables);
       return [...d.deliverables]
         .sort((left, right) => (numbers.get(left.id) ?? 0) - (numbers.get(right.id) ?? 0) || (left.id < right.id ? -1 : 1))

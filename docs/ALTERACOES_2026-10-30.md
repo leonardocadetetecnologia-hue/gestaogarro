@@ -1,5 +1,11 @@
 # O que muda em 30/10/2026
 
+## Acompanhamento da atendente
+
+O que muda: o menu Acompanhamento mostra, para a atendente, o quadro de produção da Gestora. Ela vê cliente, demanda, o que está sendo feito, a etapa e o prazo. Serve para responder um cliente que pede status.
+
+Como: a tela só consulta. Não abre o projeto, não atribui e não muda etapa. Briefing, links e valores ficam de fora.
+
 ## Serviços
 
 O que muda: o menu Serviços lista o catálogo da Garro. A Gestora inclui, corrige, arquiva, desarquiva, exclui e gera o PDF de cada serviço. A atendente vê nome, categoria, descrição, variações, preço e prazos, e propõe a mudança. Ela entra quando a Gestora autoriza. O editor não abre a página. O custo fica só com a Gestora.

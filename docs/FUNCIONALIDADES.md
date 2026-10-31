@@ -57,6 +57,10 @@ O catálogo inicial entra na primeira abertura comercial: ensaios, captação av
 
 Em Relatórios, a Gestora consulta somente demandas concluídas na produção. O filtro aceita cliente, tipo de entrega, período ou a combinação deles, e o resultado agrupa por cliente ou por tipo. O período pode ser os últimos 3, 6 ou 12 meses, um mês fechado, ou duas datas. O extrato e o PDF abrem com o logo da Garro. Cada entregável mostra o número da criação, a atividade, a descrição do que foi feito e a data da entrega em Brasília. Gerar PDF abre o extrato com a marca Garro para salvar pelo destino de impressão. O mesmo documento pode ser limitado a uma demanda concluída. Enquanto não houver entrega concluída, a tela mostra um modelo ilustrativo, com nomes de exemplo; uma demanda filtrada sem entrega no período não usa esse modelo. Não entram demandas em andamento, valores, contatos ou arquivos. Atendente e Editor não recebem esse extrato.
 
+## Acompanhamento
+
+No perfil da atendente, o menu Acompanhamento mostra o quadro de produção da Gestora, somente para consulta. As colunas são as mesmas etapas: nova demanda, planejamento, em produção, em revisão, correção, aprovada e entregue. Cada card traz o cliente, o nome da demanda, os entregáveis com a etapa de cada um e o prazo. A busca encontra cliente ou demanda. A coluna Entregue segue o mês escolhido. Não há botão de editar, atribuir, arquivar ou abrir o projeto. Briefing, links, script e valores não entram nessa consulta. A execução continua no quadro da Gestora.
+
 ## Produção
 
 O cabeçalho destaca o nome da demanda, o cliente e, quando há uma venda vinculada, o serviço da oportunidade. O briefing fica no conteúdo da demanda. Cartões e listas identificam o trabalho pelo título e pelo cliente; códigos internos do banco não são exibidos nessas áreas. Demandas criadas diretamente não recebem um serviço inventado a partir do título.
