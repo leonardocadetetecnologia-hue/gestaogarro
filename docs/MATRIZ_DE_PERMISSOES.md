@@ -6,7 +6,11 @@
 | Criar oportunidade e movimentar CRM | Sim | Sim, somente as próprias | Não |
 | Ver Kanban, clientes, follow-ups, histórico e agenda de outra atendente | Sim, com o nome da atendente | Não | Não |
 | Definir, editar ou limpar valor de oportunidade | Sim | Sim | Não |
-| Enviar fechamento com sucesso para produção | Sim | Sim | Não |
+| Enviar o estágio Contrato para produção | Sim | Sim | Não |
+| Informar data do serviço e prazo do contrato | Sim | Sim, nos próprios | Não |
+| Editar a entrega ao cliente do projeto | Sim | Não | Não |
+| Transferir o contrato para outra atendente | Sim | Não | Não |
+| Abrir WhatsApp do cliente ou lead | Sim | Sim | Não |
 | Criar demanda diretamente para cliente | Sim | Não | Não |
 | Ver o catálogo de serviços | Sim, com custo | Sim, sem custo | Não |
 | Incluir, editar, arquivar ou excluir serviço | Sim, direto | Só como proposta | Não |

@@ -117,7 +117,7 @@ function ProjectCard({ card, customer, onOpen }: { card: Extract<ProductionCard,
     <div className="production-three">
       <div><span>Editor</span><Deadline at={tasks[0]?.editorDue} done={tasks[0]?.status === "Em revisão" || tasks[0]?.status === "Aprovado"} /></div>
       <div><span>Revisão</span><Deadline at={tasks[0]?.reviewDue} done={tasks[0]?.status === "Aprovado"} /></div>
-      <div><span>Cliente</span><Deadline at={demand.clientDue} done={demand.status === "Entregue"} /></div>
+      <div><span>Cliente</span><Deadline at={demand.clientDue} done={demand.status === "Entregue"} paused={demand.clientDuePaused} /></div>
     </div>
     <div className="production-card-foot"><span>Ver demanda</span><ChevronRight size={16} /></div>
   </button>;
@@ -133,7 +133,7 @@ function DeliverableCard({ card, customer, editorName, onOpen }: { card: Extract
     <div className="production-three">
       <div><span>Editor</span><Deadline at={task.editorDue} done={task.status === "Em revisão" || task.status === "Aprovado"} /></div>
       <div><span>Revisão</span><Deadline at={task.reviewDue} done={task.status === "Aprovado"} /></div>
-      <div><span>Cliente</span><Deadline at={task.clientDue || demand.clientDue} done={delivered && task.status === "Aprovado"} /></div>
+      <div><span>Cliente</span><Deadline at={task.clientDue || demand.clientDue} done={delivered && task.status === "Aprovado"} paused={demand.clientDuePaused && !delivered} /></div>
     </div>
     <div className="production-card-foot"><span>Ver demanda</span><ChevronRight size={16} /></div>
   </button>;
@@ -152,7 +152,7 @@ function BoardList({ cards, customers, editors, onOpen }: { cards: ProductionCar
           <DeliverableStatusBar tasks={tasks} />
         </div>
         <Badge kind={statusTone(card.demand.status)}>{card.demand.status}</Badge>
-        <Deadline at={card.demand.clientDue} done={card.demand.status === "Entregue"} />
+        <Deadline at={card.demand.clientDue} done={card.demand.status === "Entregue"} paused={card.demand.clientDuePaused} />
         <ChevronRight size={15} className="muted" />
       </button>;
     }

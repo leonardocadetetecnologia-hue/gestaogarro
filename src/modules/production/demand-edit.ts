@@ -61,6 +61,8 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
         title: input.title,
         description: input.description,
         clientDueAt: due,
+        clientDueManual: Boolean(due),
+        clientDuePaused: false,
         ...(input.mediaType ? { mediaType: input.mediaType } : {}),
       },
     });
@@ -69,6 +71,7 @@ export async function updateDemandDetails(user: SessionUser, raw: unknown) {
         where: { demandId: demand.id, type: "ENTREGA_CLIENTE", status: "PENDENTE" },
         data: { dueAt: due },
       });
+      await tx.deliverable.updateMany({ where: { demandId: demand.id }, data: { clientDueAt: due } });
     }
     const files = await tx.demandFile.findMany({ where: { demandId: demand.id }, select: { id: true, storagePath: true } });
     const urls = files.filter(file => /^https?:\/\//i.test(file.storagePath));

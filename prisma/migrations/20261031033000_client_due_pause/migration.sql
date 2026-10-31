@@ -1,0 +1,1 @@
+ALTER TABLE "Demand" ADD COLUMN "clientDuePaused" BOOLEAN NOT NULL DEFAULT false;

@@ -56,7 +56,7 @@ export function AttendantTracking() {
             <strong>{card.demand.title}</strong>
             {card.demand.service && card.demand.service !== card.demand.title ? <span>{card.demand.service}</span> : null}
             <DeliverableStatusBar tasks={card.tasks} />
-            <div className="production-three"><div><span>Prazo do cliente</span><Deadline at={card.demand.clientDue} done={card.demand.status === "Entregue"} /></div></div>
+            <div className="production-three"><div><span>Prazo do cliente</span><Deadline at={card.demand.clientDue} done={card.demand.status === "Entregue"} paused={card.demand.clientDuePaused} /></div></div>
             {card.tasks.length > 0 && <ul className="tracking-tasks">
               {card.tasks.map((task) => {
                 const step = stepOf(task);

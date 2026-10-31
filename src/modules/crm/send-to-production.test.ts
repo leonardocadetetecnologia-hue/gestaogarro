@@ -6,6 +6,7 @@ const { tx, transaction } = vi.hoisted(() => {
     $queryRaw: vi.fn(), opportunity: { findUnique: vi.fn(), update: vi.fn() },
     customer: { update: vi.fn() }, sale: { create: vi.fn() }, demand: { create: vi.fn() }, user: { findMany: vi.fn() },
     crmInteraction: { create: vi.fn() }, auditLog: { create: vi.fn() }, notification: { createMany: vi.fn() },
+    contractLine: { findMany: vi.fn() }, agendaHoliday: { findMany: vi.fn() },
   };
   return { tx, transaction: vi.fn() };
 });
@@ -17,7 +18,7 @@ const input = {
   opportunityId: "opportunity", title: "Vídeo institucional", description: "Briefing validado pelo cliente",
   amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal", "Reel"], mediaType: "VIDEO" as const,
 };
-const opportunity = { id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
+const opportunity = { id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "CONTRATO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
 
 beforeEach(() => {
   delete process.env.GARRO_EVENT_CAPTURE_MODE;
@@ -27,6 +28,8 @@ beforeEach(() => {
   tx.user.findMany.mockResolvedValue([{ id: "manager" }]);
   tx.sale.create.mockResolvedValue({ id: "sale" });
   tx.demand.create.mockResolvedValue({ id: "demand" });
+  tx.contractLine.findMany.mockResolvedValue([]);
+  tx.agendaHoliday.findMany.mockResolvedValue([]);
 });
 
 describe("envio do CRM para produção", () => {
@@ -61,14 +64,14 @@ describe("envio do CRM para produção", () => {
     await expect(sendToProduction({ ...user, role: "EDITOR" }, input)).rejects.toThrow("Este perfil");
     expect(transaction).not.toHaveBeenCalled();
   });
-  it("exige a esteira Fechado com sucesso", async () => {
+  it("exige o estágio Contrato", async () => {
     tx.opportunity.findUnique.mockResolvedValue({ ...opportunity, stage: "FOLLOW_UP", outcome: "ABERTA" });
-    await expect(sendToProduction(user, input)).rejects.toThrow("Fechado com sucesso");
+    await expect(sendToProduction(user, input)).rejects.toThrow("Contrato");
     expect(tx.sale.create).not.toHaveBeenCalled();
   });
   it("não permite enviar uma oportunidade perdida", async () => {
     tx.opportunity.findUnique.mockResolvedValue({ ...opportunity, stage: "PERDIDO", outcome: "PERDIDA" });
-    await expect(sendToProduction(user, input)).rejects.toThrow("Fechado com sucesso");
+    await expect(sendToProduction(user, input)).rejects.toThrow("Contrato");
     expect(tx.demand.create).not.toHaveBeenCalled();
   });
   it("mantém o valor da venda que já existe", async () => {

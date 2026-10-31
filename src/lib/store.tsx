@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role, Customer, Opportunity, Stage, TaskStatus, State } from "./data";
-type FutureInput = { futureContact: "sim" | "nao"; futureAt: string; responsibleId?: string; reason?: string };
+type FutureInput = { futureContact: "sim" | "nao"; futureAt: string; responsibleId?: string; reason?: string; note?: string };
 import { mutateCrmPanel, mutateProductionPanel, mutateServicePanel, refreshPanel } from "@/modules/painel/actions";
 import type { ServiceSnapshot } from "@/modules/services/model";
 import type { CrmCommand } from "@/modules/painel/crm-service";
@@ -11,9 +11,15 @@ import type { DirectDemandInput } from "@/modules/production/create-demand";
 
 type Save = Promise<boolean>;
 type Closing = { title: string; description: string; amount: string; due: string; deliverables: string; mediaType: DemandMediaType };
+type CloseWon = {
+  personType: "PESSOA_FISICA" | "EMPRESA";
+  zip: string; street: string; addressNumber: string; complement: string; district: string; addressCity: string; state: string;
+  birthdays: { name: string; birthDate: string }[];
+  lines: { serviceId: string; variationName: string; amount: number | null }[];
+};
 type Ctx = {
   state: State; role: Role; ready: boolean; activeEditorId: string; userName: string;
-  busy: boolean; error: string;
+  busy: boolean; error: string; reload: () => Promise<void>;
   updateCustomer: (c: Customer) => Save;
   addCustomer: (c: Customer, value: number | null) => Save;
   addOpportunity: (customerId: string, service: string) => Save;
@@ -27,11 +33,15 @@ type Ctx = {
   archiveDeliverable: (id: string) => Save;
   restoreDeliverable: (id: string) => Save;
   moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
-  loseOpportunity: (id: string, input: { reason: string; futureContact: "sim" | "nao"; futureAt: string; responsibleId: string }) => Save;
+  loseOpportunity: (id: string, input: { reason: string; note?: string; futureContact: "sim" | "nao"; futureAt: string; responsibleId: string }) => Save;
   saveFutureContact: (id: string, input: FutureInput) => Save;
   saveKanbanLabels: (labels: { stage: Stage; label: string }[]) => Save;
   recordContact: (id: string, summary: string, waitingOn: Opportunity["waitingOn"], nextAction: string, nextAt: string) => Save;
   closeSale: (id: string, input: Closing) => Save;
+  closeWon: (id: string, input: CloseWon) => Save;
+  saveContract: (id: string, input: { signed: boolean; signedAt: string }) => Save;
+  saveServiceDates: (id: string, lines: { id: string; serviceDate: string; captureTime: string; capturePlace: string; proposedDays: number | null }[]) => Save;
+  transferContract: (id: string, responsibleId: string) => Save;
   sendMessage: (id: string, message: string) => Save;
   setTaskStatus: (id: string, status: TaskStatus) => Save;
   saveTaskScript: (id: string, script: string, previous: string) => Save;
@@ -39,6 +49,8 @@ type Ctx = {
   assignEditor: (id: string, editorId: string, editorDue?: string, reviewDue?: string) => Save;
   assignMany: (input: { demandId: string; deliverableIds: string[]; editorId: string; editorDue: string; reviewDue: string }) => Save;
   updateTaskDue: (id: string, field: "editorDue" | "reviewDue" | "clientDue", value: string) => Save;
+  pauseClientDue: (id: string) => Save;
+  confirmSelectionReturn: (id: string, returnDate: string) => Save;
   readAlert: (id: string) => Save;
   readSelectedAlerts: (ids: string[]) => Save;
   readAllAlerts: () => Save;
@@ -97,8 +109,9 @@ export function GarroProvider({ children, role, userName, userId, initialState }
 
   const value: Ctx = {
     state, role, ready: true, activeEditorId: userId, userName, busy, error,
-    updateCustomer: customer => done(save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "" } })),
-    addCustomer: (customer, amount) => done(save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "" }, value: amount })),
+    reload: async () => { const next = await refreshPanel(); setState(next); },
+    updateCustomer: customer => done(save({ kind: "updateCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "", instagram: customer.instagram || "" } })),
+    addCustomer: (customer, amount) => done(save({ kind: "createCustomer", customer: { ...customer, kind: customer.kind || "LEAD", birthDate: customer.birthDate || "", instagram: customer.instagram || "" }, value: amount })),
     addOpportunity: (customerId, service) => done(save({ kind: "createOpportunity", customerId, service })),
     updateOpportunityValue: (id, amount) => done(save({ kind: "value", id, value: amount })),
     createDemand: async input => {
@@ -113,8 +126,12 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     archiveDeliverable: id => done(save({ kind: "archiveDeliverable", id }, "production")),
     restoreDeliverable: id => done(save({ kind: "restoreDeliverable", id }, "production")),
     moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),
-    loseOpportunity: (id, input) => done(save({ kind: "lose", id, ...input })),
-    saveFutureContact: (id, input) => done(save({ kind: "futureContact", id, futureContact: input.futureContact, futureAt: input.futureAt, responsibleId: input.responsibleId || "", reason: input.reason || "" })),
+    loseOpportunity: (id, input) => done(save({ kind: "lose", id, ...input, note: input.note || "" })),
+    closeWon: (id, input) => done(save({ kind: "closeWon", id, ...input })),
+    saveContract: (id, input) => done(save({ kind: "contract", id, ...input })),
+    saveServiceDates: (id, lines) => done(save({ kind: "serviceDates", id, lines })),
+    transferContract: (id, responsibleId) => done(save({ kind: "transfer", id, responsibleId })),
+    saveFutureContact: (id, input) => done(save({ kind: "futureContact", id, futureContact: input.futureContact, futureAt: input.futureAt, responsibleId: input.responsibleId || "", reason: input.reason || "", note: input.note || "" })),
     saveKanbanLabels: labels => done(save({ kind: "kanbanLabels", labels })),
     recordContact: (id, summary, waitingOn, nextAction, nextAt) => done(save({ kind: "contact", id, summary, waitingOn, nextAction, nextAt })),
     closeSale: (opportunityId, input) => done(save({ kind: "send", submission: {
@@ -128,6 +145,8 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     assignEditor: (id, editorId, editorDue, reviewDue) => done(save({ kind: "assign", id, editorId, editorDue, reviewDue }, "production")),
     assignMany: input => done(save({ kind: "assignMany", ...input }, "production")),
     updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, "production")),
+    pauseClientDue: id => done(save({ kind: "pauseClientDue", id }, "production")),
+    confirmSelectionReturn: (id, returnDate) => done(save({ kind: "selectionReturn", id, returnDate }, "production")),
     readAlert: id => done(save({ kind: "read", id }, "production")),
     readSelectedAlerts: ids => done(save({ kind: "readSelected", ids }, "production")),
     readAllAlerts: () => done(save({ kind: "readAll" }, "production")),

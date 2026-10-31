@@ -10,6 +10,7 @@ import { createDirectDemand, directDemandSchema } from "@/modules/production/cre
 import { addDeliverable, addDeliverableSchema, deliveryLinksInputSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDeliveryLinks, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
 import { saveDeliverableScript, taskScriptSchema } from "@/modules/production/script-service";
 import { assignAttendantTask, completeAttendantTask, createPersonalTask, deleteAttendantTask } from "@/modules/production/attendant-task";
+import { confirmSelectionReturn, pauseClientDeadline } from "@/modules/production/selection-return";
 
 const id = z.string().min(1).max(80);
 const schema = z.discriminatedUnion("kind", [
@@ -35,6 +36,8 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("personalTask"), title: z.string().trim().min(1, "Informe o compromisso.").max(160), date: z.string(), time: z.string().max(5) }),
   z.object({ kind: z.literal("deleteAttendantTask"), id }),
   z.object({ kind: z.literal("completeAttendantTask"), id }),
+  z.object({ kind: z.literal("pauseClientDue"), id }),
+  z.object({ kind: z.literal("selectionReturn"), id, returnDate: z.string().trim().max(10) }),
 ]);
 export type ProductionCommand = z.infer<typeof schema>;
 
@@ -55,6 +58,8 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "personalTask") return createPersonalTask(user, input);
   if (input.kind === "deleteAttendantTask") return deleteAttendantTask(user, input.id);
   if (input.kind === "completeAttendantTask") return completeAttendantTask(user, input.id);
+  if (input.kind === "pauseClientDue") return pauseClientDeadline(user, input.id);
+  if (input.kind === "selectionReturn") return confirmSelectionReturn(user, input.id, input.returnDate);
   if (input.kind === "read" || input.kind === "readSelected" || input.kind === "readAll") {
     const now = new Date();
     await prisma.notification.updateMany({

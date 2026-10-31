@@ -10,6 +10,8 @@ import { publishSaleClosed } from "@/lib/integration-feed";
 import { formatSaoPaulo } from "@/lib/deadlines";
 import { readBirthDate } from "@/lib/birthdays";
 import { FUTURE_CONTACT_ACTION, isContactDayAllowed } from "@/modules/crm/future-contact";
+import { syncServiceSchedule } from "@/modules/agenda/service-schedule";
+import { lossMotives } from "@/modules/crm/loss-motives";
 import { CrmFlowError, productionSubmissionSchema, sendToProduction } from "@/modules/crm/send-to-production";
 
 const customer = z.object({
@@ -17,6 +19,12 @@ const customer = z.object({
   email: z.string().trim().email().or(z.literal("")), origin: z.string().trim().max(80),
   company: z.string().trim().max(200), service: z.string().trim().max(200), notes: z.string().trim().max(10000),
   birthDate: z.string().trim().max(10).optional().default(""),
+  instagram: z.string().trim().max(80).optional().default(""),
+});
+const closingLine = z.object({
+  serviceId: z.string().min(1).max(80),
+  variationName: z.string().trim().max(120).default(""),
+  amount: z.number().finite().min(0).max(9999999999).nullable(),
 });
 export const crmCommandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createCustomer"), customer, value: z.number().finite().min(0).max(9999999999).nullable() }),
@@ -33,13 +41,38 @@ export const crmCommandSchema = z.discriminatedUnion("kind", [
     futureAt: z.string().datetime({ offset: true }).or(z.literal("")),
     responsibleId: z.string().max(80).default(""),
     reason: z.string().trim().max(1000).default(""),
+    note: z.string().trim().max(1000).optional().default(""),
   }),
   z.object({ kind: z.literal("value"), id: z.string().min(1).max(80), value: z.number().finite().min(0).max(9999999999).nullable() }),
   z.object({
     kind: z.literal("lose"), id: z.string().min(1).max(80), reason: z.string().trim().min(3, "Informe o motivo.").max(1000),
+    note: z.string().trim().max(1000).optional().default(""),
     futureContact: z.enum(["sim", "nao"]),
     futureAt: z.string().datetime({ offset: true }).or(z.literal("")),
     responsibleId: z.string().max(80),
+  }),
+  z.object({
+    kind: z.literal("closeWon"), id: z.string().min(1).max(80),
+    personType: z.enum(["PESSOA_FISICA", "EMPRESA"]),
+    zip: z.string().trim().max(12), street: z.string().trim().min(2).max(160), addressNumber: z.string().trim().max(20),
+    complement: z.string().trim().max(80), district: z.string().trim().max(80), addressCity: z.string().trim().min(2).max(80),
+    state: z.string().trim().min(2).max(2),
+    birthdays: z.array(z.object({ name: z.string().trim().min(2).max(120), birthDate: z.string().trim().max(10) })).min(1).max(12),
+    lines: z.array(closingLine).min(1).max(20),
+  }),
+  z.object({
+    kind: z.literal("contract"), id: z.string().min(1).max(80), signed: z.boolean(), signedAt: z.string().trim().max(10),
+  }),
+  z.object({ kind: z.literal("transfer"), id: z.string().min(1).max(80), responsibleId: z.string().min(1).max(80) }),
+  z.object({
+    kind: z.literal("serviceDates"), id: z.string().min(1).max(80),
+    lines: z.array(z.object({
+      id: z.string().min(1).max(80),
+      serviceDate: z.string().trim().max(10),
+      captureTime: z.string().trim().max(5),
+      capturePlace: z.string().trim().max(160),
+      proposedDays: z.number().int().min(0).max(3650).nullable(),
+    })).max(20),
   }),
   z.object({
     kind: z.literal("kanbanLabels"),
@@ -73,7 +106,8 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       const c = input.customer;
       const birthDate = readBirthDate(c.birthDate || "");
       if ("error" in birthDate) throw new CrmFlowError(birthDate.error);
-      const data = { name: c.name, phone: c.phone || null, email: c.email || null, origin: c.origin || null, company: c.company || null, notes: c.notes || null, birthDate: birthDate.date };
+      const instagram = instagramHandle(c.instagram || "");
+      const data = { name: c.name, phone: c.phone || null, email: c.email || null, origin: c.origin || null, company: c.company || null, notes: c.notes || null, birthDate: birthDate.date, instagram };
       if (input.kind === "updateCustomer") {
         const existing = await tx.customer.findUnique({ where: { id: c.id }, select: { createdById: true, opportunities: { select: { responsibleId: true } } } });
         if (!existing || !attendantOwnsCustomer(user, existing)) throw new CrmFlowError("Contato não encontrado.");
@@ -104,6 +138,58 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.$queryRaw`SELECT "id" FROM "Opportunity" WHERE "id" = ${input.id} FOR UPDATE`;
     const current = await tx.opportunity.findUnique({ where: { id: input.id }, include: { customer: { select: { name: true } }, sale: { select: { demand: { select: { id: true } } } } } });
     if (!current || !canAccessOpportunity(user, current.responsibleId)) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
+    if (input.kind === "closeWon") {
+      if (current.sale?.demand) throw new CrmFlowError("Esta venda já foi enviada para produção.");
+      await saveClosing(tx, user, current.id, current.customerId, input);
+      await tx.crmInteraction.create({ data: { opportunityId: current.id, userId: user.id, channel: "Sistema", summary: "Fechamento registrado. O contrato pode seguir para a etapa Contrato.", occurredAt: new Date() } });
+      await tx.auditLog.create({ data: { userId: user.id, action: "OPPORTUNITY_CLOSED", entityType: "Opportunity", entityId: current.id } });
+      if (current.stage !== "FECHADO") saleNotice = { opportunityId: current.id, customerName: current.customer.name, serviceTitle: current.service, previousStage: current.stage };
+      return;
+    }
+    if (input.kind === "contract") {
+      if (current.stage !== "CONTRATO" && current.stage !== "FECHADO") throw new CrmFlowError("O contrato fica na etapa Contrato.");
+      if (input.signed && !/^\d{4}-\d{2}-\d{2}$/.test(input.signedAt)) throw new CrmFlowError("Informe a data de assinatura.");
+      await tx.opportunity.update({ where: { id: current.id }, data: {
+        stage: "CONTRATO", outcome: "GANHA", lastActivityAt: new Date(),
+        contractSigned: input.signed, contractSignedAt: input.signed ? new Date(`${input.signedAt}T12:00:00.000Z`) : null,
+      } });
+      await tx.auditLog.create({ data: { userId: user.id, action: "CONTRACT_UPDATED", entityType: "Opportunity", entityId: current.id, details: { signed: input.signed } } });
+      return;
+    }
+    if (input.kind === "transfer") {
+      if (user.role !== "GESTOR_GARRO") throw new CrmFlowError("Somente a Gestora transfere um contrato.");
+      if (current.stage !== "FECHADO" && current.stage !== "CONTRATO") throw new CrmFlowError("A transferência vale para um contrato fechado.");
+      const next = await tx.user.findFirst({ where: { id: input.responsibleId, active: true, role: { in: ["ATENDENTE", "GESTOR_GARRO"] } }, select: { id: true, name: true } });
+      if (!next) throw new CrmFlowError("Escolha uma atendente ativa.");
+      await tx.opportunity.update({ where: { id: current.id }, data: { responsibleId: next.id, lastActivityAt: new Date() } });
+      await tx.scheduleEvent.updateMany({ where: { opportunityId: current.id, status: "PENDENTE", demandId: null }, data: { userId: next.id } });
+      await tx.scheduleEvent.updateMany({ where: { opportunityId: current.id, status: "PENDENTE", type: { in: ["CAPTACAO", "ENTREGA_CLIENTE"] } }, data: { userId: next.id } });
+      await tx.auditLog.create({ data: { userId: user.id, action: "CONTRACT_TRANSFERRED", entityType: "Opportunity", entityId: current.id, details: { from: current.responsibleId, to: next.id } } });
+      return;
+    }
+    if (input.kind === "serviceDates") {
+      const rows = await tx.contractLine.findMany({ where: { opportunityId: current.id } });
+      if (!rows.length) throw new CrmFlowError("Registre o fechamento antes da data do serviço.");
+      const byId = new Map(rows.map(row => [row.id, row]));
+      for (const line of input.lines) {
+        if (!byId.has(line.id)) throw new CrmFlowError("Serviço do contrato não encontrado.");
+        if (line.serviceDate && !/^\d{4}-\d{2}-\d{2}$/.test(line.serviceDate)) throw new CrmFlowError("Informe a data do serviço.");
+        if (line.serviceDate && line.proposedDays == null) throw new CrmFlowError("Informe o prazo proposto em dias úteis.");
+        if (line.captureTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(line.captureTime)) throw new CrmFlowError("Informe o horário como 14:30.");
+        await tx.contractLine.update({ where: { id: line.id }, data: {
+          serviceDate: line.serviceDate ? new Date(`${line.serviceDate}T12:00:00.000Z`) : null,
+          captureTime: line.captureTime || null,
+          capturePlace: line.capturePlace || null,
+          proposedDays: line.serviceDate ? line.proposedDays : null,
+        } });
+      }
+      const saved = await tx.contractLine.findMany({ where: { opportunityId: current.id } });
+      await syncServiceSchedule(tx, {
+        id: current.id, responsibleId: current.responsibleId, customerName: current.customer.name, demandId: current.sale?.demand?.id,
+      }, saved);
+      await tx.auditLog.create({ data: { userId: user.id, action: "SERVICE_DATES_SAVED", entityType: "Opportunity", entityId: current.id } });
+      return;
+    }
     if (input.kind === "value") {
       if (current.sale?.demand || current.closedValue !== null) throw new CrmFlowError("O valor fechado não pode ser alterado depois do envio para produção.");
       const previous = current.proposalValue ?? current.estimatedValue;
@@ -130,8 +216,9 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       if (current.sale?.demand) throw new CrmFlowError("Esta venda já foi enviada para produção e permanece fechada.");
       if (current.stage !== "SEM_INTERESSE" && current.stage !== "PERDIDO") throw new CrmFlowError("O retorno só pode ser editado em Sem interesse ou Fechado sem sucesso.");
       if (current.stage === "PERDIDO") {
-        if (input.reason.trim().length < 3) throw new CrmFlowError("Informe o motivo do fechamento sem sucesso.");
-        await tx.opportunity.update({ where: { id: current.id }, data: { lossReason: input.reason.trim() } });
+        if (!(lossMotives as readonly string[]).includes(input.reason)) throw new CrmFlowError("Escolha o motivo da perda.");
+        if (input.reason === "Outro" && input.note.trim().length < 3) throw new CrmFlowError("Descreva o motivo.");
+        await tx.opportunity.update({ where: { id: current.id }, data: { lossReason: input.reason, lossNote: input.reason === "Outro" ? input.note.trim() : "" } });
       }
       const summary = await saveFutureContact(tx, current, input.futureContact, input.futureAt, input.responsibleId || current.responsibleId);
       await tx.crmInteraction.create({ data: { opportunityId: current.id, userId: user.id, channel: "Sistema", summary, occurredAt: new Date() } });
@@ -140,16 +227,20 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     }
     if (input.kind === "move" || input.kind === "lose") {
       if (current.sale?.demand) throw new CrmFlowError("Esta venda já foi enviada para produção e permanece fechada.");
+      if (input.kind === "move" && input.stage === "Fechado com sucesso") throw new CrmFlowError("Registre o fechamento para concluir a venda.");
       if (input.kind === "move" && input.stage === "Fechado sem sucesso") throw new CrmFlowError("Informe o motivo, o retorno e o responsável.");
       if (input.kind === "move" && input.stage === "Sem interesse" && !input.futureContact) throw new CrmFlowError("Informe se deverá entrar em contato no futuro.");
       const lost = input.kind === "lose";
       const stage = lost ? "PERDIDO" : STAGE_VALUES[input.stage];
-      const terminal = stage === "FECHADO" || stage === "PERDIDO";
+      if (stage === "CONTRATO" && current.stage !== "FECHADO" && current.stage !== "CONTRATO") throw new CrmFlowError("O contrato vem depois de Fechado com sucesso.");
+      if (input.kind === "lose" && input.reason === "Outro" && input.note.trim().length < 3) throw new CrmFlowError("Descreva o motivo.");
+      if (input.kind === "lose" && !(lossMotives as readonly string[]).includes(input.reason)) throw new CrmFlowError("Escolha o motivo da perda.");
+      const terminal = stage === "FECHADO" || stage === "PERDIDO" || stage === "CONTRATO";
       if (stage === "FECHADO") await tx.customer.update({ where: { id: current.customerId }, data: { kind: "CLIENTE" } });
       await tx.opportunity.update({ where: { id: current.id }, data: {
-        stage, outcome: lost ? "PERDIDA" : stage === "FECHADO" ? "GANHA" : "ABERTA", lastActivityAt: new Date(),
+        stage, outcome: lost ? "PERDIDA" : stage === "FECHADO" || stage === "CONTRATO" ? "GANHA" : "ABERTA", lastActivityAt: new Date(),
         ...(terminal ? { waitingOn: "NINGUEM", waitingSince: null, nextActionAt: null } : {}),
-        ...(lost ? { lossReason: input.reason, lostAt: new Date() } : { lossReason: null, lostAt: null }),
+        ...(input.kind === "lose" ? { lossReason: input.reason, lossNote: input.reason === "Outro" ? input.note.trim() : "", lostAt: new Date() } : stage === "CONTRATO" ? {} : { lossReason: null, lostAt: null }),
       } });
       let summary = `Etapa alterada para ${input.kind === "move" ? input.stage : "Fechado sem sucesso"}.`;
       if (lost) summary = `Fechado sem sucesso: ${input.reason}. ${await saveFutureContact(tx, current, input.futureContact, input.futureAt, input.responsibleId)}`;
@@ -178,6 +269,57 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.auditLog.create({ data: { userId: user.id, action: "CRM_INTERACTION", entityType: "Opportunity", entityId: current.id } });
   });
   if (saleNotice) await publishSaleClosed(saleNotice);
+}
+
+function instagramHandle(value: string) {
+  const handle = value.trim().replace(/^@+/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").split(/[/?#]/)[0];
+  if (handle && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) throw new CrmFlowError("Informe o Instagram como @usuario.");
+  return handle || null;
+}
+
+async function saveClosing(tx: Prisma.TransactionClient, user: SessionUser, opportunityId: string, customerId: string, input: Extract<CrmCommand, { kind: "closeWon" }>) {
+  const services = await tx.service.findMany({
+    where: { id: { in: input.lines.map(line => line.serviceId) }, status: "ATIVO" },
+    include: { variations: true },
+  });
+  const byId = new Map(services.map(service => [service.id, service]));
+  const lines = input.lines.map((line, index) => {
+    const service = byId.get(line.serviceId);
+    if (!service) throw new CrmFlowError("Escolha um serviço ativo do catálogo.");
+    const variation = line.variationName ? service.variations.find(item => item.name === line.variationName) : undefined;
+    if (line.variationName && !variation) throw new CrmFlowError("Escolha uma variação deste serviço.");
+    if (service.category === "SERVICO_EXTRA" && line.amount == null) throw new CrmFlowError("Informe o valor do serviço extra.");
+    const catalogPrice = variation?.referencePrice ?? service.referencePrice;
+    return {
+      serviceId: service.id, serviceName: service.name, variationName: line.variationName,
+      extra: service.category === "SERVICO_EXTRA",
+      amount: line.amount ?? (catalogPrice == null ? null : Number(catalogPrice.toString())),
+      sortOrder: index + 1,
+    };
+  });
+  if (!lines.some(line => !line.extra)) throw new CrmFlowError("Inclua ao menos um serviço principal.");
+  for (const birthday of input.birthdays) {
+    const parsed = readBirthDate(birthday.birthDate);
+    if ("error" in parsed || !parsed.date) throw new CrmFlowError(parsed && "error" in parsed ? parsed.error : "Informe a data de nascimento.");
+  }
+  const first = readBirthDate(input.birthdays[0].birthDate);
+  await tx.customer.update({ where: { id: customerId }, data: {
+    kind: "CLIENTE", personType: input.personType, zip: input.zip || null, street: input.street, addressNumber: input.addressNumber || null,
+    complement: input.complement || null, district: input.district || null, addressCity: input.addressCity, state: input.state.toUpperCase(),
+    birthDate: "date" in first ? first.date : null,
+  } });
+  await tx.customerBirthday.deleteMany({ where: { customerId } });
+  await tx.customerBirthday.createMany({ data: input.birthdays.map((birthday, index) => ({
+    customerId, name: birthday.name, birthDate: new Date(`${birthday.birthDate}T12:00:00.000Z`), sortOrder: index + 1,
+  })) });
+  await tx.scheduleEvent.deleteMany({ where: { opportunityId, contractLineId: { not: null } } });
+  await tx.contractLine.deleteMany({ where: { opportunityId } });
+  await tx.contractLine.createMany({ data: lines.map(line => ({ ...line, opportunityId })) });
+  await tx.opportunity.update({ where: { id: opportunityId }, data: {
+    stage: "FECHADO", outcome: "GANHA", responsibleId: user.id, lastActivityAt: new Date(),
+    service: lines.filter(line => !line.extra).map(line => line.variationName ? `${line.serviceName} · ${line.variationName}` : line.serviceName).join(", "),
+    waitingOn: "NINGUEM", waitingSince: null,
+  } });
 }
 
 type ContactCard = { id: string; responsibleId: string; customer: { name: string } };

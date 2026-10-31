@@ -24,10 +24,13 @@ describe("pergunta de retorno", () => {
     expect(html).not.toContain("Motivo");
   });
 
-  it("pede motivo, tempo de retorno e responsável em Fechado sem sucesso", () => {
+  it("pede o motivo da perda e a data de reativação só quando houver novo contato", () => {
     const html = renderToStaticMarkup(createElement(ReturnContactModal, { opportunity, kind: "perdido", onClose: vi.fn() }));
     expect(html).toContain("Motivo");
-    expect(html).toContain("Deverá entrar em contato no futuro?");
+    expect(html).toContain("Preço");
+    expect(html).toContain("Adiou / sem orçamento agora");
+    expect(html).toContain("Entrar em contato novamente?");
+    expect(html).not.toContain("Reativar em");
     expect(html).not.toContain("Tempo de retorno");
     expect(html).not.toContain("Responsável pelo retorno");
   });

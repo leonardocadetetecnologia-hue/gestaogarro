@@ -4,6 +4,8 @@ import type { SessionUser } from "@/lib/auth";
 import { demandMediaTypeSchema } from "@/lib/demand-media-type";
 import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
+import { addBusinessDays, dateKey, endOfSaoPauloDay } from "@/modules/agenda/business-days";
+import { holidayKeys, syncServiceSchedule } from "@/modules/agenda/service-schedule";
 import { canAccessOpportunity } from "@/modules/crm/visibility";
 import { prisma } from "@/lib/prisma";
 
@@ -27,7 +29,6 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
   if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
   const input = parsed.data;
   const amount = new Prisma.Decimal(input.amount.replace(",", "."));
-  const due = new Date(input.due);
 
   const result = await prisma.$transaction(async tx => {
     // A trava serializa dois envios da mesma oportunidade antes de ler/criar venda e demanda.
@@ -37,8 +38,8 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
       include: { sale: { include: { demand: true } }, customer: { select: { name: true } } },
     });
     if (!opportunity || !canAccessOpportunity(user, opportunity.responsibleId)) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
-    if (opportunity.stage !== "FECHADO" || opportunity.outcome === "PERDIDA") {
-      throw new CrmFlowError("Mova o card para Fechado com sucesso antes de enviar para produção.");
+    if (opportunity.stage !== "CONTRATO" || opportunity.outcome === "PERDIDA") {
+      throw new CrmFlowError("O envio para produção sai do estágio Contrato.");
     }
     if (opportunity.sale?.demand) return { demandId: opportunity.sale.demand.id, alreadySent: true as const };
     if (opportunity.sale && !opportunity.sale.value.equals(amount)) {
@@ -47,6 +48,11 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
     const managers = await tx.user.findMany({
       where: { role: "GESTOR_GARRO", active: true }, select: { id: true },
     });
+    const lines = await tx.contractLine.findMany({ where: { opportunityId: opportunity.id } });
+    const holidays = await holidayKeys(tx);
+    const deliveries = lines.flatMap(line => line.serviceDate && line.proposedDays != null ? [addBusinessDays(dateKey(line.serviceDate), line.proposedDays, holidays)] : []);
+    const scheduledDue = deliveries.length ? endOfSaoPauloDay(deliveries.reduce((max, key) => key > max ? key : max, "")) : null;
+    const due = scheduledDue || new Date(input.due);
     const sale = opportunity.sale || await tx.sale.create({
       data: {
         opportunityId: opportunity.id, customerId: opportunity.customerId,
@@ -64,12 +70,15 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
         description: input.description, clientDueAt: due, status: "NOVA",
         deliverables: { create: input.deliverables.map(title => ({ title, clientDueAt: due, status: "AGUARDANDO_EDITOR" })) },
         messages: { create: { senderId: user.id, content: "Venda enviada para produção pelo CRM.", system: true } },
-        events: { create: {
+        ...(scheduledDue ? {} : { events: { create: {
           userId: managers[0]?.id || user.id, opportunityId: opportunity.id,
-          title: `Entrega ao cliente — ${opportunity.customer.name}`, type: "ENTREGA_CLIENTE", dueAt: due,
-        } },
+          title: `Entrega ao cliente — ${opportunity.customer.name}`, type: "ENTREGA_CLIENTE" as const, dueAt: due,
+        } } }),
       },
     });
+    if (scheduledDue) await syncServiceSchedule(tx, {
+      id: opportunity.id, responsibleId: opportunity.responsibleId, customerName: opportunity.customer.name, demandId: demand.id,
+    }, lines);
     await tx.crmInteraction.create({
       data: {
         opportunityId: opportunity.id, userId: user.id, channel: "Sistema",

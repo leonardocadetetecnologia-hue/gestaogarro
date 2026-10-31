@@ -11,8 +11,8 @@ import { Empty, Metric, Modal, ViewTitle } from "./Ui";
 import styles from "./agenda.module.css";
 
 const modes: { key: AgendaMode; label: string }[] = [{ key: "dia", label: "Dia" }, { key: "semana", label: "Semana" }, { key: "mes", label: "Mês" }, { key: "lista", label: "Lista" }];
-const categories = ["Comercial", "Editor", "Revisão", "Cliente", "Gestão"] as const;
-const categoryStyle = { Comercial: "commercial", Editor: "editor", Revisão: "review", Cliente: "client", Gestão: "management" };
+const categories = ["Captações", "Entregas", "Comercial", "Editor", "Revisão", "Cliente", "Gestão"] as const;
+const categoryStyle = { Comercial: "commercial", Editor: "editor", Revisão: "review", Cliente: "client", Gestão: "management", "Captações": "capture", Entregas: "delivery" };
 const time = (value: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 const labelDate = (key: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("pt-BR", { ...options, timeZone: "UTC" }).format(new Date(`${key}T12:00:00Z`));
 const searchText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -107,6 +107,7 @@ export function AgendaView() {
         <div className={styles.detailHeading}><h3>{event.title}</h3><span className={`${styles.status} ${agendaTiming(event).tone === "neutral" ? "" : styles[agendaTiming(event).tone]}`}>{agendaTiming(event).label}</span></div>
         <dl className={styles.detailGrid}>
           <div><dt>Data e horário de Brasília</dt><dd>{dateFull(event.at)}</dd></div>
+          {event.place && <div><dt>Local</dt><dd>{event.place}</dd></div>}
           <div><dt>Responsável</dt><dd>{responsibleLabel(event)}</dd></div>
           <div><dt>Cliente</dt><dd>{event.customerName || "Não vinculado"}</dd></div>
           <div><dt>Origem</dt><dd>{event.origin || "Agenda"} · {event.typeLabel || event.category}</dd></div>

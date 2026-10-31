@@ -30,7 +30,7 @@ describe("edição da demanda fora da esteira", () => {
   it("permite corrigir uma demanda já entregue sem mudar a etapa", async () => {
     await updateDemandDetails(gestora, { id: "demand", title: "IANDRA revisada", description: "Briefing completo", due: "", links: "" });
     expect(tx.demand.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: { title: "IANDRA revisada", description: "Briefing completo", clientDueAt: null },
+      data: { title: "IANDRA revisada", description: "Briefing completo", clientDueAt: null, clientDueManual: false, clientDuePaused: false },
     }));
     expect(tx.demand.update.mock.calls[0][0].data.status).toBeUndefined();
     await updateDemandDetails(gestora, { id: "demand", title: "IANDRA revisada", description: "Briefing completo", due: "", links: "", mediaType: "FOTO" });

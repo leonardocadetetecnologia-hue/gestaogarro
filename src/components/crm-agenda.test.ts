@@ -21,19 +21,20 @@ beforeEach(() => {
   context.role = "GESTOR_GARRO"; context.activeEditorId = "manager"; context.busy = false; context.error = ""; query.get.mockReturnValue(null);
   context.state = {
     customers: [{ id: "customer", name: "Cliente de teste", phone: "", email: "", company: "", origin: "Site", notes: "", city: "", service: "Vídeo" }],
-    opportunities: [{ id: "opportunity", customerId: "customer", stage: "Fechado com sucesso", value: 14000.5, priority: "Média", lastActivity: "2026-10-14T15:00:00Z", waitingOn: "nenhum", nextAction: "", history: [] }],
+    opportunities: [{ id: "opportunity", customerId: "customer", stage: "Contrato", value: 14000.5, priority: "Média", lastActivity: "2026-10-14T15:00:00Z", waitingOn: "nenhum", nextAction: "", history: [] }],
     demands: [], deliverables: [], editors: [], schedule: [], alerts: [],
   };
 });
 
 describe("ação de envio no Kanban", () => {
-  it("oferece Enviar para produção em Fechado com sucesso sem demanda", () => {
+  it("oferece Enviar para produção no estágio Contrato sem demanda", () => {
     const html = renderToStaticMarkup(createElement(CommercialKanban));
     expect(html).toContain("Enviar para produção"); expect(html).toContain("14.000,50");
     expect(html).toContain("Reunião agendada"); expect(html).not.toContain("Novo contato");
     expect(html.indexOf("Tentativa de contato")).toBeLessThan(html.indexOf("Em tratativa"));
     expect(html.indexOf("Em tratativa")).toBeLessThan(html.indexOf("Sem interesse"));
-    expect(html.indexOf("Fechado com sucesso")).toBeLessThan(html.indexOf("Fechado sem sucesso"));
+    expect(html.indexOf("Fechado com sucesso")).toBeLessThan(html.indexOf(">Contrato<"));
+    expect(html.indexOf(">Contrato<")).toBeLessThan(html.indexOf("Fechado sem sucesso"));
   });
   it("tira da coluna quem fechou sem sucesso em um mês já encerrado", () => {
     const base = context.state.opportunities[0];

@@ -54,16 +54,16 @@ describe("retorno comercial", () => {
 
   it("em Fechado sem sucesso exige responsável válido e marca a agenda dessa pessoa", async () => {
     await expect(executeCrmCommand(malu, {
-      kind: "lose", id: "card", reason: "Preço alto", futureContact: "sim", futureAt: when, responsibleId: "ana",
+      kind: "lose", id: "card", reason: "Preço", futureContact: "sim", futureAt: when, responsibleId: "ana",
     })).rejects.toThrow("responsável");
     await executeCrmCommand(malu, {
-      kind: "lose", id: "card", reason: "Preço alto", futureContact: "sim", futureAt: when, responsibleId: "gestora",
+      kind: "lose", id: "card", reason: "Preço", futureContact: "sim", futureAt: when, responsibleId: "gestora",
     });
     expect(tx.scheduleEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ type: "CONTATO_FUTURO", userId: "gestora" }),
     }));
     expect(tx.opportunity.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ stage: "PERDIDO", lossReason: "Preço alto" }),
+      data: expect.objectContaining({ stage: "PERDIDO", lossReason: "Preço" }),
     }));
   });
 

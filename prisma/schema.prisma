@@ -28,6 +28,7 @@ enum OpportunityStage {
   FOLLOW_UP
   EM_TRATATIVA
   FECHADO
+  CONTRATO
   PERDIDO
 }
 
@@ -92,6 +93,7 @@ enum ScheduleEventType {
   EVENTO
   INTERNO
   TAREFA_ATENDENTE
+  CAPTACAO
 }
 
 enum EventStatus {
@@ -147,6 +149,11 @@ enum ContactKind {
   CLIENTE
 }
 
+enum PersonType {
+  PESSOA_FISICA
+  EMPRESA
+}
+
 model Customer {
   id        String   @id @default(cuid())
   name      String
@@ -156,6 +163,15 @@ model Customer {
   company   String?
   origin    String?
   notes       String?
+  instagram   String?
+  personType  PersonType?
+  zip         String?
+  street      String?
+  addressNumber String?
+  complement  String?
+  district    String?
+  addressCity String?
+  state       String?
   birthDate   DateTime? @db.Date
   createdById String?
   createdBy   User?   @relation("CustomerCreator", fields: [createdById], references: [id], onDelete: SetNull)
@@ -165,6 +181,7 @@ model Customer {
   opportunities Opportunity[]
   sales         Sale[]
   demands       Demand[]
+  birthdays     CustomerBirthday[]
 
   @@index([name])
   @@index([createdById])
@@ -191,12 +208,18 @@ model Opportunity {
   nextAction     String?
   lossReason     String?
   lossNote       String?
+  contractSigned   Boolean?
+  contractSignedAt DateTime?
+  contractFileName String?
+  contractMime     String?
+  contractFile     Bytes?
   lostAt         DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
   interactions CrmInteraction[]
   sale         Sale?
+  contractLines ContractLine[]
 
   @@index([stage])
   @@index([responsibleId])
@@ -204,6 +227,35 @@ model Opportunity {
   @@index([nextActionAt])
   @@index([lastActivityAt])
   @@index([outcome])
+}
+
+model CustomerBirthday {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  birthDate  DateTime @db.Date
+  sortOrder  Int      @default(0)
+
+  @@index([customerId, sortOrder])
+}
+
+model ContractLine {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  serviceId     String?
+  serviceName   String
+  variationName String      @default("")
+  extra         Boolean     @default(false)
+  amount        Decimal?    @db.Decimal(12, 2)
+  serviceDate   DateTime?   @db.Date
+  captureTime   String?
+  capturePlace  String?
+  proposedDays  Int?
+  sortOrder     Int         @default(0)
+
+  @@index([opportunityId, sortOrder])
 }
 
 model CrmInteraction {
@@ -254,6 +306,8 @@ model Demand {
   deliveryLinks  Json     @default("[]")
   status         DemandStatus @default(NOVA)
   clientDueAt DateTime?
+  clientDueManual Boolean @default(false)
+  clientDuePaused Boolean @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -337,6 +391,14 @@ model DemandFile {
   @@index([demandId])
 }
 
+model AgendaHoliday {
+  id   String   @id @default(cuid())
+  day  DateTime @db.Date
+  name String
+
+  @@unique([day])
+}
+
 model ScheduleEvent {
   id            String            @id @default(cuid())
   userId        String
@@ -350,6 +412,8 @@ model ScheduleEvent {
   deliverable   Deliverable?      @relation(fields: [deliverableId], references: [id])
   type          ScheduleEventType
   title         String
+  place         String?
+  contractLineId String?
   dueAt         DateTime
   completedAt   DateTime?
   status        EventStatus       @default(PENDENTE)
@@ -359,6 +423,7 @@ model ScheduleEvent {
   @@index([dueAt])
   @@index([demandId])
   @@index([opportunityId])
+  @@index([contractLineId])
 }
 
 model Notification {

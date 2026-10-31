@@ -69,6 +69,8 @@
 .editor { --event-color: #3f718a; --event-tint: #eff6fa; --event-border: #cadfe9; }
 .review { --event-color: #956c26; --event-tint: #fff7e7; --event-border: #ecdfba; }
 .client { --event-color: #43714d; --event-tint: #f0f7ed; --event-border: #d3e5c9; }
+.capture { --event-color: #3d6d86; --event-tint: #eef5f8; --event-border: #d3e3ea; }
+.delivery { --event-color: #8a4b32; --event-tint: #fbf1ea; --event-border: #ead4c5; }
 .management { --event-color: #76618b; --event-tint: #f6f1fa; --event-border: #e0d4eb; }
 .list { padding: 12px 14px 16px; }
 .listDay { margin-bottom: 14px; }

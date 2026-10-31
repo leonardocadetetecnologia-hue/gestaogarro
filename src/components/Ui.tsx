@@ -3,7 +3,7 @@ import {useEffect,useState,useRef,type ReactNode} from "react";
 import {X,Search,ArrowUpRight} from "lucide-react";
 import {countDown,dateShort} from "@/lib/data";
 export function Badge({kind="neutral",children}:{kind?:string;children:ReactNode}){return <span className={`badge badge-${kind}`}>{children}</span>}
-export function Deadline({at,done}:{at?:string;done?:boolean}){const [now,setNow]=useState(Date.now());useEffect(()=>{const i=setInterval(()=>setNow(Date.now()),60000);return ()=>clearInterval(i)},[]);const x=countDown(at,now,done);return <Badge kind={x.status}>{x.text}</Badge>}
+export function Deadline({at,done,paused}:{at?:string;done?:boolean;paused?:boolean}){const [now,setNow]=useState(Date.now());useEffect(()=>{const i=setInterval(()=>setNow(Date.now()),60000);return ()=>clearInterval(i)},[]);if(paused)return <Badge kind="attention">Prazo pausado</Badge>;const x=countDown(at,now,done);return <Badge kind={x.status}>{x.text}</Badge>}
 export function Modal({title,description,children,onClose,width="580px"}:{title:string;description?:string;children:ReactNode;onClose:()=>void;width?:string}){
  const dialog=useRef<HTMLElement>(null);
  useEffect(()=>{

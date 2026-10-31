@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionUser } from "@/lib/auth";
 const { db } = vi.hoisted(() => ({ db: {
   customer: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() }, demand: { findMany: vi.fn() }, deliverable: { findMany: vi.fn() },
-  user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() }, kanbanLabel: { findMany: vi.fn() },
+  user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() }, kanbanLabel: { findMany: vi.fn() }, agendaHoliday: { findMany: vi.fn() },
   service: { findMany: vi.fn() }, serviceProposal: { findMany: vi.fn() }, setting: { findUnique: vi.fn(), findMany: vi.fn() },
 } }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -39,7 +39,9 @@ describe("dados e agenda por perfil", () => {
     expect(db.demand.findMany.mock.calls[0][0].include).toBeUndefined();
     expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { active: true, OR: [{ id: user.id }, { role: "GESTOR_GARRO" }] } }));
     expect(state.demands).toEqual([]); expect(state.deliverables).toEqual([]);
-    expect(db.scheduleEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id, demandId: null }) }));
+    expect(db.scheduleEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: user.id, OR: expect.arrayContaining([expect.objectContaining({ demandId: null })]) }),
+    }));
     expect(db.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { responsibleId: user.id } }));
     expect(db.customer.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { OR: [{ createdById: user.id }, { opportunities: { some: { responsibleId: user.id } } }] },

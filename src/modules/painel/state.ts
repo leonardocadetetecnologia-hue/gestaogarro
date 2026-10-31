@@ -26,27 +26,33 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
   const commercial = user.role !== "EDITOR";
   const production = user.role !== "ATENDENTE";
   if (commercial) await returnDueLostOpportunities();
-  const [customers, opportunities, demands, editors, schedule, notifications, labelRows, assignees] = await Promise.all([
+  const [customers, opportunities, demands, editors, schedule, notifications, labelRows, holidayRows, assignees] = await Promise.all([
     commercial ? prisma.customer.findMany({
       where: customerScope(user),
       orderBy: { name: "asc" },
       include: {
         createdBy: { select: { id: true, name: true } },
         opportunities: {
-          where: user.role === "ATENDENTE" ? { responsibleId: user.id } : {},
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: { service: true, responsible: { select: { id: true, name: true } } },
+          orderBy: { updatedAt: "desc" },
+          take: 8,
+          select: { service: true, stage: true, responsible: { select: { id: true, name: true } } },
         },
+        birthdays: { orderBy: { sortOrder: "asc" }, select: { name: true, birthDate: true } },
       },
-    }).then(rows => rows.map((c): Customer => ({
+    }).then(rows => rows.map((c): Customer => {
+      const contract = c.opportunities.find(item => item.stage === "FECHADO" || item.stage === "CONTRATO") || c.opportunities[0];
+      return {
       id: c.id, kind: c.kind, name: c.name, phone: c.phone || "", email: c.email || "", company: c.company || "",
-      origin: c.origin || "Outro", notes: c.notes || "", city: "", service: c.opportunities[0]?.service || "",
-      attendantId: c.opportunities[0]?.responsible.id || c.createdBy?.id || "",
-      attendantName: c.opportunities[0]?.responsible.name || c.createdBy?.name || "",
+      origin: c.origin || "Outro", notes: c.notes || "", instagram: c.instagram || "",
+      personType: c.personType || "", zip: c.zip || "", street: c.street || "", addressNumber: c.addressNumber || "",
+      complement: c.complement || "", district: c.district || "", addressCity: c.addressCity || "", state: c.state || "",
+      city: c.addressCity || "", service: contract?.service || "",
+      attendantId: contract?.responsible.id || c.createdBy?.id || "",
+      attendantName: contract?.responsible.name || c.createdBy?.name || "",
       birthDate: c.birthDate ? birthDateKey(c.birthDate) : "",
+      birthdays: c.birthdays.map(item => ({ name: item.name, birthDate: birthDateKey(item.birthDate) })),
       createdAt: c.createdAt.toISOString(),
-    }))) : prisma.customer.findMany({
+    }; })) : prisma.customer.findMany({
       where: { demands: { some: { deliverables: { some: { editorId: user.id, archivedAt: null } } } } },
       select: { id: true, name: true },
     }).then(rows => rows.map((c): Customer => ({
@@ -55,9 +61,14 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     commercial ? prisma.opportunity.findMany({
       where: opportunityScope(user),
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true, customerId: true, responsibleId: true, service: true, stage: true,
+        estimatedValue: true, proposalValue: true, closedValue: true, priority: true,
+        waitingOn: true, waitingSince: true, lastActivityAt: true, nextActionAt: true, nextAction: true,
+        lossReason: true, lossNote: true, lostAt: true, contractSigned: true, contractSignedAt: true, contractFileName: true,
         responsible: { select: { name: true } },
         sale: { select: { demand: { select: { id: true } } } },
+        contractLines: { orderBy: { sortOrder: "asc" }, select: { id: true, serviceId: true, serviceName: true, variationName: true, extra: true, amount: true, serviceDate: true, captureTime: true, capturePlace: true, proposedDays: true } },
         interactions: { orderBy: { occurredAt: "desc" }, select: { occurredAt: true, summary: true, user: { select: { name: true } } } },
       },
     }) : Promise.resolve([]),
@@ -82,7 +93,10 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     prisma.scheduleEvent.findMany({
       where: user.role === "GESTOR_GARRO" ? {} : {
         userId: user.id,
-        ...(user.role === "ATENDENTE" ? { demandId: null, type: { in: ["FOLLOW_UP", "CONTATO_FUTURO", "REUNIAO", "RETORNO_ORCAMENTO", "TAREFA_ATENDENTE"] } } : {}),
+        ...(user.role === "ATENDENTE" ? { OR: [
+          { demandId: null, type: { in: ["FOLLOW_UP", "CONTATO_FUTURO", "REUNIAO", "RETORNO_ORCAMENTO", "TAREFA_ATENDENTE"] } },
+          { type: { in: ["CAPTACAO", "ENTREGA_CLIENTE"] } },
+        ] } : {}),
         ...(user.role === "EDITOR" ? { OR: [{ demandId: null }, { demand: { deliverables: { some: { editorId: user.id, archivedAt: null } } } }] } : {}),
       },
       orderBy: { dueAt: "asc" },
@@ -99,6 +113,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       take: 100,
     }),
     prisma.kanbanLabel.findMany(),
+    prisma.agendaHoliday.findMany({ select: { day: true }, orderBy: { day: "asc" } }),
     user.role === "EDITOR" ? Promise.resolve([]) : prisma.user.findMany({
       where: user.role === "ATENDENTE"
         ? { active: true, OR: [{ id: user.id }, { role: "GESTOR_GARRO" }] }
@@ -116,7 +131,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
   const tracking = user.role === "ATENDENTE" ? await prisma.demand.findMany({
     orderBy: { createdAt: "desc" },
     select: {
-      id: true, customerId: true, title: true, status: true, clientDueAt: true, mediaType: true, createdAt: true,
+      id: true, customerId: true, title: true, status: true, clientDueAt: true, clientDuePaused: true, mediaType: true, createdAt: true,
       customer: { select: { name: true } },
       sale: { select: { opportunity: { select: { service: true } } } },
       deliverables: {
@@ -150,7 +165,15 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       priority: o.priority === "ALTA" ? "Alta" : o.priority === "BAIXA" ? "Baixa" : "Média",
       lastActivity: o.lastActivityAt.toISOString(), waitingSince: o.waitingSince?.toISOString(),
       waitingOn: o.waitingOn === "GARRO" ? "atendente" : o.waitingOn === "CLIENTE" ? "cliente" : "nenhum",
-      nextAction: o.nextAction || "", nextAt: o.nextActionAt?.toISOString(), lostAt: o.lostAt?.toISOString(), lossReason: o.lossReason || "",
+      nextAction: o.nextAction || "", nextAt: o.nextActionAt?.toISOString(), lostAt: o.lostAt?.toISOString(), lossReason: o.lossReason || "", lossNote: o.lossNote || "",
+      contractSigned: o.contractSigned, contractSignedAt: o.contractSignedAt?.toISOString() || "", contractFileName: o.contractFileName || "",
+      contractPending: o.stage === "CONTRATO" && (o.contractSigned !== true || !o.contractFileName),
+      lines: o.contractLines.map(line => ({
+        id: line.id, serviceId: line.serviceId || "", serviceName: line.serviceName, variationName: line.variationName, extra: line.extra,
+        amount: line.amount === null ? null : Number(line.amount),
+        serviceDate: line.serviceDate ? birthDateKey(line.serviceDate) : "", captureTime: line.captureTime || "", capturePlace: line.capturePlace || "",
+        proposedDays: line.proposedDays,
+      })),
       returnResponsibleId: returns.get(o.id)?.userId, returnResponsibleName: returns.get(o.id)?.user.name,
       history: o.interactions.map(i => ({ at: i.occurredAt.toISOString(), description: i.summary, author: i.user.name })),
     })),
@@ -158,11 +181,11 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     demands: user.role === "ATENDENTE" ? tracking.map(d => ({
       id: d.id, customerId: d.customerId, customerName: d.customer.name, title: d.title,
       service: d.sale?.opportunity.service, mediaType: d.mediaType ?? undefined,
-      description: "", status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
+      description: "", status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "", clientDuePaused: d.clientDuePaused,
       briefing: "", links: "", createdAt: d.createdAt.toISOString(), messages: [],
     })) : demands.map(d => ({
       id: d.id, customerId: d.customerId, title: d.title, service: d.sale?.opportunity.service, mediaType: d.mediaType ?? undefined, description: d.description || "",
-      status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "",
+      status: demandLabels[d.status], clientDue: d.clientDueAt?.toISOString() || "", clientDuePaused: d.clientDuePaused,
       briefing: d.description || "", links: d.files.find(f => /^https?:\/\//.test(f.storagePath))?.storagePath || "",
       hd: d.hd || "", drive: d.driveUrl || "",
       deliveryLinks: readDeliveryLinks(d.deliveryLinks),
@@ -193,8 +216,8 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
         }));
     }),
     schedule: [...schedule.map((e): ScheduleItem => ({
-      id: e.id, title: e.title, category: e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.type === "TAREFA_ATENDENTE" || e.demandId ? "Gestão" : "Comercial",
-      userId: e.userId, at: e.dueAt.toISOString(), demandId: e.demandId || undefined, done: e.status !== "PENDENTE",
+      id: e.id, title: e.title, category: e.type === "CAPTACAO" ? "Captações" : e.type === "ENTREGA_CLIENTE" && e.title.startsWith("ENTREGA FINAL") ? "Entregas" : e.type === "ENTREGA_EDITOR" ? "Editor" : e.type === "REVISAO_GARRO" ? "Revisão" : e.type === "ENTREGA_CLIENTE" ? "Cliente" : e.type === "TAREFA_ATENDENTE" || e.demandId ? "Gestão" : "Comercial",
+      userId: e.userId, at: e.dueAt.toISOString(), place: e.place || "", demandId: e.demandId || undefined, done: e.status !== "PENDENTE",
       opportunityId: e.opportunityId || undefined, deliverableId: e.deliverableId || undefined,
       responsibleName: e.user.name,
       responsibleRole: e.user.role,
@@ -203,14 +226,17 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       context: e.deliverable?.description || e.demand?.description || opportunities.find(o => o.id === e.opportunityId)?.service || "",
       typeLabel: {
         FOLLOW_UP: "Follow-up", CONTATO_FUTURO: "Contato futuro", REUNIAO: "Reunião", RETORNO_ORCAMENTO: "Retorno de orçamento", ENTREGA_EDITOR: "Entrega do editor",
-        REVISAO_GARRO: "Revisão Garro", ENTREGA_CLIENTE: "Entrega ao cliente", CORRECAO: "Correção", GRAVACAO: "Gravação", EVENTO: "Evento", INTERNO: "Compromisso interno",
+        REVISAO_GARRO: "Revisão Garro", ENTREGA_CLIENTE: e.title.startsWith("ENTREGA FINAL") ? "ENTREGA FINAL" : "Entrega ao cliente", CORRECAO: "Correção", GRAVACAO: "Gravação", CAPTACAO: "Captação", EVENTO: "Evento", INTERNO: "Compromisso interno",
         TAREFA_ATENDENTE: e.createdBy?.role === "ATENDENTE" ? "Compromisso pessoal" : "Função da atendente",
       }[e.type],
       createdById: e.createdBy?.id,
       assignment: e.type === "TAREFA_ATENDENTE" ? (e.createdBy?.role === "ATENDENTE" ? "pessoal" : "gestora") : undefined,
       status: e.status === "PENDENTE" ? "Pendente" : e.status === "CANCELADO" ? "Cancelado" : "Concluído",
       createdAt: e.createdAt.toISOString(),
-    })), ...birthdayReminders(customers, user.role)],
+    })), ...birthdayReminders(customers.flatMap(customer => {
+      const extra = (customer.birthdays || []).filter(item => item.birthDate && item.birthDate !== customer.birthDate);
+      return [customer, ...extra.map(item => ({ ...customer, id: `${customer.id}-${item.name}`, name: `${item.name} (${customer.name})`, birthDate: item.birthDate }))];
+    }), user.role)],
     alerts: notifications.map(n => ({
       id: n.id, userId: user.id, title: n.title, detail: n.message, at: (n.visibleAt ?? n.createdAt).toISOString(),
       read: !!n.readAt, href: n.href || undefined, demandId: n.href?.match(/(?:demandas\/|demanda\?id=)([^/?]+)/)?.[1],
@@ -220,5 +246,6 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     activity,
     services: catalog.services,
     serviceProposals: catalog.serviceProposals,
+    holidays: holidayRows.map(row => birthDateKey(row.day)),
   };
 }

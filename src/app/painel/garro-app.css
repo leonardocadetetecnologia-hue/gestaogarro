@@ -478,3 +478,6 @@
 .tracking-tasks small { color: var(--muted); font-size: 10px; }
 .service-groups td .badge, .service-archived td .badge { margin-left: 8px; }
 @media (max-width: 720px) { .variation-row { grid-template-columns: 1fr; } }
+.crm-popup-backdrop { position: fixed; inset: 0; z-index: 180; background: rgba(44, 30, 22, .45); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.crm-popup-backdrop .detail-drawer { position: relative; top: auto; right: auto; bottom: auto; width: min(1100px, 78vw); max-width: 78vw; flex: none; flex-basis: auto; max-height: min(86dvh, 900px); height: auto; overflow: auto; border-radius: 16px; box-shadow: 0 30px 80px #311b1540; }
+@media (max-width: 700px) { .crm-popup-backdrop { padding: 0; } .crm-popup-backdrop .detail-drawer { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; } }

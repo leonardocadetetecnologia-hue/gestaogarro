@@ -15,13 +15,14 @@ export const STAGE_LABELS: Record<OpportunityStage, Stage> = {
   FOLLOW_UP: "Tentativa de contato",
   EM_TRATATIVA: "Em tratativa",
   FECHADO: "Fechado com sucesso",
+  CONTRATO: "Contrato",
   PERDIDO: "Fechado sem sucesso",
 };
 
 export const STAGE_VALUES: Record<Stage, OpportunityStage> = {
   "Lead": "LEAD", "Tentativa de contato": "FOLLOW_UP", "Em tratativa": "EM_TRATATIVA", "Sem interesse": "SEM_INTERESSE",
   "Reunião agendada": "REUNIAO_AGENDADA", "Reunião realizada": "REUNIAO_REALIZADA",
-  "Bolo": "BOLO", "Fechado sem sucesso": "PERDIDO", "Fechado com sucesso": "FECHADO",
+  "Bolo": "BOLO", "Fechado sem sucesso": "PERDIDO", "Fechado com sucesso": "FECHADO", "Contrato": "CONTRATO",
 };
 
 export const OPEN_STAGES: OpportunityStage[] = [
@@ -35,7 +36,7 @@ export const OPEN_STAGES: OpportunityStage[] = [
   "EM_TRATATIVA",
 ];
 
-export const KANBAN_STAGES: OpportunityStage[] = ["LEAD", "FOLLOW_UP", "EM_TRATATIVA", "SEM_INTERESSE", "REUNIAO_AGENDADA", "REUNIAO_REALIZADA", "BOLO", "PERDIDO", "FECHADO"];
+export const KANBAN_STAGES: OpportunityStage[] = ["LEAD", "FOLLOW_UP", "EM_TRATATIVA", "SEM_INTERESSE", "REUNIAO_AGENDADA", "REUNIAO_REALIZADA", "BOLO", "FECHADO", "CONTRATO", "PERDIDO"];
 
 export const DELIVERABLE_LABELS: Record<string, string> = {
   AGUARDANDO_EDITOR: "Aguardando editor",

@@ -24,6 +24,10 @@ export async function returnDueLostOpportunities(now = new Date()) {
       await tx.auditLog.create({ data: {
         userId: row.responsibleId, action: "OPPORTUNITY_RETURNED_TO_LEAD", entityType: "Opportunity", entityId: row.id,
       } });
+      await tx.notification.create({ data: {
+        userId: row.responsibleId, type: "CONTATO_FUTURO", title: "Lead para reativar",
+        message: "A data de retorno chegou. O lead voltou para o funil, na mesma ficha.", href: `/painel?o=${row.id}`,
+      } });
     }
   });
 }

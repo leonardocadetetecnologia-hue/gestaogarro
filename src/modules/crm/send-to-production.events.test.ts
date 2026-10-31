@@ -7,6 +7,7 @@ const { tx, transaction } = vi.hoisted(() => {
     $queryRaw: vi.fn(), opportunity: { findUnique: vi.fn(), update: vi.fn() }, customer: { update: vi.fn(), findUnique: vi.fn() },
     sale: { create: vi.fn() }, demand: { create: vi.fn() }, user: { findMany: vi.fn() },
     crmInteraction: { create: vi.fn() }, auditLog: { create: vi.fn() }, notification: { createMany: vi.fn() },
+    contractLine: { findMany: vi.fn() }, agendaHoliday: { findMany: vi.fn() },
   };
   return { tx, transaction: vi.fn(async (work: (client: typeof tx) => Promise<unknown>) => work(tx)) };
 });
@@ -23,10 +24,12 @@ const input = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  tx.opportunity.findUnique.mockResolvedValue({ id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "FECHADO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } });
+  tx.opportunity.findUnique.mockResolvedValue({ id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "CONTRATO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } });
   tx.user.findMany.mockResolvedValue([{ id: "manager" }]);
   tx.sale.create.mockResolvedValue({ id: "sale" });
   tx.demand.create.mockResolvedValue({ id: "demand" });
+  tx.contractLine.findMany.mockResolvedValue([]);
+  tx.agendaHoliday.findMany.mockResolvedValue([]);
 });
 
 describe("gatilho de produção", () => {
@@ -38,7 +41,7 @@ describe("gatilho de produção", () => {
   });
 
   it("não pede captura quando o envio já existe nem na demanda direta da Gestora", async () => {
-    tx.opportunity.findUnique.mockResolvedValue({ id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "FECHADO", outcome: "GANHA", sale: { demand: { id: "existing" }, value: { equals: () => true } }, customer: { name: "Cliente" } });
+    tx.opportunity.findUnique.mockResolvedValue({ id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "CONTRATO", outcome: "GANHA", sale: { demand: { id: "existing" }, value: { equals: () => true } }, customer: { name: "Cliente" } });
     await sendToProduction(user, input);
     tx.customer.findUnique.mockResolvedValue({ id: "customer", kind: "CLIENTE", name: "Cliente" });
     tx.demand.create.mockResolvedValue({ id: "direct" });

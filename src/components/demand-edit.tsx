@@ -28,7 +28,7 @@ export function EditDemandModal({ demand, onClose }: { demand: Demand; onClose: 
       <Field label="Nome da demanda *"><input required minLength={2} maxLength={200} disabled={busy} value={title} onChange={e => setTitle(e.target.value)}/></Field>
       <MediaTypeChoice value={mediaType} disabled={busy} onChange={setMediaType} />
       <Field label="Briefing"><textarea rows={4} maxLength={10000} disabled={busy} value={description} onChange={e => setDescription(e.target.value)}/></Field>
-      <Field label="Prazo do cliente (horário de Brasília)"><input type="datetime-local" disabled={busy} value={due} onChange={e => setDue(e.target.value)}/></Field>
+      <Field label="Entrega ao cliente (horário de Brasília)"><input type="datetime-local" disabled={busy} value={due} onChange={e => setDue(e.target.value)}/></Field>
       <Field label="Link de referência"><input type="url" disabled={busy} value={links} onChange={e => setLinks(e.target.value)} placeholder="https://"/></Field>
       {error && <p role="alert" className="form-error">{error}</p>}
       <div className="modal-footer"><button type="button" className="button secondary" disabled={busy} onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy}>{busy ? "Salvando…" : "Salvar alterações"}</button></div>

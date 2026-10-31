@@ -5,6 +5,7 @@ const { db } = vi.hoisted(() => ({ db: {
   crmInteraction: { create: vi.fn() },
   scheduleEvent: { updateMany: vi.fn() },
   auditLog: { create: vi.fn() },
+  notification: { create: vi.fn() },
   $transaction: vi.fn(),
 } }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -38,6 +39,9 @@ describe("retorno para Lead", () => {
     }));
     expect(db.scheduleEvent.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ opportunityId: "card", type: "CONTATO_FUTURO", status: "PENDENTE" }),
+    }));
+    expect(db.notification.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ userId: "malu", type: "CONTATO_FUTURO", title: "Lead para reativar" }),
     }));
   });
 });
