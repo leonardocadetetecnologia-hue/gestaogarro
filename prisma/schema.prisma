@@ -124,6 +124,8 @@ model User {
   drafts             Draft[]
   auditLogs          AuditLog[]
   customersCreated   Customer[] @relation("CustomerCreator")
+  serviceProposals   ServiceProposal[] @relation("ServiceProposalAuthor")
+  serviceReviews     ServiceProposal[] @relation("ServiceProposalReviewer")
 
   @@index([role, active])
 }
@@ -280,6 +282,7 @@ model Deliverable {
   editorDeliveredAt DateTime?
   managerApprovedAt DateTime?
   clientDeliveredAt DateTime?
+  archivedAt        DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -410,6 +413,119 @@ model AuditLog {
 model Setting {
   key   String @id
   value String
+}
+
+enum ServiceCategory {
+  ENSAIOS
+  CAPTACAO
+  EVENTOS
+  PLANOS
+  CAMPANHAS
+  ESCALAVEIS
+  SERVICO_EXTRA
+}
+
+enum ServicePriceType {
+  FECHADO
+  POR_HORA
+  MENSAL
+}
+
+enum ServiceRecurrence {
+  UMA_VEZ
+  TRES_MESES
+  SEIS_MESES
+  UM_ANO
+  DATA
+}
+
+enum ServiceStatus {
+  ATIVO
+  ARQUIVADO
+}
+
+enum ServiceProposalAction {
+  CRIAR
+  EDITAR
+  ARQUIVAR
+  DESARQUIVAR
+  EXCLUIR
+}
+
+enum ServiceProposalStatus {
+  PENDENTE
+  AUTORIZADA
+  RECUSADA
+}
+
+model Service {
+  id             String            @id @default(cuid())
+  code           String            @unique
+  name           String
+  category       ServiceCategory
+  description    String            @default("")
+  referencePrice Decimal?          @db.Decimal(12, 2)
+  priceType      ServicePriceType  @default(FECHADO)
+  deliveryDays   Int?
+  hasSelection   Boolean           @default(false)
+  selectionDays  Int?
+  recurrence     ServiceRecurrence @default(UMA_VEZ)
+  recurrenceDate DateTime?
+  standardCost   Decimal?          @db.Decimal(12, 2)
+  status         ServiceStatus     @default(ATIVO)
+  sortOrder      Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  variations ServiceVariation[]
+  proposals  ServiceProposal[]
+  usages     ServiceUsage[]
+
+  @@index([category, sortOrder])
+  @@index([status])
+}
+
+model ServiceVariation {
+  id             String   @id @default(cuid())
+  serviceId      String
+  service        Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name           String
+  referencePrice Decimal? @db.Decimal(12, 2)
+  sortOrder      Int      @default(0)
+
+  @@index([serviceId, sortOrder])
+}
+
+model ServiceProposal {
+  id           String                @id @default(cuid())
+  serviceId    String?
+  service      Service?              @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  authorId     String
+  author       User                  @relation("ServiceProposalAuthor", fields: [authorId], references: [id])
+  action       ServiceProposalAction
+  payload      Json
+  before       Json?
+  status       ServiceProposalStatus @default(PENDENTE)
+  comment      String                @default("")
+  reviewedById String?
+  reviewedBy   User?                 @relation("ServiceProposalReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime              @default(now())
+
+  @@index([status, createdAt])
+  @@index([serviceId, status])
+  @@index([authorId])
+}
+
+model ServiceUsage {
+  id            String   @id @default(cuid())
+  serviceId     String
+  service       Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  demandId      String?
+  opportunityId String?
+  createdAt     DateTime @default(now())
+
+  @@index([serviceId])
 }
 
 // Contador único do feed. A linha só é bloqueada na transação do aviso, depois da ação confirmada.

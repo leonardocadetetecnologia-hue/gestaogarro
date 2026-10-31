@@ -10,6 +10,7 @@ import { attachmentSelect } from "@/modules/production/attachment-service";
 import { readDeliveryLinks } from "@/modules/production/delivery-links";
 import { creationRank } from "@/modules/production/deliverable-order";
 import { loadAttendantMonitor } from "@/modules/painel/attendant-monitor";
+import { loadCommercialServices } from "@/modules/services/queries";
 
 const demandLabels: Record<DemandStatus, ProductionStatus> = {
   NOVA: "Nova demanda", PLANEJAMENTO: "Planejamento", AGUARDANDO_EDITOR: "Planejamento",
@@ -46,7 +47,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       birthDate: c.birthDate ? birthDateKey(c.birthDate) : "",
       createdAt: c.createdAt.toISOString(),
     }))) : prisma.customer.findMany({
-      where: { demands: { some: { deliverables: { some: { editorId: user.id } } } } },
+      where: { demands: { some: { deliverables: { some: { editorId: user.id, archivedAt: null } } } } },
       select: { id: true, name: true },
     }).then(rows => rows.map((c): Customer => ({
       ...c, phone: "", email: "", company: "", origin: "", notes: "", city: "", service: "",
@@ -61,10 +62,10 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       },
     }) : Promise.resolve([]),
     production ? prisma.demand.findMany({
-      where: user.role === "EDITOR" ? { deliverables: { some: { editorId: user.id } } } : {},
+      where: user.role === "EDITOR" ? { deliverables: { some: { editorId: user.id, archivedAt: null } } } : {},
       orderBy: { createdAt: "desc" },
       include: {
-        deliverables: { where: user.role === "EDITOR" ? { editorId: user.id } : {}, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { scriptAttachments: { select: attachmentSelect, orderBy: { createdAt: "asc" } } } },
+        deliverables: { where: user.role === "EDITOR" ? { editorId: user.id, archivedAt: null } : {}, orderBy: [{ createdAt: "asc" }, { id: "asc" }], include: { scriptAttachments: { select: attachmentSelect, orderBy: { createdAt: "asc" } } } },
         messages: {
           orderBy: { createdAt: "asc" },
           include: { sender: { select: { name: true, role: true } } },
@@ -82,7 +83,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       where: user.role === "GESTOR_GARRO" ? {} : {
         userId: user.id,
         ...(user.role === "ATENDENTE" ? { demandId: null, type: { in: ["FOLLOW_UP", "CONTATO_FUTURO", "REUNIAO", "RETORNO_ORCAMENTO", "TAREFA_ATENDENTE"] } } : {}),
-        ...(user.role === "EDITOR" ? { OR: [{ demandId: null }, { demand: { deliverables: { some: { editorId: user.id } } } }] } : {}),
+        ...(user.role === "EDITOR" ? { OR: [{ demandId: null }, { demand: { deliverables: { some: { editorId: user.id, archivedAt: null } } } }] } : {}),
       },
       orderBy: { dueAt: "asc" },
       include: {
@@ -112,6 +113,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
   }) : [];
   const returns = new Map(returnEvents.flatMap(event => event.opportunityId ? [[event.opportunityId, event] as const] : []));
   const activity = user.role === "GESTOR_GARRO" ? await loadAttendantMonitor() : [];
+  const catalog = commercial ? await loadCommercialServices(user) : { services: [], serviceProposals: [] };
   const fullOrder = user.role === "EDITOR" && demands.length
     ? await prisma.deliverable.findMany({
       where: { demandId: { in: demands.map(item => item.id) } },
@@ -162,7 +164,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
           editorDue: t.editorDueAt?.toISOString() || "", reviewDue: t.reviewDueAt?.toISOString() || "",
           clientDue: t.clientDueAt?.toISOString() || "", progress: ["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status) ? 100 : 0,
           editorDeliveredAt: t.editorDeliveredAt?.toISOString(), managerApprovedAt: t.managerApprovedAt?.toISOString(),
-          clientDeliveredAt: t.clientDeliveredAt?.toISOString(),
+          clientDeliveredAt: t.clientDeliveredAt?.toISOString(), archivedAt: t.archivedAt?.toISOString() || "",
           createdAt: t.createdAt.toISOString(),
           number: numbers.get(t.id),
         }));
@@ -193,5 +195,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
     kanbanLabels: kanbanLabelsFrom(labelRows),
     assignees,
     activity,
+    services: catalog.services,
+    serviceProposals: catalog.serviceProposals,
   };
 }

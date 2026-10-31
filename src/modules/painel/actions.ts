@@ -7,6 +7,7 @@ import { CrmFlowError } from "@/modules/crm/send-to-production";
 import { executeCrmCommand } from "./crm-service";
 import { loadPanelState } from "./state";
 import { executeProductionCommand } from "./production-service";
+import { executeServiceCommand } from "./service-actions";
 
 export async function refreshPanel() {
   return loadPanelState(await requireUser());
@@ -23,6 +24,18 @@ export async function mutateCrmPanel(input: unknown) {
   } catch (error) {
     if (isRedirectError(error)) throw error;
     return { error: error instanceof CrmFlowError ? error.message : "Não foi possível salvar. Seus dados continuam no formulário; tente novamente." };
+  }
+}
+
+export async function mutateServicePanel(input: unknown) {
+  const user = await requireUser();
+  try {
+    await executeServiceCommand(user, input);
+    revalidatePath("/painel", "layout");
+    return { state: await loadPanelState(user) };
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    return { error: error instanceof CrmFlowError ? error.message : "Não foi possível salvar o serviço. Tente novamente." };
   }
 }
 

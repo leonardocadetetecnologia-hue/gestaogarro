@@ -102,6 +102,14 @@ describe("extrato de entregas concluídas", () => {
       ],
     }));
     expect(activities.map(item => [item.number, item.title])).toEqual([[1, "Primeiro"], [3, "Terceiro"]]);
+    const withoutArchived = activitiesFromDemand(demand({
+      deliverables: [
+        { id: "a", title: "Primeiro", description: "Entregue primeiro.", status: "CONCLUIDO", clientDeliveredAt: deliveredAt, createdAt: new Date("2026-10-01T12:00:00.000Z") },
+        { id: "errado", title: "Item criado errado", description: "Não deveria entrar.", status: "ENTREGUE", clientDeliveredAt: deliveredAt, createdAt: new Date("2026-10-02T12:00:00.000Z"), archivedAt: new Date("2026-10-30T18:00:00.000Z") },
+        { id: "c", title: "Terceiro", description: "Entregue por último.", status: "ENTREGUE", clientDeliveredAt: deliveredAt, createdAt: new Date("2026-10-03T12:00:00.000Z") },
+      ],
+    }));
+    expect(withoutArchived.map(item => [item.number, item.title])).toEqual([[1, "Primeiro"], [3, "Terceiro"]]);
     expect(JSON.stringify(activities)).not.toMatch(/value|valor|preco|preço|contato|arquivo/i);
   });
 

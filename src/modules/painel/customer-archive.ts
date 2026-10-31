@@ -31,7 +31,7 @@ export function buildArchive(state: State): ArchiveContact[] {
     const opportunities = state.opportunities.filter(item => item.customerId === customer.id);
     const demands = state.demands.filter(item => item.customerId === customer.id);
     const demandIds = new Set(demands.map(item => item.id));
-    const tasks = state.deliverables.filter(item => demandIds.has(item.demandId));
+    const tasks = state.deliverables.filter(item => demandIds.has(item.demandId) && !item.archivedAt);
     const events: ArchiveEvent[] = [];
     if (customer.createdAt) events.push({ at: customer.createdAt, label: "Cadastro", detail: customer.kind === "CLIENTE" ? "Cliente cadastrado na Garro." : "Lead cadastrado na Garro." });
     for (const opportunity of opportunities) {

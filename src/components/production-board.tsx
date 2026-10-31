@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ClipboardList, FolderOpen, Plus } from "lucide-react";
 import { productionStages } from "@/lib/data";
 import { demandMediaTypeLabel } from "@/lib/demand-media-type";
-import { currentProductionMonth, productionCards, productionKindOptions, type ProductionCard, type ProductionKind, type ProductionSplit } from "@/lib/production-board";
+import { currentProductionMonth, deliveredRecords, productionCards, productionKindOptions, productionMonthOptions, type ProductionCard, type ProductionKind, type ProductionSplit } from "@/lib/production-board";
+import { formatMonth } from "@/modules/reports/delivery-statement";
 import { useGarro } from "@/lib/store";
 import { BoardScroll } from "./board-scroll";
 import { DeliverableStatusBar } from "./deliverable-status";
@@ -54,6 +55,10 @@ export function ProductionBoard({
     () => productionCards({ demands: state.demands, deliverables: state.deliverables, customers: state.customers, split, kind, editorId, query, month }),
     [state.demands, state.deliverables, state.customers, split, kind, editorId, query, month],
   );
+  const monthOptions = useMemo(
+    () => productionMonthOptions(deliveredRecords(state.demands, state.deliverables, state.customers).map((row) => row.month)),
+    [state.demands, state.deliverables, state.customers],
+  );
   const openDemand = (id: string) => router.push(`/painel/demanda?id=${id}`);
 
   return <div className="workspace">
@@ -73,7 +78,9 @@ export function ProductionBoard({
       </div>
       <div className="toolbar-end">
         <SearchBox value={query} onChange={setQuery} placeholder={split === "entregavel" ? "Buscar entregável" : "Buscar demanda"} />
-        <input aria-label="Filtrar mês" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+        <select aria-label="Filtrar mês" value={month} onChange={(event) => setMonth(event.target.value)}>
+          {monthOptions.map((item) => <option key={item} value={item}>{formatMonth(item)}</option>)}
+        </select>
         <select aria-label="Filtrar tipo" value={kind} onChange={(event) => setKind(event.target.value as "Todos" | ProductionKind)}>
           <option value="Todos">Todos os tipos</option>
           {productionKindOptions.map((item) => <option key={item} value={item}>{item}</option>)}

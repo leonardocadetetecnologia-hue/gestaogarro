@@ -62,6 +62,7 @@ export type CompletedDemandInput = {
     status: string;
     clientDeliveredAt: Date | null;
     createdAt?: Date | null;
+    archivedAt?: Date | string | null;
   }[];
 };
 
@@ -151,7 +152,10 @@ function narrative(value: string | null | undefined) {
 export function activitiesFromDemand(demand: CompletedDemandInput): StatementActivity[] {
   if (!completedDemand.includes(demand.status as (typeof completedDemand)[number])) return [];
   const service = demand.service?.trim() || demand.title.trim() || "Serviço não informado";
-  const delivered = creationRank(demand.deliverables).filter(({ item }) => completedDeliverable.has(item.status));
+  const ranked = creationRank(demand.deliverables);
+  const visible = ranked.filter(({ item }) => !item.archivedAt);
+  if (demand.deliverables.length > 0 && visible.length === 0) return [];
+  const delivered = visible.filter(({ item }) => completedDeliverable.has(item.status));
   if (!delivered.length) {
     return [{
       id: demand.id,
@@ -284,7 +288,7 @@ export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, fil
       sale: { select: { opportunity: { select: { service: true } } } },
       deliverables: {
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        select: { id: true, title: true, description: true, status: true, clientDeliveredAt: true, createdAt: true },
+        select: { id: true, title: true, description: true, status: true, clientDeliveredAt: true, createdAt: true, archivedAt: true },
       },
     },
   });

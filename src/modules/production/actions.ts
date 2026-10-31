@@ -1,6 +1,6 @@
 "use server";
 
-import type { DeliverableStatus, DemandStatus } from "@prisma/client";
+import type { DeliverableStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { audit, notify } from "@/lib/audit";
@@ -10,6 +10,8 @@ import { parseSaoPaulo } from "@/lib/deadlines";
 import { prisma } from "@/lib/prisma";
 import { reject } from "@/lib/redirect";
 import { assignProductionEditor } from "./assignment-service";
+import { syncDemandStatus } from "./demand-status";
+import { leavesApproval, leavesClientDelivery, MANAGER_NEXT } from "./deliverable-flow";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
 
 function text(formData: FormData, key: string) {
@@ -29,46 +31,15 @@ const EDITOR_NEXT: Partial<Record<DeliverableStatus, DeliverableStatus[]>> = {
   CORRECAO: ["EM_PRODUCAO", "ENVIADO_REVISAO"],
 };
 
-const MANAGER_NEXT: Partial<Record<DeliverableStatus, DeliverableStatus[]>> = {
-  ENVIADO_REVISAO: ["EM_REVISAO", "CORRECAO", "APROVADO"],
-  EM_REVISAO: ["CORRECAO", "APROVADO"],
-  APROVADO: ["ENTREGUE"],
-  ENTREGUE: ["CONCLUIDO"],
-  AGUARDANDO_EDITOR: ["EM_PRODUCAO"],
-  EM_PRODUCAO: ["ENVIADO_REVISAO"],
-  CORRECAO: ["EM_PRODUCAO", "ENVIADO_REVISAO", "EM_REVISAO", "APROVADO"],
-};
-
-function aggregateDemand(statuses: DeliverableStatus[]): DemandStatus {
-  if (statuses.length === 0) return "PLANEJAMENTO";
-  if (statuses.every((status) => status === "CONCLUIDO")) return "CONCLUIDO";
-  if (statuses.every((status) => status === "ENTREGUE" || status === "CONCLUIDO")) return "ENTREGUE";
-  if (statuses.some((status) => status === "CORRECAO")) return "CORRECAO";
-  if (statuses.some((status) => status === "EM_REVISAO" || status === "ENVIADO_REVISAO")) {
-    return "EM_REVISAO";
-  }
-  if (statuses.some((status) => status === "EM_PRODUCAO")) return "EM_PRODUCAO";
-  if (statuses.some((status) => status === "APROVADO")) return "PRONTO_ENTREGA";
-  if (statuses.every((status) => status === "AGUARDANDO_EDITOR")) return "AGUARDANDO_EDITOR";
-  return "PLANEJAMENTO";
-}
-
 async function assertDemand(userId: string, role: string, demandId: string) {
   if (role === "GESTOR_GARRO") return;
   if (role !== "EDITOR") redirect("/?erro=acesso");
-  const assigned = await prisma.deliverable.count({ where: { demandId, editorId: userId } });
+  const assigned = await prisma.deliverable.count({ where: { demandId, editorId: userId, archivedAt: null } });
   if (!assigned) redirect("/?erro=acesso");
 }
 
 async function syncDemand(demandId: string) {
-  const items = await prisma.deliverable.findMany({
-    where: { demandId },
-    select: { status: true },
-  });
-  await prisma.demand.update({
-    where: { id: demandId },
-    data: { status: aggregateDemand(items.map((item) => item.status)) },
-  });
+  await prisma.$transaction((tx) => syncDemandStatus(tx, demandId));
 }
 
 export async function assignEditor(formData: FormData) {
@@ -98,6 +69,7 @@ export async function changeDeliverableStatus(formData: FormData) {
   const note = text(formData, "note");
   const item = await prisma.deliverable.findUnique({ where: { id: deliverableId } });
   if (!item) reject("/demandas", "Entregável não encontrado.");
+  if (item.archivedAt) reject(`/demandas/${item.demandId}`, "Este entregável está arquivado.");
   await assertDemand(user.id, user.role, item.demandId);
 
   const allowed =
@@ -106,13 +78,14 @@ export async function changeDeliverableStatus(formData: FormData) {
   if (!allowed.includes(next)) reject(`/demandas/${item.demandId}`, "Esta mudança de status não é permitida.");
 
   const now = new Date();
+  const reopening = leavesApproval(item.status, next);
   await prisma.deliverable.update({
     where: { id: item.id },
     data: {
       status: next,
       editorDeliveredAt: next === "ENVIADO_REVISAO" ? item.editorDeliveredAt ?? now : item.editorDeliveredAt,
-      managerApprovedAt: next === "APROVADO" ? now : item.managerApprovedAt,
-      clientDeliveredAt: next === "ENTREGUE" ? now : item.clientDeliveredAt,
+      managerApprovedAt: next === "APROVADO" ? now : reopening ? null : item.managerApprovedAt,
+      clientDeliveredAt: next === "ENTREGUE" ? now : leavesClientDelivery(item.status, next) ? null : item.clientDeliveredAt,
     },
   });
   await prisma.demandMessage.create({
@@ -124,7 +97,7 @@ export async function changeDeliverableStatus(formData: FormData) {
     },
   });
 
-  if (next === "ENVIADO_REVISAO") {
+  if (next === "ENVIADO_REVISAO" && !reopening) {
     const managers = await prisma.user.findMany({ where: { role: "GESTOR_GARRO", active: true } });
     await Promise.all(
       managers.map((manager) =>
@@ -147,8 +120,26 @@ export async function changeDeliverableStatus(formData: FormData) {
       href: `/demandas/${item.demandId}`,
     });
   }
+  if (reopening && (next === "ENVIADO_REVISAO" || next === "EM_REVISAO") && item.editorId && item.editorId !== user.id) {
+    await notify({
+      userId: item.editorId,
+      type: next,
+      title: "Material voltou para revisão",
+      message: note || item.title,
+      href: `/demandas/${item.demandId}`,
+    });
+  }
   await audit(user.id, "DELIVERABLE_STATUS", "Deliverable", item.id, { from: item.status, to: next });
   await syncDemand(item.demandId);
+  if (leavesClientDelivery(item.status, next)) {
+    const demand = await prisma.demand.findUnique({ where: { id: item.demandId }, select: { status: true } });
+    if (demand && demand.status !== "ENTREGUE" && demand.status !== "CONCLUIDO") {
+      await prisma.scheduleEvent.updateMany({
+        where: { demandId: item.demandId, type: "ENTREGA_CLIENTE", status: "CONCLUIDO" },
+        data: { status: "PENDENTE", completedAt: null },
+      });
+    }
+  }
   revalidatePath(`/demandas/${item.demandId}`);
   if (formData.get("returnToPanel") === "1") { revalidatePath("/painel", "layout"); return; }
   redirect(`/demandas/${item.demandId}`);
@@ -165,7 +156,7 @@ export async function addDemandMessage(formData: FormData) {
   });
   const demand = await prisma.demand.findUnique({
     where: { id: demandId },
-    include: { deliverables: { select: { editorId: true } } },
+    include: { deliverables: { where: { archivedAt: null }, select: { editorId: true } } },
   });
   const recipients = new Set<string>();
   if (user.role === "EDITOR") {

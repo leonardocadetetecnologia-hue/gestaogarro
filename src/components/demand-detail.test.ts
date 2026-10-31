@@ -58,6 +58,25 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).not.toContain('aria-current="true"');
   });
 
+  it("guarda o item arquivado fora da esteira e permite restaurar", () => {
+    context.state.deliverables.push({ id: "errado", demandId: "iandra", title: "Item criado errado", number: 9, editorId: "", status: "A iniciar", editorDue: "", reviewDue: "", clientDue: "", progress: 0, archivedAt: "2026-10-30T18:00:00.000Z" });
+    const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(html.indexOf("1- NEW TECH")).toBeLessThan(html.indexOf("Arquivados"));
+    expect(html.indexOf("Arquivados")).toBeLessThan(html.indexOf("Item criado errado"));
+    expect(html).toContain(">Restaurar</button>");
+    expect(html).not.toContain("Salvar atribuição e prazos");
+  });
+
+  it("não deixa um item arquivado impedir a entrega dos demais", () => {
+    context.state.deliverables = [
+      { id: "task-1", demandId: "iandra", title: "1- NEW TECH", editorId: "manager", status: "Aprovado", editorDue: "", reviewDue: "", clientDue: "", progress: 100 },
+      { id: "errado", demandId: "iandra", title: "Item criado errado", editorId: "", status: "A iniciar", editorDue: "", reviewDue: "", clientDue: "", progress: 0, archivedAt: "2026-10-30T18:00:00.000Z" },
+    ];
+    const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(html).toContain("Registrar entrega ao cliente");
+    expect(html).toContain("Arquivados");
+  });
+
   it("não oferece o botão ao editor", () => {
     context.role = "EDITOR";
     context.activeEditorId = "manager";

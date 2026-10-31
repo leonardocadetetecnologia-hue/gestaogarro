@@ -2,7 +2,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Role, Customer, Opportunity, Stage, TaskStatus, State } from "./data";
 type FutureInput = { futureContact: "sim" | "nao"; futureAt: string; responsibleId?: string; reason?: string };
-import { mutateCrmPanel, mutateProductionPanel, refreshPanel } from "@/modules/painel/actions";
+import { mutateCrmPanel, mutateProductionPanel, mutateServicePanel, refreshPanel } from "@/modules/painel/actions";
+import type { ServiceSnapshot } from "@/modules/services/model";
 import type { CrmCommand } from "@/modules/painel/crm-service";
 import type { ProductionCommand } from "@/modules/painel/production-service";
 import type { DemandMediaType } from "@/lib/demand-media-type";
@@ -23,6 +24,8 @@ type Ctx = {
   saveDeliveryLinks: (input: { id: string; links: string[] }) => Save;
   addDeliverable: (demandId: string, title: string) => Save;
   renameDeliverable: (id: string, title: string) => Save;
+  archiveDeliverable: (id: string) => Save;
+  restoreDeliverable: (id: string) => Save;
   moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
   loseOpportunity: (id: string, input: { reason: string; futureContact: "sim" | "nao"; futureAt: string; responsibleId: string }) => Save;
   saveFutureContact: (id: string, input: FutureInput) => Save;
@@ -43,6 +46,11 @@ type Ctx = {
   createPersonalTask: (input: { title: string; date: string; time: string }) => Save;
   deleteAttendantTask: (id: string) => Save;
   completeAttendantTask: (id: string) => Save;
+  saveService: (id: string, service: ServiceSnapshot) => Save;
+  archiveService: (id: string) => Save;
+  restoreService: (id: string) => Save;
+  removeService: (id: string) => Save;
+  reviewServiceProposal: (id: string, decision: "autorizar" | "recusar", comment: string) => Save;
 };
 const Context = createContext<Ctx | null>(null);
 
@@ -72,11 +80,11 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     return () => { window.removeEventListener("focus", handleFocus); window.clearInterval(timer); };
   }, [refresh]);
 
-  async function save(command: CrmCommand | ProductionCommand, production = false) {
+  async function save(command: CrmCommand | ProductionCommand | { kind: "save" | "archive" | "restore" | "remove" | "review"; [key: string]: unknown }, channel: "crm" | "production" | "service" = "crm") {
     if (busyRef.current) return { ok: false as const };
     busyRef.current = true; revision.current += 1; setBusy(true); setError(""); setNotice("");
     try {
-      const result = await (production ? mutateProductionPanel(command) : mutateCrmPanel(command));
+      const result = await (channel === "production" ? mutateProductionPanel(command) : channel === "service" ? mutateServicePanel(command) : mutateCrmPanel(command));
       if ("error" in result) { setError(result.error || "Não foi possível salvar."); return { ok: false as const }; }
       setState(result.state);
       if (command.kind === "send") setNotice("Enviado para produção. A demanda está disponível para a Gestora.");
@@ -94,14 +102,16 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     addOpportunity: (customerId, service) => done(save({ kind: "createOpportunity", customerId, service })),
     updateOpportunityValue: (id, amount) => done(save({ kind: "value", id, value: amount })),
     createDemand: async input => {
-      const result = await save({ kind: "createDemand", input }, true);
+      const result = await save({ kind: "createDemand", input }, "production");
       return result.ok && result.createdId ? result.createdId : false;
     },
-    updateDemand: input => done(save({ kind: "updateDemand", input }, true)),
-    saveDemandMedia: input => done(save({ kind: "demandMedia", input }, true)),
-    saveDeliveryLinks: input => done(save({ kind: "deliveryLinks", input }, true)),
-    addDeliverable: (demandId, title) => done(save({ kind: "addDeliverable", input: { demandId, title } }, true)),
-    renameDeliverable: (id, title) => done(save({ kind: "renameDeliverable", input: { id, title } }, true)),
+    updateDemand: input => done(save({ kind: "updateDemand", input }, "production")),
+    saveDemandMedia: input => done(save({ kind: "demandMedia", input }, "production")),
+    saveDeliveryLinks: input => done(save({ kind: "deliveryLinks", input }, "production")),
+    addDeliverable: (demandId, title) => done(save({ kind: "addDeliverable", input: { demandId, title } }, "production")),
+    renameDeliverable: (id, title) => done(save({ kind: "renameDeliverable", input: { id, title } }, "production")),
+    archiveDeliverable: id => done(save({ kind: "archiveDeliverable", id }, "production")),
+    restoreDeliverable: id => done(save({ kind: "restoreDeliverable", id }, "production")),
     moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),
     loseOpportunity: (id, input) => done(save({ kind: "lose", id, ...input })),
     saveFutureContact: (id, input) => done(save({ kind: "futureContact", id, futureContact: input.futureContact, futureAt: input.futureAt, responsibleId: input.responsibleId || "", reason: input.reason || "" })),
@@ -111,20 +121,25 @@ export function GarroProvider({ children, role, userName, userId, initialState }
       opportunityId, title: input.title, description: input.description, amount: input.amount,
       mediaType: input.mediaType, due: input.due, deliverables: input.deliverables.split("\n").map(t => t.trim()).filter(Boolean),
     } })),
-    sendMessage: (id, message) => done(save({ kind: "message", id, message }, true)),
-    setTaskStatus: (id, status) => done(save({ kind: "status", id, status }, true)),
-    saveTaskScript: (id, script, previous) => done(save({ kind: "script", input: { id, script, previous } }, true)),
-    markDelivered: id => done(save({ kind: "delivered", id }, true)),
-    assignEditor: (id, editorId, editorDue, reviewDue) => done(save({ kind: "assign", id, editorId, editorDue, reviewDue }, true)),
-    assignMany: input => done(save({ kind: "assignMany", ...input }, true)),
-    updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, true)),
-    readAlert: id => done(save({ kind: "read", id }, true)),
-    readSelectedAlerts: ids => done(save({ kind: "readSelected", ids }, true)),
-    readAllAlerts: () => done(save({ kind: "readAll" }, true)),
-    assignAttendantTask: input => done(save({ kind: "attendantTask", ...input }, true)),
-    createPersonalTask: input => done(save({ kind: "personalTask", ...input }, true)),
-    deleteAttendantTask: id => done(save({ kind: "deleteAttendantTask", id }, true)),
-    completeAttendantTask: id => done(save({ kind: "completeAttendantTask", id }, true)),
+    sendMessage: (id, message) => done(save({ kind: "message", id, message }, "production")),
+    setTaskStatus: (id, status) => done(save({ kind: "status", id, status }, "production")),
+    saveTaskScript: (id, script, previous) => done(save({ kind: "script", input: { id, script, previous } }, "production")),
+    markDelivered: id => done(save({ kind: "delivered", id }, "production")),
+    assignEditor: (id, editorId, editorDue, reviewDue) => done(save({ kind: "assign", id, editorId, editorDue, reviewDue }, "production")),
+    assignMany: input => done(save({ kind: "assignMany", ...input }, "production")),
+    updateTaskDue: (id, field, input) => done(save({ kind: "due", id, field, value: input }, "production")),
+    readAlert: id => done(save({ kind: "read", id }, "production")),
+    readSelectedAlerts: ids => done(save({ kind: "readSelected", ids }, "production")),
+    readAllAlerts: () => done(save({ kind: "readAll" }, "production")),
+    assignAttendantTask: input => done(save({ kind: "attendantTask", ...input }, "production")),
+    createPersonalTask: input => done(save({ kind: "personalTask", ...input }, "production")),
+    deleteAttendantTask: id => done(save({ kind: "deleteAttendantTask", id }, "production")),
+    completeAttendantTask: id => done(save({ kind: "completeAttendantTask", id }, "production")),
+    saveService: (id, service) => done(save({ kind: "save", id, service }, "service")),
+    archiveService: id => done(save({ kind: "archive", id }, "service")),
+    restoreService: id => done(save({ kind: "restore", id }, "service")),
+    removeService: id => done(save({ kind: "remove", id }, "service")),
+    reviewServiceProposal: (id, decision, comment) => done(save({ kind: "review", id, decision, comment }, "service")),
   };
   return <Context.Provider value={value}>
     {(error || notice) && <div className={`panel-feedback ${error ? "panel-feedback-error" : ""}`} role={error ? "alert" : "status"}>

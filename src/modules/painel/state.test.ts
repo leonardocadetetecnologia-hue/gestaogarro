@@ -3,11 +3,16 @@ import type { SessionUser } from "@/lib/auth";
 const { db } = vi.hoisted(() => ({ db: {
   customer: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() }, demand: { findMany: vi.fn() }, deliverable: { findMany: vi.fn() },
   user: { findMany: vi.fn() }, scheduleEvent: { findMany: vi.fn() }, notification: { findMany: vi.fn() }, kanbanLabel: { findMany: vi.fn() },
+  service: { findMany: vi.fn() }, serviceProposal: { findMany: vi.fn() }, setting: { findUnique: vi.fn(), findMany: vi.fn() },
 } }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 import { loadPanelState } from "./state";
 const user: SessionUser = { id: "user", name: "Usuário", email: "user@example.test", role: "GESTOR_GARRO" };
-beforeEach(() => { vi.resetAllMocks(); for (const model of Object.values(db)) model.findMany.mockResolvedValue([]); });
+beforeEach(() => {
+  vi.resetAllMocks();
+  for (const model of Object.values(db)) model.findMany.mockResolvedValue([]);
+  db.setting.findUnique.mockResolvedValue({ key: "services.catalog", value: "1" });
+});
 describe("dados e agenda por perfil", () => {
   it("não volta a carregar clientes ou demandas demonstrativas quando o banco está vazio", async () => {
     const state = await loadPanelState(user);
@@ -35,8 +40,9 @@ describe("dados e agenda por perfil", () => {
   it("nega dados comerciais ao editor e consulta somente suas atribuições", async () => {
     await loadPanelState({ ...user, role: "EDITOR" });
     expect(db.opportunity.findMany).not.toHaveBeenCalled();
+    expect(db.service.findMany).not.toHaveBeenCalled();
     expect(db.customer.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { id: true, name: true } }));
-    expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deliverables: { some: { editorId: user.id } } } }));
+    expect(db.demand.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deliverables: { some: { editorId: user.id, archivedAt: null } } } }));
     expect(db.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: user.id }) }));
   });
   it("leva o tipo ao quadro e deixa a demanda antiga sem tipo", async () => {

@@ -7,13 +7,25 @@ export type Opportunity = {id:string;customerId:string;service?:string;demandId?
 export type Assignee = {id:string;name:string;role:Role};
 export type Editor = {id:string;name:string;email:string;active:boolean;role?:Role};
 export type ScriptAttachment = {id:string;fileName:string;size:number;createdAt:string};
-export type Deliverable = {id:string;demandId:string;title:string;script?:string;attachments?:ScriptAttachment[];editorId:string;status:TaskStatus;editorDue:string;reviewDue:string;clientDue:string;progress:number;editorDeliveredAt?:string;managerApprovedAt?:string;clientDeliveredAt?:string;createdAt?:string;number?:number};
+export type Deliverable = {id:string;demandId:string;title:string;script?:string;attachments?:ScriptAttachment[];editorId:string;status:TaskStatus;editorDue:string;reviewDue:string;clientDue:string;progress:number;editorDeliveredAt?:string;managerApprovedAt?:string;clientDeliveredAt?:string;archivedAt?:string;createdAt?:string;number?:number};
 export type Message = {id:string;demandId:string;author:string;role:Role;message:string;createdAt:string};
 export type Demand = {id:string;customerId:string;title:string;service?:string;mediaType?:"VIDEO"|"FOTO"|"FOTO_E_VIDEO";description:string;status:ProductionStatus;clientDue:string;briefing:string;links:string;hd?:string;drive?:string;deliveryLinks?:string[];createdAt:string;messages:Message[]};
 export type ScheduleItem = {id:string;title:string;category:"Comercial"|"Editor"|"Revisão"|"Cliente"|"Gestão";userId:string;at:string;customerId?:string;demandId?:string;opportunityId?:string;deliverableId?:string;done?:boolean;status?:"Pendente"|"Concluído"|"Cancelado";responsibleName?:string;responsibleRole?:Role;customerName?:string;typeLabel?:string;origin?:"CRM"|"Produção"|"Agenda";context?:string;createdAt?:string;createdById?:string;assignment?:"gestora"|"pessoal"};
 export type Alert = {id:string;userId:string;title:string;detail:string;at:string;read:boolean;demandId?:string;href?:string};
 export type AttendantActivity = {id:string;at:string;attendantId:string;attendantName:string;kind:"acesso"|"movimentacao"|"inclusao"|"alteracao";title:string;detail:string;contact:string};
-export type State = {customers:Customer[]; opportunities:Opportunity[]; editors:Editor[]; demands:Demand[]; deliverables:Deliverable[]; schedule:ScheduleItem[]; alerts:Alert[]; kanbanLabels?: Partial<Record<Stage, string>>; assignees?: Assignee[]; activity?: AttendantActivity[]};
+export type CatalogVariation = {name:string;referencePrice:number|null};
+export type CatalogService = {
+  id:string;name:string;category:"ENSAIOS"|"CAPTACAO"|"EVENTOS"|"PLANOS"|"CAMPANHAS"|"ESCALAVEIS"|"SERVICO_EXTRA";
+  description:string;referencePrice:number|null;priceType:"FECHADO"|"POR_HORA"|"MENSAL";
+  deliveryDays:number|null;hasSelection:boolean;selectionDays:number|null;
+  recurrence:"UMA_VEZ"|"TRES_MESES"|"SEIS_MESES"|"UM_ANO"|"DATA";recurrenceDate:string;
+  standardCost:number|null;variations:CatalogVariation[];status:"ATIVO"|"ARQUIVADO";used:boolean;pending:boolean;
+};
+export type ServiceProposalView = {
+  id:string;serviceId:string;serviceName:string;action:"CRIAR"|"EDITAR"|"ARQUIVAR"|"DESARQUIVAR"|"EXCLUIR";
+  actionLabel:string;authorId:string;authorName:string;createdAt:string;changes:{field:string;before:string;after:string}[];
+};
+export type State = {customers:Customer[]; opportunities:Opportunity[]; editors:Editor[]; demands:Demand[]; deliverables:Deliverable[]; schedule:ScheduleItem[]; alerts:Alert[]; kanbanLabels?: Partial<Record<Stage, string>>; assignees?: Assignee[]; activity?: AttendantActivity[]; services?: CatalogService[]; serviceProposals?: ServiceProposalView[]};
 export const stages: Stage[] = ["Lead","Tentativa de contato","Em tratativa","Sem interesse","Reunião agendada","Reunião realizada","Bolo","Fechado sem sucesso","Fechado com sucesso"];
 export const stageLabel = (stage: Stage, labels?: Partial<Record<Stage, string>>) => labels?.[stage]?.trim() || stage;
 export function kanbanLabelsFrom(saved: { stage: string; label: string }[]) {

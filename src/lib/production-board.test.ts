@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Deliverable, Demand } from "@/lib/data";
-import { deliverableColumn, deliverableKinds, deliveredRecords, demandMatchesKind, productionCards } from "./production-board";
+import { deliverableColumn, deliverableKinds, deliveredRecords, demandMatchesKind, productionCards, productionMonthOptions } from "./production-board";
 
 const demand = (patch: Partial<Demand> = {}): Demand => ({
   id: "ensaio", customerId: "dani", title: "Ensaio REPOSICIONAMENTO", description: "", status: "Em produção",
@@ -53,6 +53,20 @@ describe("tipo do material", () => {
     expect(deliverableKinds(task({ title: "Seleção" }), plan)).toEqual(["Foto", "Plano EXPANSÃO"]);
     expect(deliverableKinds(task({ title: "Vídeo do mês" }), plan)).toEqual(["Vídeo", "Plano EXPANSÃO"]);
     expect(deliverableKinds(task({ title: "Curso" }), demand({ title: "Mentoria", service: "Curso e mentoria para fotógrafos", mediaType: "FOTO" }))).toEqual(["Foto"]);
+  });
+});
+
+describe("seleção do mês", () => {
+  it("oferece os meses recentes e os que já têm entrega, do mais novo ao mais antigo", () => {
+    const now = new Date("2026-10-30T15:00:00.000Z");
+    expect(productionMonthOptions([], now).slice(0, 3)).toEqual(["2026-10", "2026-09", "2026-08"]);
+    expect(productionMonthOptions([], now)).toHaveLength(12);
+    expect(productionMonthOptions([], now).at(-1)).toBe("2025-11");
+    const withHistory = productionMonthOptions(["2024-08", "2027-02"], now);
+    expect(withHistory[0]).toBe("2027-02");
+    expect(withHistory).toContain("2026-10");
+    expect(withHistory).toContain("2024-08");
+    expect(withHistory).toContain("2025-11");
   });
 });
 
@@ -158,6 +172,20 @@ describe("cartões do quadro", () => {
       ["outubro", "2026-10", "Revelação"],
       ["setembro", "2026-09", "ESSENCE"],
     ]);
+  });
+
+  it("não coloca na esteira o entregável arquivado", () => {
+    const cards = productionCards({
+      ...input, split: "entregavel",
+      deliverables: [...input.deliverables, task({ id: "errado", title: "Item criado errado", archivedAt: "2026-10-30T18:00:00.000Z" })],
+    });
+    expect(cards.map((card) => card.id)).not.toContain("errado");
+    const history = deliveredRecords(
+      [demand({ status: "Entregue" })],
+      [task({ title: "Vídeo X", status: "Aprovado", clientDeliveredAt: "2026-10-18T18:00:00.000Z" }), task({ id: "errado", title: "Item criado errado", status: "Aprovado", clientDeliveredAt: "2026-10-18T18:00:00.000Z", archivedAt: "2026-10-30T18:00:00.000Z" })],
+      base.customers,
+    );
+    expect(history[0].done).toBe("Vídeo X");
   });
 
   it("respeita editor, cliente e acento na busca", () => {

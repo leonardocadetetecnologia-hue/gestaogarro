@@ -37,6 +37,7 @@ export async function assignProductionEditor(user: SessionUser, input: {
     const item = await tx.deliverable.findUnique({ where: { id: input.deliverableId } });
     const editor = await tx.user.findFirst({ where: { id: input.editorId, role: { in: ["EDITOR", "GESTOR_GARRO"] }, active: true } });
     if (!item || !editor) throw new CrmFlowError("Escolha um editor ativo ou a própria Gestora.");
+    if (item.archivedAt) throw new CrmFlowError("Este entregável está arquivado.");
     await writeAssignment(tx, user, item, editor, editorDueAt, input.reviewDueAt, true);
   }, { maxWait: 10000, timeout: 15000 });
 }
@@ -52,8 +53,9 @@ export async function assignManyDeliverables(user: SessionUser, input: {
   await prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT "id" FROM "Demand" WHERE "id" = ${input.demandId} FOR UPDATE`;
     const editor = await tx.user.findFirst({ where: { id: input.editorId, role: { in: ["EDITOR", "GESTOR_GARRO"] }, active: true } });
-    const items = await tx.deliverable.findMany({ where: { id: { in: ids }, demandId: input.demandId }, select: { id: true, title: true, demandId: true } });
+    const items = await tx.deliverable.findMany({ where: { id: { in: ids }, demandId: input.demandId }, select: { id: true, title: true, demandId: true, archivedAt: true } });
     if (!editor || items.length !== ids.length) throw new CrmFlowError("Escolha entregáveis deste projeto e um editor ativo.");
+    if (items.some((item) => item.archivedAt)) throw new CrmFlowError("Este entregável está arquivado.");
     for (const item of items) await writeAssignment(tx, user, item, editor, editorDueAt, input.reviewDueAt, false);
     await tx.demandMessage.create({ data: { demandId: input.demandId, senderId: user.id, system: true, content: `${editor.name} ficou responsável por ${items.length} entregáveis.` } });
     await tx.notification.create({ data: { userId: editor.id, type: "ATRIBUICAO", title: "Novos trabalhos de edição", message: `${items.length} entregáveis no mesmo projeto`, href: `/painel/demanda?id=${input.demandId}` } });

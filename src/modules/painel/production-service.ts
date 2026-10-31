@@ -4,6 +4,7 @@ import { dateInputSaoPaulo } from "@/lib/date-input";
 import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
 import { addDemandMessage, assignEditor, changeDeliverableStatus } from "@/modules/production/actions";
+import { archiveDeliverable, restoreDeliverable } from "@/modules/production/archive-deliverable";
 import { assignManyDeliverables } from "@/modules/production/assignment-service";
 import { createDirectDemand, directDemandSchema } from "@/modules/production/create-demand";
 import { addDeliverable, addDeliverableSchema, deliveryLinksInputSchema, demandMediaSchema, renameDeliverable, renameDeliverableSchema, saveDeliveryLinks, saveDemandMedia, updateDemandDetails, updateDemandSchema } from "@/modules/production/demand-edit";
@@ -18,6 +19,8 @@ const schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("deliveryLinks"), input: deliveryLinksInputSchema }),
   z.object({ kind: z.literal("addDeliverable"), input: addDeliverableSchema }),
   z.object({ kind: z.literal("renameDeliverable"), input: renameDeliverableSchema }),
+  z.object({ kind: z.literal("archiveDeliverable"), id }),
+  z.object({ kind: z.literal("restoreDeliverable"), id }),
   z.object({ kind: z.literal("script"), input: taskScriptSchema }),
   z.object({ kind: z.literal("assign"), id, editorId: id, editorDue: z.string().datetime({ offset: true }).optional(), reviewDue: z.string().datetime({ offset: true }).or(z.literal("")).optional() }),
   z.object({ kind: z.literal("assignMany"), demandId: id, deliverableIds: z.array(id).min(1).max(100), editorId: id, editorDue: z.string().datetime({ offset: true }), reviewDue: z.string().datetime({ offset: true }).or(z.literal("")) }),
@@ -45,6 +48,8 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "deliveryLinks") return saveDeliveryLinks(user, input.input);
   if (input.kind === "addDeliverable") return addDeliverable(user, input.input);
   if (input.kind === "renameDeliverable") return renameDeliverable(user, input.input);
+  if (input.kind === "archiveDeliverable") return archiveDeliverable(user, input.id);
+  if (input.kind === "restoreDeliverable") return restoreDeliverable(user, input.id);
   if (input.kind === "script") return saveDeliverableScript(user, input.input);
   if (input.kind === "attendantTask") return assignAttendantTask(user, input);
   if (input.kind === "personalTask") return createPersonalTask(user, input);
@@ -85,7 +90,7 @@ export async function executeProductionCommand(user: SessionUser, raw: unknown) 
   if (input.kind === "delivered") {
     await prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT "id" FROM "Demand" WHERE "id" = ${input.id} FOR UPDATE`;
-      const items = await tx.deliverable.findMany({ where: { demandId: input.id } });
+      const items = await tx.deliverable.findMany({ where: { demandId: input.id, archivedAt: null } });
       if (!items.length || items.some(t => !["APROVADO", "ENTREGUE", "CONCLUIDO"].includes(t.status))) throw new CrmFlowError("Aprove todos os entregáveis antes de registrar a entrega ao cliente.");
       await tx.deliverable.updateMany({ where: { demandId: input.id, status: "APROVADO" }, data: { status: "ENTREGUE", clientDeliveredAt: new Date() } });
       await tx.demand.update({ where: { id: input.id }, data: { status: "ENTREGUE" } });

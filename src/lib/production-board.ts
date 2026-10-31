@@ -98,6 +98,23 @@ export function currentProductionMonth(now = new Date()) {
   return saoPauloMonth(now.toISOString());
 }
 
+function shiftMonth(month: string, delta: number) {
+  const [year, mon] = month.split("-").map(Number);
+  const cursor = new Date(Date.UTC(year, mon - 1 + delta, 1));
+  return `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function productionMonthOptions(known: string[], now = new Date()) {
+  const current = currentProductionMonth(now);
+  const valid = known.filter((month) => /^\d{4}-(0[1-9]|1[0-2])$/.test(month));
+  const bounds = [current, ...valid].sort();
+  const earliest = bounds[0] < shiftMonth(current, -11) ? bounds[0] : shiftMonth(current, -11);
+  const latest = bounds[bounds.length - 1];
+  const options: string[] = [];
+  for (let cursor = latest; cursor >= earliest && options.length < 240; cursor = shiftMonth(cursor, -1)) options.push(cursor);
+  return options;
+}
+
 export function deliveryMoment(demand: Pick<Demand, "status" | "createdAt">, tasks: Pick<Deliverable, "clientDeliveredAt">[]) {
   const stamps = tasks.map((task) => task.clientDeliveredAt).filter((value): value is string => Boolean(value)).sort();
   if (stamps.length) return stamps[stamps.length - 1];
@@ -123,7 +140,7 @@ export function deliveredRecords(
   return demands
     .filter((demand) => demand.status === "Entregue")
     .map((demand) => {
-      const tasks = deliverables.filter((task) => task.demandId === demand.id);
+      const tasks = deliverables.filter((task) => task.demandId === demand.id && !task.archivedAt);
       const deliveredAt = deliveryMoment(demand, tasks);
       const month = saoPauloMonth(deliveredAt);
       const done = tasks.map((task) => task.title).filter(Boolean).join(", ") || demand.title;
@@ -154,7 +171,7 @@ export function productionCards(input: {
   const customerName = (id: string) => input.customers.find((item) => item.id === id)?.name ?? "";
   const cards: ProductionCard[] = [];
   for (const demand of input.demands) {
-    const tasks = input.deliverables.filter((task) => task.demandId === demand.id);
+    const tasks = input.deliverables.filter((task) => task.demandId === demand.id && !task.archivedAt);
     const customer = customerName(demand.customerId);
     if (input.split === "projeto") {
       const editorOk = input.editorId === "Todos" || tasks.some((task) => task.editorId === input.editorId);

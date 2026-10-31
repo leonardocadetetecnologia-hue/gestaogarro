@@ -16,6 +16,8 @@ const state: State = {
 
 vi.mock("@/lib/store", () => ({ useGarro: () => ({ state, role: session.role }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+import { currentProductionMonth } from "@/lib/production-board";
+import { formatMonth } from "@/modules/reports/delivery-statement";
 import { ProductionBoard } from "./production-board";
 
 function columnChunk(html: string, status: string) {
@@ -30,7 +32,9 @@ describe("quadro de produção", () => {
     expect(html).toContain('aria-label="Separar por"');
     expect(html).toContain(">Projeto</button>");
     expect(html).toContain(">Entregável</button>");
-    expect(html).toContain('aria-label="Filtrar mês"');
+    expect(html).toContain('<select aria-label="Filtrar mês"');
+    expect(html).toContain(`>${formatMonth(currentProductionMonth())}</option>`);
+    expect(html).not.toContain('type="month"');
     expect(html).toContain('aria-label="Filtrar tipo"');
     expect(html).not.toContain(">Entregues</button>");
     expect(html).toContain(">Foto</option>");
