@@ -4,7 +4,9 @@ import { birthDateKey, birthdayReminders } from "@/lib/birthdays";
 import { kanbanLabelsFrom, type Customer, type ProductionStatus, type ScheduleItem, type State, type TaskStatus } from "@/lib/data";
 import { STAGE_LABELS } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
+import { contractChecklist } from "@/modules/crm/contract-checklist";
 import { returnDueLostOpportunities } from "@/modules/crm/loss-return";
+import { refreshContractReminder } from "@/modules/crm/registration-reminder";
 import { customerScope, opportunityScope } from "@/modules/crm/visibility";
 import { attachmentSelect } from "@/modules/production/attachment-service";
 import { readDeliveryLinks } from "@/modules/production/delivery-links";
@@ -25,7 +27,17 @@ const taskLabels: Record<DeliverableStatus, TaskStatus> = {
 export async function loadPanelState(user: SessionUser): Promise<State> {
   const commercial = user.role !== "EDITOR";
   const production = user.role !== "ATENDENTE";
-  if (commercial) await returnDueLostOpportunities();
+  if (commercial) {
+    await returnDueLostOpportunities();
+    const reminderRows = await prisma.opportunity.findMany({
+      where: { AND: [opportunityScope(user), { OR: [
+        { stage: "CONTRATO" },
+        { contractLines: { some: { serviceName: { contains: "Plano EXP", mode: "insensitive" }, serviceDate: null } } },
+      ] }] },
+      select: { id: true },
+    });
+    for (const row of reminderRows) await refreshContractReminder(prisma, row.id);
+  }
   const [customers, opportunities, demands, editors, schedule, notifications, labelRows, holidayRows, assignees] = await Promise.all([
     commercial ? prisma.customer.findMany({
       where: customerScope(user),
@@ -65,10 +77,11 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
         id: true, customerId: true, responsibleId: true, service: true, stage: true,
         estimatedValue: true, proposalValue: true, closedValue: true, priority: true,
         waitingOn: true, waitingSince: true, lastActivityAt: true, nextActionAt: true, nextAction: true,
-        lossReason: true, lossNote: true, lostAt: true, contractSigned: true, contractSignedAt: true, contractFileName: true,
+        lossReason: true, lossNote: true, lostAt: true, contractSigned: true, contractSignedAt: true, contractFileName: true, checklistWaivedAt: true,
         responsible: { select: { name: true } },
+        customer: { select: { personType: true, street: true, addressCity: true, state: true, birthdays: { select: { name: true, birthDate: true } } } },
         sale: { select: { demand: { select: { id: true } } } },
-        contractLines: { orderBy: { sortOrder: "asc" }, select: { id: true, serviceId: true, serviceName: true, variationName: true, extra: true, amount: true, serviceDate: true, captureTime: true, capturePlace: true, proposedDays: true } },
+        contractLines: { orderBy: { sortOrder: "asc" }, select: { id: true, serviceId: true, serviceName: true, variationName: true, extra: true, amount: true, serviceDate: true, captureTime: true, capturePlace: true, proposedDays: true, sortOrder: true } },
         interactions: { orderBy: { occurredAt: "desc" }, select: { occurredAt: true, summary: true, user: { select: { name: true } } } },
       },
     }) : Promise.resolve([]),
@@ -167,12 +180,23 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       waitingOn: o.waitingOn === "GARRO" ? "atendente" : o.waitingOn === "CLIENTE" ? "cliente" : "nenhum",
       nextAction: o.nextAction || "", nextAt: o.nextActionAt?.toISOString(), lostAt: o.lostAt?.toISOString(), lossReason: o.lossReason || "", lossNote: o.lossNote || "",
       contractSigned: o.contractSigned, contractSignedAt: o.contractSignedAt?.toISOString() || "", contractFileName: o.contractFileName || "",
-      contractPending: o.stage === "CONTRATO" && (o.contractSigned !== true || !o.contractFileName),
+      checklistWaived: Boolean(o.checklistWaivedAt),
+      contractPending: o.stage === "CONTRATO" && !o.sale?.demand && contractChecklist({
+        contractSigned: o.contractSigned, waived: Boolean(o.checklistWaivedAt),
+        lines: o.contractLines.map(line => ({
+          id: line.id, serviceId: line.serviceId, serviceName: line.serviceName, variationName: line.variationName, extra: line.extra,
+          serviceDate: line.serviceDate ? birthDateKey(line.serviceDate) : "", proposedDays: line.proposedDays, sortOrder: line.sortOrder,
+        })),
+        customer: {
+          personType: o.customer.personType || "", street: o.customer.street || "", addressCity: o.customer.addressCity || "", state: o.customer.state || "",
+          birthdays: o.customer.birthdays.map(item => ({ name: item.name, birthDate: birthDateKey(item.birthDate) })),
+        },
+      }).pending.length > 0,
       lines: o.contractLines.map(line => ({
         id: line.id, serviceId: line.serviceId || "", serviceName: line.serviceName, variationName: line.variationName, extra: line.extra,
         amount: line.amount === null ? null : Number(line.amount),
         serviceDate: line.serviceDate ? birthDateKey(line.serviceDate) : "", captureTime: line.captureTime || "", capturePlace: line.capturePlace || "",
-        proposedDays: line.proposedDays,
+        proposedDays: line.proposedDays, sortOrder: line.sortOrder,
       })),
       returnResponsibleId: returns.get(o.id)?.userId, returnResponsibleName: returns.get(o.id)?.user.name,
       history: o.interactions.map(i => ({ at: i.occurredAt.toISOString(), description: i.summary, author: i.user.name })),

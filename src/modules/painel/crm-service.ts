@@ -11,6 +11,8 @@ import { formatSaoPaulo } from "@/lib/deadlines";
 import { readBirthDate } from "@/lib/birthdays";
 import { FUTURE_CONTACT_ACTION, isContactDayAllowed } from "@/modules/crm/future-contact";
 import { serviceScheduleChanged, syncServiceSchedule } from "@/modules/agenda/service-schedule";
+import { contractChecklist } from "@/modules/crm/contract-checklist";
+import { refreshContractReminder } from "@/modules/crm/registration-reminder";
 import { lossMotives } from "@/modules/crm/loss-motives";
 import { CrmFlowError, productionSubmissionSchema, sendToProduction } from "@/modules/crm/send-to-production";
 
@@ -84,6 +86,13 @@ export const crmCommandSchema = z.discriminatedUnion("kind", [
     nextAt: z.string().datetime({ offset: true }).or(z.literal("")),
   }),
   z.object({ kind: z.literal("send"), submission: productionSubmissionSchema }),
+  z.object({ kind: z.literal("waiveChecklist"), id: z.string().min(1).max(80) }),
+  z.object({ kind: z.literal("restoreChecklist"), id: z.string().min(1).max(80) }),
+  z.object({
+    kind: z.literal("registration"), id: z.string().min(1).max(80),
+    street: z.string().trim().min(2).max(160), addressCity: z.string().trim().min(2).max(80), state: z.string().trim().min(2).max(2),
+    birthdayName: z.string().trim().min(2).max(120), birthday: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
+  }),
 ]);
 export type CrmCommand = z.infer<typeof crmCommandSchema>;
 
@@ -190,6 +199,34 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       await tx.auditLog.create({ data: { userId: user.id, action: "SERVICE_DATES_SAVED", entityType: "Opportunity", entityId: current.id } });
       return;
     }
+    if (input.kind === "waiveChecklist" || input.kind === "restoreChecklist") {
+      if (user.role !== "GESTOR_GARRO") throw new CrmFlowError("Somente a Gestora ignora pendências do cadastro.");
+      if (current.stage !== "CONTRATO") throw new CrmFlowError("As pendências ficam no estágio Contrato.");
+      const restoring = input.kind === "restoreChecklist";
+      await tx.opportunity.update({ where: { id: current.id }, data: { checklistWaivedAt: restoring ? null : new Date() } });
+      const lines = await tx.contractLine.findMany({ where: { opportunityId: current.id } });
+      const ignored = contractChecklist({
+        contractSigned: current.contractSigned, lines: lines.map(line => ({ ...line, serviceDate: line.serviceDate ? line.serviceDate.toISOString().slice(0, 10) : "" })), customer: {},
+      }).missing.filter(item => !item.blocksSend).map(item => item.label);
+      await tx.auditLog.create({ data: {
+        userId: user.id, action: restoring ? "CHECKLIST_RESTORED" : "CHECKLIST_WAIVED", entityType: "Opportunity", entityId: current.id,
+        details: { items: ignored, at: new Date().toISOString() },
+      } });
+      return;
+    }
+    if (input.kind === "registration") {
+      const birthday = readBirthDate(input.birthday);
+      if ("error" in birthday || !birthday.date) throw new CrmFlowError("error" in birthday ? birthday.error : "Informe a data de nascimento.");
+      const customer = await tx.customer.findUnique({ where: { id: current.customerId }, select: { personType: true } });
+      await tx.customer.update({ where: { id: current.customerId }, data: {
+        kind: "CLIENTE", personType: customer?.personType || "PESSOA_FISICA", street: input.street, addressCity: input.addressCity, state: input.state.toUpperCase(),
+        birthDate: birthday.date,
+      } });
+      await tx.customerBirthday.deleteMany({ where: { customerId: current.customerId } });
+      await tx.customerBirthday.create({ data: { customerId: current.customerId, name: input.birthdayName, birthDate: birthday.date, sortOrder: 1 } });
+      await tx.auditLog.create({ data: { userId: user.id, action: "REGISTRATION_COMPLETED", entityType: "Opportunity", entityId: current.id } });
+      return;
+    }
     if (input.kind === "value") {
       if (current.sale?.demand || current.closedValue !== null) throw new CrmFlowError("O valor fechado não pode ser alterado depois do envio para produção.");
       const previous = current.proposalValue ?? current.estimatedValue;
@@ -269,6 +306,7 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.auditLog.create({ data: { userId: user.id, action: "CRM_INTERACTION", entityType: "Opportunity", entityId: current.id } });
   });
   if (saleNotice) await publishSaleClosed(saleNotice);
+  if ("id" in input) await refreshContractReminder(prisma, input.id);
 }
 
 function instagramHandle(value: string) {
@@ -312,14 +350,35 @@ async function saveClosing(tx: Prisma.TransactionClient, user: SessionUser, oppo
   await tx.customerBirthday.createMany({ data: input.birthdays.map((birthday, index) => ({
     customerId, name: birthday.name, birthDate: new Date(`${birthday.birthDate}T12:00:00.000Z`), sortOrder: index + 1,
   })) });
+  const previous = await tx.contractLine.findMany({ where: { opportunityId } });
+  const used = new Set<string>();
+  const kept = lines.map(line => {
+    const match = previous.find(row => !used.has(row.id) && row.serviceId === line.serviceId && row.variationName === line.variationName);
+    if (match) used.add(match.id);
+    return {
+      ...line, opportunityId, serviceDate: match?.serviceDate ?? null, captureTime: match?.captureTime ?? null,
+      capturePlace: match?.capturePlace ?? null, proposedDays: match?.proposedDays ?? null,
+    };
+  });
+  const current = await tx.opportunity.findUnique({
+    where: { id: opportunityId },
+    select: { stage: true, responsibleId: true, customer: { select: { name: true } } },
+  });
+  const stay = current?.stage === "CONTRATO";
   await tx.scheduleEvent.deleteMany({ where: { opportunityId, contractLineId: { not: null } } });
   await tx.contractLine.deleteMany({ where: { opportunityId } });
-  await tx.contractLine.createMany({ data: lines.map(line => ({ ...line, opportunityId })) });
+  await tx.contractLine.createMany({ data: kept });
   await tx.opportunity.update({ where: { id: opportunityId }, data: {
-    stage: "FECHADO", outcome: "GANHA", responsibleId: user.id, lastActivityAt: new Date(),
+    stage: stay ? "CONTRATO" : "FECHADO", outcome: "GANHA", ...(stay ? {} : { responsibleId: user.id }), lastActivityAt: new Date(),
     service: lines.filter(line => !line.extra).map(line => line.variationName ? `${line.serviceName} · ${line.variationName}` : line.serviceName).join(", "),
     waitingOn: "NINGUEM", waitingSince: null,
   } });
+  const saved = await tx.contractLine.findMany({ where: { opportunityId } });
+  if (current && saved.some(line => line.serviceDate && line.proposedDays != null)) {
+    await syncServiceSchedule(tx, {
+      id: opportunityId, responsibleId: stay ? current.responsibleId : user.id, customerName: current.customer.name,
+    }, saved);
+  }
 }
 
 type ContactCard = { id: string; responsibleId: string; customer: { name: string } };

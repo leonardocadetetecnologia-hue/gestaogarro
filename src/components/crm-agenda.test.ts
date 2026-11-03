@@ -21,7 +21,7 @@ beforeEach(() => {
   context.role = "GESTOR_GARRO"; context.activeEditorId = "manager"; context.busy = false; context.error = ""; query.get.mockReturnValue(null);
   context.state = {
     customers: [{ id: "customer", name: "Cliente de teste", phone: "", email: "", company: "", origin: "Site", notes: "", city: "", service: "Vídeo" }],
-    opportunities: [{ id: "opportunity", customerId: "customer", stage: "Contrato", value: 14000.5, priority: "Média", lastActivity: "2026-10-14T15:00:00Z", waitingOn: "nenhum", nextAction: "", history: [] }],
+    opportunities: [{ id: "opportunity", customerId: "customer", stage: "Contrato", value: 14000.5, priority: "Média", lastActivity: "2026-10-14T15:00:00Z", waitingOn: "nenhum", nextAction: "", history: [], lines: [{ id: "line", serviceName: "Ensaio", variationName: "Foto", extra: false, amount: 14000, serviceDate: "2026-11-03", proposedDays: 10, sortOrder: 1 }] }],
     demands: [], deliverables: [], editors: [], schedule: [], alerts: [],
   };
 });
@@ -74,6 +74,13 @@ describe("ação de envio no Kanban", () => {
     expect(attendantHtml).not.toContain("attendant-tag");
     expect(attendantHtml).not.toContain("Todas as atendentes");
     expect(attendantHtml).not.toContain("Visão estratégica");
+  });
+  it("bloqueia o envio sem data do serviço e prazo e lista a pendência", () => {
+    context.state.opportunities[0].lines = [{ id: "line", serviceName: "Ensaio", variationName: "", extra: false, amount: 1, serviceDate: "", proposedDays: null }];
+    const html = renderToStaticMarkup(createElement(CommercialKanban));
+    expect(html).toContain("Preencha a data do serviço e o prazo para enviar à produção");
+    expect(html).toContain("Data do serviço");
+    expect(html).toContain("Prazo proposto");
   });
   it("não permite envio a partir de uma etapa intermediária", () => {
     context.state.opportunities[0].stage = "Tentativa de contato";

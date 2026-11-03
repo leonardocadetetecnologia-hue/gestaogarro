@@ -4,13 +4,17 @@ import type { SessionUser } from "@/lib/auth";
 const { tx, transaction } = vi.hoisted(() => {
   const tx = {
     $queryRaw: vi.fn(), opportunity: { findUnique: vi.fn(), update: vi.fn() },
-    customer: { update: vi.fn() }, sale: { create: vi.fn() }, demand: { create: vi.fn() }, user: { findMany: vi.fn() },
-    crmInteraction: { create: vi.fn() }, auditLog: { create: vi.fn() }, notification: { createMany: vi.fn() },
+    customer: { update: vi.fn() }, sale: { create: vi.fn() }, demand: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() }, user: { findMany: vi.fn() },
+    crmInteraction: { create: vi.fn() }, auditLog: { create: vi.fn() },
     contractLine: { findMany: vi.fn() }, agendaHoliday: { findMany: vi.fn() },
+    scheduleEvent: { deleteMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    deliverable: { updateMany: vi.fn() }, service: { findMany: vi.fn() },
+    notification: { createMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   };
   return { tx, transaction: vi.fn() };
 });
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
+import { endOfSaoPauloDay } from "@/modules/agenda/business-days";
 import { productionSubmissionSchema, sendToProduction } from "./send-to-production";
 
 const user: SessionUser = { id: "attendant", name: "Atendente", email: "attendant@example.test", role: "ATENDENTE" };
@@ -18,7 +22,16 @@ const input = {
   opportunityId: "opportunity", title: "Vídeo institucional", description: "Briefing validado pelo cliente",
   amount: "14000.50", due: "2026-11-01T18:00:00.000Z", deliverables: ["Vídeo principal", "Reel"], mediaType: "VIDEO" as const,
 };
-const opportunity = { id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "CONTRATO", outcome: "GANHA", sale: null, customer: { name: "Cliente" } };
+const datedLine = {
+  id: "line", serviceId: "srv", serviceName: "Ensaio", variationName: "Foto", extra: false, sortOrder: 1,
+  serviceDate: new Date("2026-11-03T12:00:00.000Z"), proposedDays: 0, captureTime: null, capturePlace: null,
+};
+const opportunity = {
+  id: "opportunity", customerId: "customer", responsibleId: "attendant", stage: "CONTRATO", outcome: "GANHA",
+  sale: null, contractSigned: true, checklistWaivedAt: null, contractLines: [datedLine],
+  responsible: { role: "ATENDENTE" },
+  customer: { name: "Cliente", personType: "PESSOA_FISICA", street: "Rua da Garro", addressCity: "Belo Horizonte", state: "MG", birthdays: [{ name: "Ana", birthDate: new Date("1990-05-02T00:00:00.000Z") }] },
+};
 
 beforeEach(() => {
   delete process.env.GARRO_EVENT_CAPTURE_MODE;
@@ -28,8 +41,12 @@ beforeEach(() => {
   tx.user.findMany.mockResolvedValue([{ id: "manager" }]);
   tx.sale.create.mockResolvedValue({ id: "sale" });
   tx.demand.create.mockResolvedValue({ id: "demand" });
-  tx.contractLine.findMany.mockResolvedValue([]);
+  tx.contractLine.findMany.mockResolvedValue([datedLine]);
   tx.agendaHoliday.findMany.mockResolvedValue([]);
+  tx.scheduleEvent.findFirst.mockResolvedValue(null);
+  tx.service.findMany.mockResolvedValue([]);
+  tx.notification.findFirst.mockResolvedValue(null);
+  tx.demand.findUnique.mockResolvedValue(null);
 });
 
 describe("envio do CRM para produção", () => {
@@ -38,10 +55,11 @@ describe("envio do CRM para produção", () => {
     expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(tx.opportunity.findUnique.mock.invocationCallOrder[0]);
     const saleData = tx.sale.create.mock.calls[0][0].data;
     expect(saleData.value.toString()).toBe("14000.5");
+    const due = endOfSaoPauloDay("2026-11-03");
     expect(tx.demand.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: "NOVA", saleId: "sale", mediaType: "VIDEO", deliverables: { create: [
-        { title: "Vídeo principal", clientDueAt: new Date(input.due), status: "AGUARDANDO_EDITOR" },
-        { title: "Reel", clientDueAt: new Date(input.due), status: "AGUARDANDO_EDITOR" },
+        { title: "Vídeo principal", clientDueAt: due, status: "AGUARDANDO_EDITOR" },
+        { title: "Reel", clientDueAt: due, status: "AGUARDANDO_EDITOR" },
       ] } }),
     }));
     expect(tx.notification.createMany.mock.calls[0][0].data[0].userId).toBe("manager");
@@ -63,6 +81,11 @@ describe("envio do CRM para produção", () => {
   it("bloqueia o editor antes de consultar ou escrever no banco", async () => {
     await expect(sendToProduction({ ...user, role: "EDITOR" }, input)).rejects.toThrow("Este perfil");
     expect(transaction).not.toHaveBeenCalled();
+  });
+  it("não envia sem data do serviço e prazo", async () => {
+    tx.contractLine.findMany.mockResolvedValue([]);
+    await expect(sendToProduction(user, input)).rejects.toThrow("Preencha a data do serviço e o prazo");
+    expect(tx.demand.create).not.toHaveBeenCalled();
   });
   it("exige o estágio Contrato", async () => {
     tx.opportunity.findUnique.mockResolvedValue({ ...opportunity, stage: "FOLLOW_UP", outcome: "ABERTA" });

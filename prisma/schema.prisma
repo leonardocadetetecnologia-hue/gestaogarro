@@ -213,6 +213,7 @@ model Opportunity {
   contractFileName String?
   contractMime     String?
   contractFile     Bytes?
+  checklistWaivedAt DateTime?
   lostAt         DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt

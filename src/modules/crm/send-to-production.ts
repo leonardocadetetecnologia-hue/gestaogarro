@@ -6,6 +6,8 @@ import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
 import { dateKey, endOfSaoPauloDay } from "@/modules/agenda/business-days";
 import { holidayKeys, projectDeliveryDate, syncServiceSchedule } from "@/modules/agenda/service-schedule";
+import { contractChecklist, sendBlockedMessage } from "@/modules/crm/contract-checklist";
+import { refreshContractReminder } from "@/modules/crm/registration-reminder";
 import { canAccessOpportunity } from "@/modules/crm/visibility";
 import { prisma } from "@/lib/prisma";
 
@@ -41,7 +43,10 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
     if (opportunity.stage !== "CONTRATO" || opportunity.outcome === "PERDIDA") {
       throw new CrmFlowError("O envio para produção sai do estágio Contrato.");
     }
-    if (opportunity.sale?.demand) return { demandId: opportunity.sale.demand.id, alreadySent: true as const };
+    if (opportunity.sale?.demand) {
+      await refreshContractReminder(tx, opportunity.id);
+      return { demandId: opportunity.sale.demand.id, alreadySent: true as const };
+    }
     if (opportunity.sale && !opportunity.sale.value.equals(amount)) {
       throw new CrmFlowError("O valor informado deve corresponder ao valor da venda já registrada.");
     }
@@ -49,6 +54,14 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
       where: { role: "GESTOR_GARRO", active: true }, select: { id: true },
     });
     const lines = await tx.contractLine.findMany({ where: { opportunityId: opportunity.id } });
+    const gate = contractChecklist({
+      contractSigned: true, waived: true, customer: {},
+      lines: lines.map(line => ({
+        id: line.id, serviceId: line.serviceId, serviceName: line.serviceName, variationName: line.variationName,
+        extra: line.extra, serviceDate: line.serviceDate ? dateKey(line.serviceDate) : "", proposedDays: line.proposedDays, sortOrder: line.sortOrder,
+      })),
+    });
+    if (!gate.canSend) throw new CrmFlowError(sendBlockedMessage);
     const holidays = await holidayKeys(tx);
     const deliveryKey = projectDeliveryDate(lines.map(line => ({
       serviceDate: line.serviceDate ? dateKey(line.serviceDate) : "",
@@ -57,7 +70,8 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
       serviceId: line.serviceId,
     })), holidays);
     const scheduledDue = deliveryKey ? endOfSaoPauloDay(deliveryKey) : null;
-    const due = scheduledDue || new Date(input.due);
+    if (!scheduledDue) throw new CrmFlowError(sendBlockedMessage);
+    const due = scheduledDue;
     const sale = opportunity.sale || await tx.sale.create({
       data: {
         opportunityId: opportunity.id, customerId: opportunity.customerId,
@@ -99,6 +113,7 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
         message: `${opportunity.customer.name} — ${input.title}`, href: `/painel/demanda?id=${demand.id}`,
       })),
     });
+    await refreshContractReminder(tx, opportunity.id);
     return {
       demandId: demand.id, alreadySent: false as const, notice: {
         opportunityId: opportunity.id, saleId: sale.id, demandId: demand.id,

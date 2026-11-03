@@ -1,15 +1,23 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import type { Opportunity } from "@/lib/data";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { Customer, Opportunity } from "@/lib/data";
 import { addBusinessDays } from "@/modules/agenda/business-days";
+import { contractChecklist, optionalDateLineIds } from "@/modules/crm/contract-checklist";
 import { useGarro } from "@/lib/store";
 import { Field } from "./Ui";
 
 type ScheduleLine = { id: string; serviceDate: string; captureTime: string; capturePlace: string; proposedDays: string };
+type Personal = { street: string; addressCity: string; state: string; birthdayName: string; birthday: string };
 
-export function ContractPanel({ opportunity, onDirty, onSaved }: { opportunity: Opportunity; onDirty?: () => void; onSaved?: () => void }) {
-  const { saveContract, saveServiceDates, busy, state, role, transferContract, reload } = useGarro();
+export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
+  opportunity: Opportunity;
+  onDirty?: () => void;
+  onSaved?: () => void;
+  onChecklist?: (status: ReturnType<typeof contractChecklist>) => void;
+}) {
+  const { saveContract, saveServiceDates, saveRegistration, busy, state, role, transferContract, reload } = useGarro();
+  const customer = state.customers.find(item => item.id === opportunity.customerId);
   const holidays = new Set(state.holidays || []);
   const [schedule, setSchedule] = useState<ScheduleLine[]>((opportunity.lines || []).flatMap(line => line.id ? [{
     id: line.id,
@@ -22,7 +30,41 @@ export function ContractPanel({ opportunity, onDirty, onSaved }: { opportunity: 
   const [signedAt, setSignedAt] = useState(opportunity.contractSignedAt ? opportunity.contractSignedAt.slice(0, 10) : "");
   const [fileName, setFileName] = useState(opportunity.contractFileName || "");
   const [message, setMessage] = useState("");
+  const [personal, setPersonal] = useState<Personal>(() => personalFrom(customer));
   const attendants = (state.assignees || []).filter(person => person.role === "ATENDENTE" || person.role === "GESTOR_GARRO");
+  const variationRequired = new Set((state.services || []).filter(service => service.variations.length > 0).map(service => service.id));
+  const lines = (opportunity.lines || []).flatMap(line => {
+    const current = schedule.find(item => item.id === line.id);
+    if (!line.id || !current) return [];
+    const days = current.proposedDays.trim() === "" ? null : Number(current.proposedDays);
+    return [{
+      id: line.id, serviceId: line.serviceId, serviceName: line.serviceName, variationName: line.variationName, extra: line.extra,
+      serviceDate: current.serviceDate, proposedDays: days != null && Number.isInteger(days) ? days : null, sortOrder: line.sortOrder,
+    }];
+  });
+  const check = contractChecklist({
+    contractSigned: signed === "sim", waived: opportunity.checklistWaived, lines, customer: {
+      personType: customer?.personType || "PESSOA_FISICA", street: personal.street, addressCity: personal.addressCity, state: personal.state,
+      birthdays: personal.birthdayName && personal.birthday ? [{ name: personal.birthdayName, birthDate: personal.birthday }] : [],
+    }, variationRequired,
+  });
+  const optionalDates = optionalDateLineIds(lines);
+  const savedPersonal = contractChecklist({
+    contractSigned: opportunity.contractSigned, waived: opportunity.checklistWaived, lines: opportunity.lines || [], customer: customer || {}, variationRequired,
+  }).missing.some(item => item.id === "personal");
+  const signedPending = check.pending.some(item => item.id === "signed");
+  const signedIgnored = check.ignored.some(item => item.id === "signed");
+  const personalPending = check.pending.some(item => item.id === "personal");
+  const personalIgnored = check.ignored.some(item => item.id === "personal");
+  const servicesPending = check.pending.some(item => item.id === "services");
+
+  const reported = useRef("");
+  const signature = `${check.canSend}|${check.pending.map(item => item.id).join()}|${check.ignored.map(item => item.id).join()}`;
+  useEffect(() => {
+    if (reported.current === signature) return;
+    reported.current = signature;
+    onChecklist?.(check);
+  }, [check, onChecklist, signature]);
 
   async function upload(file: File) {
     const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -43,52 +85,80 @@ export function ContractPanel({ opportunity, onDirty, onSaved }: { opportunity: 
     if (await saveContract(opportunity.id, { signed: signed === "sim", signedAt })) onSaved?.();
   }
 
+  async function savePersonal() {
+    if (await saveRegistration(opportunity.id, personal)) onSaved?.();
+  }
+
+  const previews = lines.flatMap(line => {
+    const delivery = line.serviceDate && line.proposedDays != null && line.proposedDays >= 0 ? addBusinessDays(line.serviceDate, line.proposedDays, holidays) : "";
+    return [{ id: line.id, delivery }];
+  });
+  const projectDelivery = previews.reduce((max, item) => item.delivery > max ? item.delivery : max, "");
+  let dateAnchor = false;
+  let daysAnchor = false;
+
   return <form className="form-stack contract-panel" onSubmit={(event) => void submit(event)}>
-    <fieldset className="choice-field"><legend>Contrato assinado?</legend><div className="choice-row">
+    <fieldset id="pendencia-signed" className={signedPending ? "choice-field choice-pending" : "choice-field"}><legend>Contrato assinado?</legend><div className="choice-row">
       <button type="button" className="button secondary" aria-pressed={signed === "nao"} onClick={() => { setSigned("nao"); onDirty?.(); }}>Não</button>
       <button type="button" className="button secondary" aria-pressed={signed === "sim"} onClick={() => { setSigned("sim"); onDirty?.(); }}>Sim</button>
-    </div></fieldset>
+    </div>{signedPending && <small className="field-pending-note">Pendente</small>}{signedIgnored && <small className="field-ignored-note">ignorado pela gestora</small>}</fieldset>
     {signed === "sim" && <Field label="Data de assinatura *"><input type="date" required value={signedAt} onChange={(event) => { setSignedAt(event.target.value); onDirty?.(); }} /></Field>}
     <Field label="Anexo do contrato"><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) { onDirty?.(); void upload(file); } }} /></Field>
     {fileName && <p className="service-note">Anexo: {fileName}</p>}
-    {opportunity.contractPending && <p className="form-error">Pendente: falta a assinatura ou o anexo.</p>}
     {message && <p className="service-note">{message}</p>}
+    {savedPersonal && <fieldset id="pendencia-personal" className={personalPending ? "choice-field choice-pending" : "choice-field"}>
+      <legend>Informações pessoais</legend>
+      <div className="form-grid">
+        <Field label="Logradouro" pending={personalPending}><input value={personal.street} onChange={(event) => { setPersonal({ ...personal, street: event.target.value }); onDirty?.(); }} /></Field>
+        <Field label="Cidade" pending={personalPending}><input value={personal.addressCity} onChange={(event) => { setPersonal({ ...personal, addressCity: event.target.value }); onDirty?.(); }} /></Field>
+        <Field label="UF" pending={personalPending}><input maxLength={2} value={personal.state} onChange={(event) => { setPersonal({ ...personal, state: event.target.value }); onDirty?.(); }} /></Field>
+        <Field label="Aniversariante" pending={personalPending}><input value={personal.birthdayName} onChange={(event) => { setPersonal({ ...personal, birthdayName: event.target.value }); onDirty?.(); }} /></Field>
+        <Field label="Data de nascimento" pending={personalPending}><input type="date" value={personal.birthday} max="9999-12-31" onChange={(event) => { setPersonal({ ...personal, birthday: event.target.value }); onDirty?.(); }} /></Field>
+      </div>
+      {personalIgnored && <small className="field-ignored-note">ignorado pela gestora</small>}
+      <button className="button secondary small" type="button" disabled={busy} onClick={() => void savePersonal()}>Salvar cadastro</button>
+    </fieldset>}
     {role === "GESTOR_GARRO" && <Field label="Atendente responsável"><select value={opportunity.responsibleId || ""} onChange={(event) => void transferContract(opportunity.id, event.target.value)}>
       {attendants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
     </select></Field>}
-    {(opportunity.lines || []).length > 0 && <div className="service-dates">{(() => {
-      const previews = (opportunity.lines || []).flatMap(line => {
+    <div className="service-dates" id="pendencia-services">
+      {servicesPending && <p className="field-pending-note">Pendente: escolha o serviço e a variação no fechamento.</p>}
+      {check.ignored.some(item => item.id === "services") && <p className="field-ignored-note">Serviço e variação: ignorado pela gestora</p>}
+      {lines.map(line => {
         const current = schedule.find(item => item.id === line.id);
-        if (!current) return [];
-        const days = current.proposedDays.trim() === "" ? null : Number(current.proposedDays);
-        const delivery = current.serviceDate && days != null && Number.isInteger(days) && days >= 0 ? addBusinessDays(current.serviceDate, days, holidays) : "";
-        return [{ id: line.id, delivery }];
-      });
-      const projectDelivery = previews.reduce((max, item) => item.delivery > max ? item.delivery : max, "");
-      const several = previews.filter(item => item.delivery).length > 1;
-      return <>{opportunity.lines?.map(line => {
-      const current = schedule.find(item => item.id === line.id);
-      if (!current) return null;
-      const delivery = previews.find(item => item.id === line.id)?.delivery || "";
-      return <fieldset className="choice-field" key={line.id}>
-        <legend>{line.extra ? "Extra · " : ""}{line.serviceName}{line.variationName ? ` · ${line.variationName}` : ""}</legend>
-        <div className="form-grid">
-          <Field label="Data do serviço *"><input type="date" value={current.serviceDate} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, serviceDate: event.target.value } : item)); onDirty?.(); }} /></Field>
-          <Field label="Prazo proposto (dias úteis) *"><input type="number" min={0} step={1} value={current.proposedDays} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, proposedDays: event.target.value } : item)); onDirty?.(); }} /></Field>
-          <Field label="Horário da captação"><input type="time" value={current.captureTime} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, captureTime: event.target.value } : item)); onDirty?.(); }} /></Field>
-          <Field label="Local da captação"><input value={current.capturePlace} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, capturePlace: event.target.value } : item)); onDirty?.(); }} /></Field>
-        </div>
-        {delivery && <p className="service-note">Prazo deste serviço: {delivery.split("-").reverse().join("/")}.</p>}
-      </fieldset>;
-    })}
-    {projectDelivery && <p className="service-note">Entrega ao cliente do projeto: {projectDelivery.split("-").reverse().join("/")}{several ? ", a data mais tarde" : ""}. Entra uma vez na agenda, no filtro Entregas.</p>}
-    </>;
-    })()}
-    <button className="button secondary" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
-      ...line,
-      proposedDays: line.proposedDays.trim() === "" ? null : Number(line.proposedDays),
-    }))).then(saved => { if (saved) onSaved?.(); })}>Salvar datas do serviço</button>
-    </div>}
+        if (!current) return null;
+        const source = (opportunity.lines || []).find(item => item.id === line.id);
+        const delivery = previews.find(item => item.id === line.id)?.delivery || "";
+        const dateOptional = optionalDates.has(line.id);
+        const datePending = !dateOptional && !current.serviceDate;
+        const daysPending = current.proposedDays.trim() === "" || !Number.isInteger(Number(current.proposedDays)) || Number(current.proposedDays) < 0;
+        const dateId = datePending && !dateAnchor ? (dateAnchor = true, "pendencia-serviceDate") : undefined;
+        const daysId = daysPending && !daysAnchor ? (daysAnchor = true, "pendencia-proposedDays") : undefined;
+        return <fieldset className="choice-field" key={line.id}>
+          <legend>{source?.extra ? "Extra · " : ""}{source?.serviceName}{source?.variationName ? ` · ${source.variationName}` : ""}</legend>
+          <div className="form-grid">
+            <Field label={dateOptional ? "Data do serviço" : "Data do serviço *"} pending={datePending} id={dateId} note={dateOptional && !current.serviceDate ? "A definir" : undefined}><input type="date" value={current.serviceDate} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, serviceDate: event.target.value } : item)); onDirty?.(); }} /></Field>
+            <Field label="Prazo proposto (dias úteis) *" pending={daysPending} id={daysId}><input type="number" min={0} step={1} value={current.proposedDays} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, proposedDays: event.target.value } : item)); onDirty?.(); }} /></Field>
+            <Field label="Horário da captação"><input type="time" value={current.captureTime} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, captureTime: event.target.value } : item)); onDirty?.(); }} /></Field>
+            <Field label="Local da captação"><input value={current.capturePlace} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, capturePlace: event.target.value } : item)); onDirty?.(); }} /></Field>
+          </div>
+          {delivery && <p className="service-note">Prazo deste serviço: {delivery.split("-").reverse().join("/")}.</p>}
+        </fieldset>;
+      })}
+      {projectDelivery && <p className="service-note">Entrega ao cliente do projeto: {projectDelivery.split("-").reverse().join("/")}{previews.filter(item => item.delivery).length > 1 ? ", a data mais tarde" : ""}. Entra uma vez na agenda, no filtro Entregas.</p>}
+      {lines.length > 0 && <button className="button secondary" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
+        ...line,
+        proposedDays: line.proposedDays.trim() === "" ? null : Number(line.proposedDays),
+      }))).then(saved => { if (saved) onSaved?.(); })}>Salvar datas do serviço</button>}
+    </div>
     <button className="button primary" disabled={busy}>Salvar contrato</button>
   </form>;
+}
+
+function personalFrom(customer?: Customer): Personal {
+  const birthday = customer?.birthdays?.[0];
+  return {
+    street: customer?.street || "", addressCity: customer?.addressCity || "", state: customer?.state || "",
+    birthdayName: birthday?.name || customer?.name || "", birthday: birthday?.birthDate || customer?.birthDate || "",
+  };
 }
