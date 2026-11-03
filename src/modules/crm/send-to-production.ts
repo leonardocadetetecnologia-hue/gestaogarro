@@ -4,8 +4,8 @@ import type { SessionUser } from "@/lib/auth";
 import { demandMediaTypeSchema } from "@/lib/demand-media-type";
 import { publishProductionRequested } from "@/lib/integration-feed";
 import { can } from "@/lib/rbac";
-import { addBusinessDays, dateKey, endOfSaoPauloDay } from "@/modules/agenda/business-days";
-import { holidayKeys, syncServiceSchedule } from "@/modules/agenda/service-schedule";
+import { dateKey, endOfSaoPauloDay } from "@/modules/agenda/business-days";
+import { holidayKeys, projectDeliveryDate, syncServiceSchedule } from "@/modules/agenda/service-schedule";
 import { canAccessOpportunity } from "@/modules/crm/visibility";
 import { prisma } from "@/lib/prisma";
 
@@ -50,8 +50,13 @@ export async function sendToProduction(user: SessionUser, rawInput: unknown) {
     });
     const lines = await tx.contractLine.findMany({ where: { opportunityId: opportunity.id } });
     const holidays = await holidayKeys(tx);
-    const deliveries = lines.flatMap(line => line.serviceDate && line.proposedDays != null ? [addBusinessDays(dateKey(line.serviceDate), line.proposedDays, holidays)] : []);
-    const scheduledDue = deliveries.length ? endOfSaoPauloDay(deliveries.reduce((max, key) => key > max ? key : max, "")) : null;
+    const deliveryKey = projectDeliveryDate(lines.map(line => ({
+      serviceDate: line.serviceDate ? dateKey(line.serviceDate) : "",
+      proposedDays: line.proposedDays,
+      extra: line.extra,
+      serviceId: line.serviceId,
+    })), holidays);
+    const scheduledDue = deliveryKey ? endOfSaoPauloDay(deliveryKey) : null;
     const due = scheduledDue || new Date(input.due);
     const sale = opportunity.sale || await tx.sale.create({
       data: {

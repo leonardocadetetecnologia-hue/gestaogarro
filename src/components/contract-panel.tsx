@@ -56,11 +56,20 @@ export function ContractPanel({ opportunity, onDirty, onSaved }: { opportunity: 
     {role === "GESTOR_GARRO" && <Field label="Atendente responsável"><select value={opportunity.responsibleId || ""} onChange={(event) => void transferContract(opportunity.id, event.target.value)}>
       {attendants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
     </select></Field>}
-    {(opportunity.lines || []).length > 0 && <div className="service-dates">{opportunity.lines?.map(line => {
+    {(opportunity.lines || []).length > 0 && <div className="service-dates">{(() => {
+      const previews = (opportunity.lines || []).flatMap(line => {
+        const current = schedule.find(item => item.id === line.id);
+        if (!current) return [];
+        const days = current.proposedDays.trim() === "" ? null : Number(current.proposedDays);
+        const delivery = current.serviceDate && days != null && Number.isInteger(days) && days >= 0 ? addBusinessDays(current.serviceDate, days, holidays) : "";
+        return [{ id: line.id, delivery }];
+      });
+      const projectDelivery = previews.reduce((max, item) => item.delivery > max ? item.delivery : max, "");
+      const several = previews.filter(item => item.delivery).length > 1;
+      return <>{opportunity.lines?.map(line => {
       const current = schedule.find(item => item.id === line.id);
       if (!current) return null;
-      const days = current.proposedDays.trim() === "" ? null : Number(current.proposedDays);
-      const delivery = current.serviceDate && days != null && Number.isInteger(days) && days >= 0 ? addBusinessDays(current.serviceDate, days, holidays) : "";
+      const delivery = previews.find(item => item.id === line.id)?.delivery || "";
       return <fieldset className="choice-field" key={line.id}>
         <legend>{line.extra ? "Extra · " : ""}{line.serviceName}{line.variationName ? ` · ${line.variationName}` : ""}</legend>
         <div className="form-grid">
@@ -69,9 +78,12 @@ export function ContractPanel({ opportunity, onDirty, onSaved }: { opportunity: 
           <Field label="Horário da captação"><input type="time" value={current.captureTime} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, captureTime: event.target.value } : item)); onDirty?.(); }} /></Field>
           <Field label="Local da captação"><input value={current.capturePlace} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, capturePlace: event.target.value } : item)); onDirty?.(); }} /></Field>
         </div>
-        {delivery && <p className="service-note">Entrega final: {delivery.split("-").reverse().join("/")}. Entra na agenda e na entrega ao cliente.</p>}
+        {delivery && <p className="service-note">Prazo deste serviço: {delivery.split("-").reverse().join("/")}.</p>}
       </fieldset>;
     })}
+    {projectDelivery && <p className="service-note">Entrega ao cliente do projeto: {projectDelivery.split("-").reverse().join("/")}{several ? ", a data mais tarde" : ""}. Entra uma vez na agenda, no filtro Entregas.</p>}
+    </>;
+    })()}
     <button className="button secondary" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
       ...line,
       proposedDays: line.proposedDays.trim() === "" ? null : Number(line.proposedDays),

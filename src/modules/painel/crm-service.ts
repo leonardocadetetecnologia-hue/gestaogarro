@@ -10,7 +10,7 @@ import { publishSaleClosed } from "@/lib/integration-feed";
 import { formatSaoPaulo } from "@/lib/deadlines";
 import { readBirthDate } from "@/lib/birthdays";
 import { FUTURE_CONTACT_ACTION, isContactDayAllowed } from "@/modules/crm/future-contact";
-import { syncServiceSchedule } from "@/modules/agenda/service-schedule";
+import { serviceScheduleChanged, syncServiceSchedule } from "@/modules/agenda/service-schedule";
 import { lossMotives } from "@/modules/crm/loss-motives";
 import { CrmFlowError, productionSubmissionSchema, sendToProduction } from "@/modules/crm/send-to-production";
 
@@ -186,7 +186,7 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
       const saved = await tx.contractLine.findMany({ where: { opportunityId: current.id } });
       await syncServiceSchedule(tx, {
         id: current.id, responsibleId: current.responsibleId, customerName: current.customer.name, demandId: current.sale?.demand?.id,
-      }, saved);
+      }, saved, "", { keepDelivery: !serviceScheduleChanged(rows, input.lines) });
       await tx.auditLog.create({ data: { userId: user.id, action: "SERVICE_DATES_SAVED", entityType: "Opportunity", entityId: current.id } });
       return;
     }

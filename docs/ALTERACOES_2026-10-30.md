@@ -4,7 +4,7 @@
 
 O que muda: no card do contrato, cada serviço ganha a data, o horário e o local da captação, e o prazo em dias úteis. O prazo já vem com o padrão do serviço e pode ser 0. A agenda recebe a captação e uma ENTREGA FINAL. Essa data é a Entrega ao cliente do projeto, a mesma linha Cliente do quadro.
 
-Como: a conta pula sábado, domingo e feriado da lista da agenda. Um ensaio em 03/11 com 10 dias úteis fica para 17/11. Com a seleção enviada, a linha Cliente mostra Prazo pausado. Na volta, a data confirmada recomeça a conta: 12/11 mais 10 dias úteis, sem o feriado de 20/11, cai em 27/11. Remarcar o serviço ou a Gestora editar a entrega também atualiza a data. Nas outras etapas o prazo não pausa.
+Como: a conta pula sábado, domingo e feriado da lista da agenda. Um ensaio em 03/11 com 10 dias úteis fica para 17/11. Com a seleção enviada, a linha Cliente mostra Prazo pausado. Na volta, a data confirmada recomeça a conta: 12/11 mais 10 dias úteis, sem o feriado de 20/11, cai em 27/11. Remarcar o serviço ou a Gestora editar a entrega também atualiza a data. Nas outras etapas o prazo não pausa. Se o contrato tem mais de um serviço, a agenda guarda uma ENTREGA FINAL, na data mais tarde. Salvar só horário ou local não recalcula. Na volta da seleção, só o serviço com seleção de fotos recomeça.
 
 ## CRM comercial
 
