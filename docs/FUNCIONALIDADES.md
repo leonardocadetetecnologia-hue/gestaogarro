@@ -53,9 +53,7 @@ Gestora e Atendente podem definir ou editar o valor de uma oportunidade pelo bot
 
 O menu Serviços fica para a Gestora e para a atendente, abaixo de Clientes e leads. O editor não abre a página. A tabela traz o catálogo que está à venda: nome, categoria, descrição, variações, preço de referência e prazos. A Gestora também vê o custo padrão. A atendente não vê esse custo e não consegue gravá-lo.
 
-A Gestora adiciona, edita, arquiva, desarquiva e exclui. Arquivar tira o serviço das próximas escolhas e mantém o histórico; dá para desarquivar. Excluir só vale para um serviço que nunca foi usado. Se já houve uso, o sistema recusa e indica arquivar. Serviço sem preço pode continuar ativo. Serviço extra não tem preço no catálogo: entra somado a um serviço principal e o valor é informado no fechamento.
-
-A atendente propõe inclusão, edição, arquivamento, desarquivamento ou exclusão. A proposta fica pendente, com o antes e o depois, e o catálogo segue na versão atual. A Gestora autoriza ou recusa, com um comentário opcional. As duas recebem o aviso. Cada mudança fica no log, com quem propôs e quem decidiu. Mudar o catálogo não reescreve projeto nem contrato já fechado.
+Só a Gestora adiciona, edita, arquiva, desarquiva e exclui. A atendente vê a página só para consulta e pode abrir o PDF. O editor não vê o menu. Arquivar tira o serviço das próximas escolhas e mantém o histórico; dá para desarquivar. Excluir só vale para um serviço que nunca foi usado. Se já houve uso, o sistema recusa e indica arquivar. Serviço sem preço pode continuar ativo. Serviço extra não tem preço no catálogo: entra somado a um serviço principal e o valor é informado no fechamento. Cada mudança da Gestora fica no log. Mudar o catálogo não reescreve projeto nem contrato já fechado.
 
 O PDF de cada serviço abre a ficha da Garro para salvar pela impressão. A ficha não leva o custo. Em Eventos, a página e a ficha mostram o desconto progressivo, que vale só depois das duas primeiras horas.
 

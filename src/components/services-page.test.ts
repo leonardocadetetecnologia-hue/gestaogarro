@@ -30,27 +30,26 @@ vi.mock("@/lib/store", () => ({ useGarro: () => ({
 import { ServicesPage } from "./services-page";
 
 describe("página de serviços", () => {
-  it("mostra custo e autorização para a Gestora", () => {
+  it("mostra custo e edição para a Gestora", () => {
     session.role = "GESTOR_GARRO";
     const html = renderToStaticMarkup(createElement(ServicesPage));
     expect(html).toContain("Novo serviço");
     expect(html).toContain(">Custo<");
-    expect(html).toContain("Alteração pendente");
-    expect(html).toContain("Autorizar");
-    expect(html).toContain("Plano Expansão");
+    expect(html).toContain(">Editar<");
+    expect(html).not.toContain("Autorizar");
     expect(html).toContain("−10%");
     expect(html).toContain(">PDF<");
   });
 
-  it("esconde o custo da atendente e troca a edição por proposta", () => {
+  it("deixa a atendente só consultar", () => {
     session.role = "ATENDENTE";
     const html = renderToStaticMarkup(createElement(ServicesPage));
-    expect(html).toContain("Propor serviço");
-    expect(html).toContain("Propor alteração");
+    expect(html).toContain("Só a Gestora altera");
+    expect(html).toContain(">PDF<");
+    expect(html).not.toContain("Novo serviço");
+    expect(html).not.toContain(">Editar<");
     expect(html).not.toContain(">Custo<");
-    expect(html).not.toContain("R$ 800,00");
-    expect(html).not.toContain("Autorizar");
-    expect(html).toContain("Aguardando a Gestora");
+    expect(html).not.toContain("R$\u00a0800,00");
   });
 
   it("nega a página ao editor", () => {

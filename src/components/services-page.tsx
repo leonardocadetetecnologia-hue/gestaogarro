@@ -2,14 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import type { CatalogService } from "@/lib/data";
-import { dateFull } from "@/lib/data";
 import { useGarro } from "@/lib/store";
 import {
   categoryLabel, deliveryLabel, eventHourDiscount, moneyLabel, priceTypeLabel, recurrenceLabel,
   serviceCategories, servicePriceTypes, serviceRecurrences,
   type ServiceCategory, type ServicePriceType, type ServiceRecurrence, type ServiceSnapshot, type ServiceVariationInput,
 } from "@/modules/services/model";
-import { Badge, Empty, Field, Modal, ViewTitle } from "./Ui";
+import { Empty, Field, Modal, ViewTitle } from "./Ui";
 
 type Draft = {
   name: string;
@@ -98,16 +97,14 @@ function priceOf(service: CatalogService) {
 }
 
 export function ServicesPage() {
-  const { state, role, busy, saveService, archiveService, restoreService, removeService, reviewServiceProposal } = useGarro();
+  const { state, role, busy, saveService, archiveService, restoreService, removeService } = useGarro();
   const manager = role === "GESTOR_GARRO";
   const attendant = role === "ATENDENTE";
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingId, setEditingId] = useState("");
   const [formError, setFormError] = useState("");
-  const [notes, setNotes] = useState<Record<string, string>>({});
   const [ask, setAsk] = useState<{ id: string; name: string; kind: "archive" | "restore" | "remove" } | null>(null);
   const services = state.services || [];
-  const proposals = state.serviceProposals || [];
   if (!manager && !attendant) return <div className="workspace"><Empty text="Os serviços são do comercial." /></div>;
 
   function openForm(service?: CatalogService) {
@@ -132,28 +129,7 @@ export function ServicesPage() {
   const archived = services.filter((item) => item.status === "ARQUIVADO");
 
   return <div className="workspace">
-    <ViewTitle eyebrow="CATÁLOGO" title="Serviços" description={manager ? "A Gestora cadastra, corrige, arquiva e gera o PDF de cada serviço." : "A tabela mostra o que está à venda. Uma alteração só entra depois da autorização da Gestora."} actions={<button className="button primary" type="button" onClick={() => openForm()}>{manager ? "Novo serviço" : "Propor serviço"}</button>} />
-    {proposals.length > 0 && <section className="service-proposals">
-      <h2>{manager ? "Alterações pendentes" : "Suas propostas"}</h2>
-      {proposals.map((proposal) => <article key={proposal.id} className="proposal-card">
-        <header>
-          <strong>{proposal.serviceName}</strong>
-          <Badge kind="attention">{proposal.actionLabel}</Badge>
-          <span>{proposal.authorName} · {dateFull(proposal.createdAt)}</span>
-        </header>
-        <table>
-          <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
-          <tbody>{proposal.changes.map((change) => <tr key={change.field}><td>{change.field}</td><td>{change.before}</td><td>{change.after}</td></tr>)}</tbody>
-        </table>
-        {manager ? <form className="proposal-review" onSubmit={(event) => { event.preventDefault(); void reviewServiceProposal(proposal.id, "autorizar", notes[proposal.id] || ""); }}>
-          <Field label="Comentário para a atendente"><input value={notes[proposal.id] || ""} onChange={(event) => setNotes({ ...notes, [proposal.id]: event.target.value })} placeholder="Opcional na recusa" /></Field>
-          <div className="service-actions">
-            <button className="button primary" type="submit" disabled={busy}>Autorizar</button>
-            <button className="button secondary" type="button" disabled={busy} onClick={() => void reviewServiceProposal(proposal.id, "recusar", notes[proposal.id] || "")}>Recusar</button>
-          </div>
-        </form> : <p>Aguardando a Gestora. O catálogo continua na versão atual.</p>}
-      </article>)}
-    </section>}
+    <ViewTitle eyebrow="CATÁLOGO" title="Serviços" description={manager ? "A Gestora cadastra, corrige, arquiva e gera o PDF de cada serviço." : "Consulta do catálogo. Só a Gestora altera os serviços."} actions={manager ? <button className="button primary" type="button" onClick={() => openForm()}>Novo serviço</button> : undefined} />
     {active.length === 0 && <Empty text="Nenhum serviço ativo no catálogo." />}
     <div className="service-groups">
       {active.map((group) => <section key={group.category}>
@@ -171,19 +147,19 @@ export function ServicesPage() {
       <p className="service-note">Ficam fora das novas seleções. Projetos e contratos que já usaram o serviço continuam iguais.</p>
       <ServiceTable items={archived} manager={manager} busy={busy} archived onEdit={openForm} onAsk={setAsk} />
     </section>}
-    {ask && <Modal title={ask.kind === "remove" ? (manager ? "Excluir serviço" : "Propor exclusão") : ask.kind === "restore" ? (manager ? "Desarquivar serviço" : "Propor desarquivamento") : (manager ? "Arquivar serviço" : "Propor arquivamento")} description={ask.name} onClose={() => setAsk(null)}>
+    {ask && manager && <Modal title={ask.kind === "remove" ? "Excluir serviço" : ask.kind === "restore" ? "Desarquivar serviço" : "Arquivar serviço"} description={ask.name} onClose={() => setAsk(null)}>
       <div className="form-stack">
         <p className="service-note">{ask.kind === "remove" ? "Só sai de vez um serviço que nunca foi usado. Se já houve uso, o caminho é arquivar." : ask.kind === "restore" ? "Ele volta a aparecer nas novas seleções." : "Ele sai das novas seleções. O histórico e o que já foi vendido permanecem."}</p>
         <div className="service-actions">
           <button className="button primary" type="button" disabled={busy} onClick={() => {
             const action = ask.kind === "remove" ? removeService(ask.id) : ask.kind === "restore" ? restoreService(ask.id) : archiveService(ask.id);
             void action.then((saved) => { if (saved) setAsk(null); });
-          }}>{manager ? "Confirmar" : "Enviar para autorização"}</button>
+          }}>Confirmar</button>
           <button className="button secondary" type="button" onClick={() => setAsk(null)}>Cancelar</button>
         </div>
       </div>
     </Modal>}
-    {draft && <Modal title={editingId ? (manager ? "Editar serviço" : "Propor alteração") : (manager ? "Novo serviço" : "Propor serviço")} description={attendant ? "A proposta fica pendente até a Gestora autorizar." : undefined} onClose={() => setDraft(null)} width="760px">
+    {draft && manager && <Modal title={editingId ? "Editar serviço" : "Novo serviço"} onClose={() => setDraft(null)} width="760px">
       <form className="form-stack" onSubmit={(event) => void submit(event)}>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         <div className="form-grid">
@@ -216,7 +192,7 @@ export function ServicesPage() {
           </div>)}
         </div>
         <div className="service-actions">
-          <button className="button primary" type="submit" disabled={busy}>{manager ? "Salvar" : "Enviar para autorização"}</button>
+          <button className="button primary" type="submit" disabled={busy}>Salvar</button>
           <button className="button secondary" type="button" onClick={() => setDraft(null)}>Cancelar</button>
         </div>
       </form>
@@ -237,17 +213,17 @@ function ServiceTable({ items, manager, busy, archived = false, onEdit, onAsk }:
       <th>Serviço</th><th>O que inclui</th><th>Preço</th><th>Prazo</th>{manager && <th>Custo</th>}<th>Ações</th>
     </tr></thead>
     <tbody>{items.map((service) => <tr key={service.id}>
-      <td><strong>{service.name}</strong>{service.pending && <Badge kind="attention">Alteração pendente</Badge>}{service.priceType !== "FECHADO" && <small>{priceTypeLabel[service.priceType]}</small>}{service.category === "PLANOS" && <small>{recurrenceLabel[service.recurrence]}{service.recurrenceDate ? ` · ${service.recurrenceDate}` : ""}</small>}</td>
+      <td><strong>{service.name}</strong>{service.priceType !== "FECHADO" && <small>{priceTypeLabel[service.priceType]}</small>}{service.category === "PLANOS" && <small>{recurrenceLabel[service.recurrence]}{service.recurrenceDate ? ` · ${service.recurrenceDate}` : ""}</small>}</td>
       <td>{service.description || "—"}{service.hasSelection && <small>Seleção em {service.selectionDays ?? 7} dias</small>}</td>
       <td className="service-price">{priceOf(service)}</td>
       <td>{deliveryLabel(service.deliveryDays)}</td>
       {manager && <td>{moneyLabel(service.standardCost)}</td>}
       <td><div className="service-actions">
         <button className="button secondary small" type="button" onClick={() => openSheet(service.id)}>PDF</button>
-        {!service.pending && <button className="button secondary small" type="button" disabled={busy} onClick={() => onEdit(service)}>{manager ? "Editar" : "Propor alteração"}</button>}
-        {!service.pending && !archived && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "archive" })}>{manager ? "Arquivar" : "Propor arquivamento"}</button>}
-        {!service.pending && archived && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "restore" })}>{manager ? "Desarquivar" : "Propor desarquivamento"}</button>}
-        {!service.pending && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "remove" })}>{manager ? "Excluir" : "Propor exclusão"}</button>}
+        {manager && <button className="button secondary small" type="button" disabled={busy} onClick={() => onEdit(service)}>Editar</button>}
+        {manager && !archived && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "archive" })}>Arquivar</button>}
+        {manager && archived && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "restore" })}>Desarquivar</button>}
+        {manager && <button className="button secondary small" type="button" disabled={busy} onClick={() => onAsk({ id: service.id, name: service.name, kind: "remove" })}>Excluir</button>}
       </div></td>
     </tr>)}</tbody>
   </table></div></div>;

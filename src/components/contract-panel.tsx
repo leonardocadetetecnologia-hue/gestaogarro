@@ -100,15 +100,19 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
   let daysAnchor = false;
 
   return <form className="form-stack contract-panel" onSubmit={(event) => void submit(event)}>
+    <section className="contract-block">
+    <h3>Contrato</h3>
     <fieldset id="pendencia-signed" className={signedPending ? "choice-field choice-pending" : "choice-field"}><legend>Contrato assinado?</legend><div className="choice-row">
-      <button type="button" className="button secondary" aria-pressed={signed === "nao"} onClick={() => { setSigned("nao"); onDirty?.(); }}>Não</button>
-      <button type="button" className="button secondary" aria-pressed={signed === "sim"} onClick={() => { setSigned("sim"); onDirty?.(); }}>Sim</button>
+      <button type="button" className="button secondary small" aria-pressed={signed === "nao"} onClick={() => { setSigned("nao"); onDirty?.(); }}>Não</button>
+      <button type="button" className="button secondary small" aria-pressed={signed === "sim"} onClick={() => { setSigned("sim"); onDirty?.(); }}>Sim</button>
     </div>{signedPending && <small className="field-pending-note">Pendente</small>}{signedIgnored && <small className="field-ignored-note">ignorado pela gestora</small>}</fieldset>
-    {signed === "sim" && <Field label="Data de assinatura *"><input type="date" required value={signedAt} onChange={(event) => { setSignedAt(event.target.value); onDirty?.(); }} /></Field>}
+    {signed === "sim" && <div className="loss-date"><Field label="Data de assinatura *"><input type="date" required value={signedAt} onChange={(event) => { setSignedAt(event.target.value); onDirty?.(); }} /></Field></div>}
     <Field label="Anexo do contrato"><input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) { onDirty?.(); void upload(file); } }} /></Field>
     {fileName && <p className="service-note">Anexo: {fileName}</p>}
     {message && <p className="service-note">{message}</p>}
-    {savedPersonal && <fieldset id="pendencia-personal" className={personalPending ? "choice-field choice-pending" : "choice-field"}>
+    <div className="contract-actions"><button className="button primary small" disabled={busy}>Salvar contrato</button></div>
+    </section>
+    {savedPersonal && <fieldset id="pendencia-personal" className={personalPending ? "choice-field choice-pending contract-block" : "choice-field contract-block"}>
       <legend>Informações pessoais</legend>
       <div className="compact-address">
         <Field label="Endereço" pending={personalPending}><input value={personal.street} onChange={(event) => { setPersonal({ ...personal, street: event.target.value }); onDirty?.(); }} /></Field>
@@ -125,7 +129,8 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
     {role === "GESTOR_GARRO" && <Field label="Atendente responsável"><select value={opportunity.responsibleId || ""} onChange={(event) => void transferContract(opportunity.id, event.target.value)}>
       {attendants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
     </select></Field>}
-    <div className="service-dates" id="pendencia-services">
+    <section className="contract-block service-dates" id="pendencia-services">
+      <h3>Serviços</h3>
       {servicesPending && <p className="field-pending-note">Pendente: escolha o serviço no fechamento.</p>}
       {check.ignored.some(item => item.id === "services") && <p className="field-ignored-note">Serviço: ignorado pela gestora</p>}
       {lines.map(line => {
@@ -140,7 +145,7 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
         const daysId = daysPending && !daysAnchor ? (daysAnchor = true, "pendencia-proposedDays") : undefined;
         return <fieldset className="choice-field" key={line.id}>
           <legend>{source?.extra ? "Extra · " : ""}{source?.serviceName}{source?.variationName ? ` · ${source.variationName}` : ""}</legend>
-          <div className="form-grid">
+          <div className="contract-service-grid">
             <Field label={dateOptional ? "Data do serviço" : "Data do serviço *"} pending={datePending} id={dateId} note={dateOptional && !current.serviceDate ? "A definir" : undefined}><input type="date" value={current.serviceDate} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, serviceDate: event.target.value } : item)); onDirty?.(); }} /></Field>
             <Field label="Prazo proposto (dias úteis) *" pending={daysPending} id={daysId}><input type="number" min={0} step={1} value={current.proposedDays} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, proposedDays: event.target.value } : item)); onDirty?.(); }} /></Field>
             <Field label="Horário da captação"><input type="time" value={current.captureTime} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, captureTime: event.target.value } : item)); onDirty?.(); }} /></Field>
@@ -150,12 +155,11 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
         </fieldset>;
       })}
       {projectDelivery && <p className="service-note">Entrega ao cliente do projeto: {projectDelivery.split("-").reverse().join("/")}{previews.filter(item => item.delivery).length > 1 ? ", a data mais tarde" : ""}. Entra uma vez na agenda, no filtro Entregas.</p>}
-      {lines.length > 0 && <button className="button secondary" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
+      {lines.length > 0 && <div className="contract-actions"><button className="button secondary small" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
         ...line,
         proposedDays: line.proposedDays.trim() === "" ? null : Number(line.proposedDays),
-      }))).then(saved => { if (saved) onSaved?.(); })}>Salvar datas do serviço</button>}
-    </div>
-    <button className="button primary" disabled={busy}>Salvar contrato</button>
+      }))).then(saved => { if (saved) onSaved?.(); })}>Salvar datas</button></div>}
+    </section>
   </form>;
 }
 

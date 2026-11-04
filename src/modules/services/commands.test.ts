@@ -43,23 +43,17 @@ beforeEach(() => {
 });
 
 describe("alteração de serviço", () => {
-  it("a Gestora grava direto e a atendente só deixa a proposta pendente", async () => {
+  it("a Gestora grava direto e a atendente não altera o catálogo", async () => {
     await saveService(gestora, "", snapshot, true);
     expect(tx.service.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: "Pacote novo", standardCost: 400 }) }));
     expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "SERVICE_CREATED" }) }));
 
-    await saveService(atendente, "", { ...snapshot, standardCost: null }, false);
-    expect(tx.serviceProposal.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ action: "CRIAR", authorId: "ana", payload: expect.objectContaining({ includeCost: false }) }),
-    }));
-    expect(tx.notification.createMany).toHaveBeenCalled();
+    await expect(saveService(atendente, "", { ...snapshot, standardCost: null }, false)).rejects.toThrow(/Gestora/);
+    expect(tx.serviceProposal.create).not.toHaveBeenCalled();
     expect(tx.service.create).toHaveBeenCalledTimes(1);
   });
 
-  it("não aceita outra proposta enquanto a anterior espera, nem apaga serviço já usado", async () => {
-    tx.serviceProposal.count.mockResolvedValue(1);
-    await expect(saveService(gestora, "srv", snapshot, true)).rejects.toThrow(/pendente/);
-    tx.serviceProposal.count.mockResolvedValue(0);
+  it("não apaga serviço já usado", async () => {
     tx.serviceUsage.count.mockResolvedValue(2);
     await expect(removeService(gestora, "srv")).rejects.toThrow(/Arquive/);
     expect(tx.service.delete).not.toHaveBeenCalled();
@@ -83,11 +77,11 @@ describe("alteração de serviço", () => {
     expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "SERVICE_PROPOSAL_REFUSED", details: expect.objectContaining({ authorId: "ana" }) }) }));
   });
 
-  it("o editor não mexe no catálogo e arquivar pela atendente não muda o status", async () => {
-    await expect(archiveService(editor, "srv")).rejects.toThrow(/comercial/);
-    await archiveService(atendente, "srv");
+  it("editor e atendente não mudam o catálogo, e a Gestora arquiva direto", async () => {
+    await expect(archiveService(editor, "srv")).rejects.toThrow(/Gestora/);
+    await expect(archiveService(atendente, "srv")).rejects.toThrow(/Gestora/);
     expect(tx.service.update).not.toHaveBeenCalled();
-    expect(tx.serviceProposal.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "ARQUIVAR" }) }));
+    expect(tx.serviceProposal.create).not.toHaveBeenCalled();
     await archiveService(gestora, "srv");
     expect(tx.service.update).toHaveBeenCalledWith({ where: { id: "srv" }, data: { status: "ARQUIVADO" } });
   });

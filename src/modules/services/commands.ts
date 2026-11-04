@@ -1,4 +1,4 @@
-import type { Prisma, ServiceProposalAction } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CrmFlowError } from "@/modules/crm/send-to-production";
@@ -85,11 +85,6 @@ async function assertActiveName(tx: Tx, name: string, exceptId = "") {
   if (clash) throw new CrmFlowError("Já existe um serviço ativo com este nome.");
 }
 
-async function assertNoPending(tx: Tx, serviceId: string) {
-  const pending = await tx.serviceProposal.count({ where: { serviceId, status: "PENDENTE" } });
-  if (pending) throw new CrmFlowError("Há uma alteração pendente neste serviço. Autorize ou recuse antes de mudar de novo.");
-}
-
 async function assertUnused(tx: Tx, serviceId: string) {
   const used = await tx.serviceUsage.count({ where: { serviceId } });
   if (used) throw new CrmFlowError("Este serviço já foi usado. Arquive para tirá-lo das novas seleções.");
@@ -97,34 +92,15 @@ async function assertUnused(tx: Tx, serviceId: string) {
 
 const serviceInclude = { variations: { orderBy: { sortOrder: "asc" as const } } };
 
-async function notifyManagers(tx: Tx, title: string, message: string) {
-  const managers = await tx.user.findMany({ where: { role: "GESTOR_GARRO", active: true }, select: { id: true } });
-  if (managers.length) {
-    await tx.notification.createMany({
-      data: managers.map((manager) => ({ userId: manager.id, type: "SERVICO", title, message, href: "/painel/servicos" })),
-    });
-  }
-}
-
-async function propose(tx: Tx, user: SessionUser, action: ServiceProposalAction, serviceId: string | null, payload: Prisma.InputJsonValue, before: ServiceSnapshot | null) {
-  await tx.serviceProposal.create({
-    data: { serviceId, authorId: user.id, action, payload, before: before ? (before as unknown as Prisma.InputJsonValue) : undefined },
-  });
-  await tx.auditLog.create({
-    data: { userId: user.id, action: "SERVICE_PROPOSED", entityType: "ServiceProposal", entityId: serviceId || user.id, details: { action, name: before?.name || "" } },
-  });
-  await notifyManagers(tx, "Alteração de serviço pendente", `${user.name} propôs: ${proposalActionLabel[action]}.`);
+function assertManager(user: SessionUser) {
+  if (user.role !== "GESTOR_GARRO") throw new CrmFlowError("Somente a Gestora altera o catálogo de serviços.");
 }
 
 export async function saveService(user: SessionUser, serviceId: string, snapshot: ServiceSnapshot, includeCost: boolean) {
-  if (user.role === "EDITOR") throw new CrmFlowError("Os serviços são do comercial.");
+  assertManager(user);
   await prisma.$transaction(async (tx) => {
     if (!serviceId) {
       await assertActiveName(tx, snapshot.name);
-      if (user.role === "ATENDENTE") {
-        await propose(tx, user, "CRIAR", null, { includeCost: false, service: { ...snapshot, standardCost: null } }, null);
-        return;
-      }
       const last = await tx.service.aggregate({ where: { category: snapshot.category }, _max: { sortOrder: true } });
       const created = await tx.service.create({
         data: {
@@ -139,15 +115,8 @@ export async function saveService(user: SessionUser, serviceId: string, snapshot
     }
     const current = await tx.service.findUnique({ where: { id: serviceId }, include: serviceInclude });
     if (!current) throw new CrmFlowError("Serviço não encontrado.");
-    await assertNoPending(tx, current.id);
     await assertActiveName(tx, snapshot.name, current.id);
     const before = snapshotOf(current);
-    if (user.role === "ATENDENTE") {
-      const proposed = { ...snapshot, standardCost: null };
-      if (!serviceChanges(before, proposed, true).length) throw new CrmFlowError("Nada mudou neste serviço.");
-      await propose(tx, user, "EDITAR", current.id, { includeCost: false, service: proposed }, before);
-      return;
-    }
     await tx.service.update({ where: { id: current.id }, data: serviceData(snapshot, includeCost ? snapshot.standardCost : amount(current.standardCost)) });
     await replaceVariations(tx, current.id, snapshot.variations);
     await tx.auditLog.create({
@@ -157,18 +126,13 @@ export async function saveService(user: SessionUser, serviceId: string, snapshot
 }
 
 async function changeStatus(user: SessionUser, serviceId: string, action: "ARQUIVAR" | "DESARQUIVAR") {
-  if (user.role === "EDITOR") throw new CrmFlowError("Os serviços são do comercial.");
+  assertManager(user);
   const next = action === "ARQUIVAR" ? "ARQUIVADO" : "ATIVO";
   await prisma.$transaction(async (tx) => {
     const current = await tx.service.findUnique({ where: { id: serviceId }, include: serviceInclude });
     if (!current) throw new CrmFlowError("Serviço não encontrado.");
     if (current.status === next) return;
-    await assertNoPending(tx, current.id);
     if (next === "ATIVO") await assertActiveName(tx, current.name, current.id);
-    if (user.role === "ATENDENTE") {
-      await propose(tx, user, action, current.id, { status: next }, snapshotOf(current));
-      return;
-    }
     await tx.service.update({ where: { id: current.id }, data: { status: next } });
     await tx.auditLog.create({ data: { userId: user.id, action: next === "ARQUIVADO" ? "SERVICE_ARCHIVED" : "SERVICE_RESTORED", entityType: "Service", entityId: current.id, details: { name: current.name } } });
   });
@@ -178,16 +142,11 @@ export const archiveService = (user: SessionUser, id: string) => changeStatus(us
 export const restoreService = (user: SessionUser, id: string) => changeStatus(user, id, "DESARQUIVAR");
 
 export async function removeService(user: SessionUser, serviceId: string) {
-  if (user.role === "EDITOR") throw new CrmFlowError("Os serviços são do comercial.");
+  assertManager(user);
   await prisma.$transaction(async (tx) => {
     const current = await tx.service.findUnique({ where: { id: serviceId }, include: serviceInclude });
     if (!current) throw new CrmFlowError("Serviço não encontrado.");
-    await assertNoPending(tx, current.id);
     await assertUnused(tx, current.id);
-    if (user.role === "ATENDENTE") {
-      await propose(tx, user, "EXCLUIR", current.id, { deleted: true }, snapshotOf(current));
-      return;
-    }
     await tx.service.delete({ where: { id: current.id } });
     await tx.auditLog.create({ data: { userId: user.id, action: "SERVICE_DELETED", entityType: "Service", entityId: current.id, details: { name: current.name } } });
   });

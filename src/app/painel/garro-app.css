@@ -158,6 +158,19 @@
 .closing-person { display: grid; grid-template-columns: minmax(0, 1fr) 168px auto; gap: 10px; align-items: end; }
 .compact-address { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 72px; gap: 10px 12px; }
 .compact-date { max-width: 220px; }
+.loss-form { min-width: 0; }
+.loss-date { max-width: 220px; min-width: 0; }
+.loss-date input, .field > input[type="date"], .field > input[type="time"], .field > input[type="datetime-local"] { display: block; width: 100%; min-width: 0; max-width: 100%; }
+.contract-panel { width: 100%; min-width: 0; margin-top: 8px; padding: 0 18px 16px; box-sizing: border-box; }
+.crm-card { overflow: hidden; }
+.crm-card .button { max-width: 100%; white-space: normal; }
+.contract-block { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.contract-block h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.contract-actions { display: flex; justify-content: flex-end; }
+.contract-service-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.contract-panel .choice-row .button, .loss-form .choice-row .button { flex: 0 0 auto; min-width: 72px; max-width: 132px; }
+.drawer-bottom .button { flex: 0 1 auto; }
+@media (max-width: 700px) { .contract-service-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .closing-service, .closing-person, .compact-address { grid-template-columns: 1fr; } .closing-span { grid-column: auto; } }
 .kanban-label-editor { display: grid; gap: 8px; margin-top: 18px; }
 .kanban-label-row { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 10px; align-items: center; }
