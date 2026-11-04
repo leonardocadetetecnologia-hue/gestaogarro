@@ -143,33 +143,41 @@
 .demand-detail > .view-title .view-actions { flex-wrap: wrap; }
 .customer-demands { margin-bottom: 16px; padding: 0; overflow: hidden; }
 .customer-demands .customer-demand-list { padding: 0 16px 14px; }
-.choice-field { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: block; }
-.choice-field legend { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-.choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.choice-row .button { flex: 1 1 108px; max-width: 160px; }
-.choice-row .button[aria-pressed="true"] { background: #7e432f; color: #fff; border-color: #7e432f; }
-.closing-form { display: flex; flex-direction: column; gap: 22px; }
+fieldset { min-inline-size: 0; max-width: 100%; }
+.choice-field { border: 0; margin: 0; padding: 0; display: block; background: transparent; }
+.choice-field legend { display: block; font-size: 13px; font-weight: 600; margin: 0 0 8px; padding: 0; }
+.choice-row, .modal-footer, .drawer-bottom, .service-actions, .contract-actions { display: flex; flex-wrap: wrap; align-items: center; }
+.choice-row { gap: 8px; }
+.button { flex-grow: 0; align-self: center; }
+.button.full { width: 100%; max-width: 100%; align-self: stretch; }
+.choice-row .button { flex: 0 0 auto; width: auto; height: 32px; min-height: 32px; padding: 0 14px; }
+.choice-row .button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.choice-row .button[aria-pressed="true"]:hover { background: var(--accent-dark); }
+.closing-form { display: flex; flex-direction: column; gap: 16px; }
 .closing-section { display: flex; flex-direction: column; gap: 10px; }
-.closing-section h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.closing-section h3, .contract-block h3 { margin: 0; font-size: 13px; font-weight: 600; }
 .closing-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.closing-service { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(140px, .8fr); gap: 10px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fffcf9; }
+.closing-service, .closing-person, .compact-address, .contract-service-grid, .form-grid { min-width: 0; }
+.closing-service > *, .closing-person > *, .compact-address > *, .contract-service-grid > *, .form-grid > * { min-width: 0; }
+.closing-service { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(140px, .8fr); gap: 10px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; }
 .closing-span { grid-column: 1 / -1; }
 .closing-service-tools { display: flex; justify-content: flex-end; }
 .closing-person { display: grid; grid-template-columns: minmax(0, 1fr) 168px auto; gap: 10px; align-items: end; }
-.compact-address { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 72px; gap: 10px 12px; }
-.compact-date { max-width: 220px; }
+.compact-address { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 88px; gap: 10px 12px; }
+.compact-date, .loss-date { width: min(100%, 240px); min-width: 0; }
 .loss-form { min-width: 0; }
-.loss-date { max-width: 220px; min-width: 0; }
-.loss-date input, .field > input[type="date"], .field > input[type="time"], .field > input[type="datetime-local"] { display: block; width: 100%; min-width: 0; max-width: 100%; }
-.contract-panel { width: 100%; min-width: 0; margin-top: 8px; padding: 0 18px 16px; box-sizing: border-box; }
+.field > input[type="date"], .field > input[type="time"], .field > input[type="datetime-local"] { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.contract-panel { width: 100%; min-width: 0; margin: 0; padding: 4px 18px 8px; box-sizing: border-box; gap: 0; }
 .crm-card { overflow: hidden; }
 .crm-card .button { max-width: 100%; white-space: normal; }
-.contract-block { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
-.contract-block h3 { margin: 0; font-size: 13px; font-weight: 600; }
-.contract-actions { display: flex; justify-content: flex-end; }
+.service-line { display: flex; flex-direction: column; gap: 8px; }
+.service-line h3 { margin: 0; font-size: 12px; font-weight: 600; }
+.contract-block { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line); background: transparent; }
+fieldset.choice-field { display: block; }
+.contract-panel > .contract-block:first-child { border-top: 0; padding-top: 0; }
+.contract-actions { justify-content: flex-end; gap: 8px; }
 .contract-service-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
-.contract-panel .choice-row .button, .loss-form .choice-row .button { flex: 0 0 auto; min-width: 72px; max-width: 132px; }
-.drawer-bottom .button { flex: 0 1 auto; }
+.drawer-bottom .button, .modal-footer .button, .contract-actions .button, .service-actions .button { flex: 0 0 auto; }
 @media (max-width: 700px) { .contract-service-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .closing-service, .closing-person, .compact-address { grid-template-columns: 1fr; } .closing-span { grid-column: auto; } }
 .kanban-label-editor { display: grid; gap: 8px; margin-top: 18px; }

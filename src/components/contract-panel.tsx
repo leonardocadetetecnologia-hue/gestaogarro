@@ -112,8 +112,8 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
     {message && <p className="service-note">{message}</p>}
     <div className="contract-actions"><button className="button primary small" disabled={busy}>Salvar contrato</button></div>
     </section>
-    {savedPersonal && <fieldset id="pendencia-personal" className={personalPending ? "choice-field choice-pending contract-block" : "choice-field contract-block"}>
-      <legend>Informações pessoais</legend>
+    {savedPersonal && <section id="pendencia-personal" className={personalPending ? "contract-block choice-pending" : "contract-block"}>
+      <h3>Informações pessoais</h3>
       <div className="compact-address">
         <Field label="Endereço" pending={personalPending}><input value={personal.street} onChange={(event) => { setPersonal({ ...personal, street: event.target.value }); onDirty?.(); }} /></Field>
         <Field label="Cidade" pending={personalPending}><input value={personal.addressCity} onChange={(event) => { setPersonal({ ...personal, addressCity: event.target.value }); onDirty?.(); }} /></Field>
@@ -125,7 +125,7 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
       </div>
       {personalIgnored && <small className="field-ignored-note">ignorado pela gestora</small>}
       <button className="button secondary small" type="button" disabled={busy} onClick={() => void savePersonal()}>Salvar cadastro</button>
-    </fieldset>}
+    </section>}
     {role === "GESTOR_GARRO" && <Field label="Atendente responsável"><select value={opportunity.responsibleId || ""} onChange={(event) => void transferContract(opportunity.id, event.target.value)}>
       {attendants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
     </select></Field>}
@@ -143,8 +143,8 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
         const daysPending = current.proposedDays.trim() === "" || !Number.isInteger(Number(current.proposedDays)) || Number(current.proposedDays) < 0;
         const dateId = datePending && !dateAnchor ? (dateAnchor = true, "pendencia-serviceDate") : undefined;
         const daysId = daysPending && !daysAnchor ? (daysAnchor = true, "pendencia-proposedDays") : undefined;
-        return <fieldset className="choice-field" key={line.id}>
-          <legend>{source?.extra ? "Extra · " : ""}{source?.serviceName}{source?.variationName ? ` · ${source.variationName}` : ""}</legend>
+        return <div className="service-line" key={line.id}>
+          <h3>{source?.extra ? "Extra · " : ""}{source?.serviceName}{source?.variationName ? ` · ${source.variationName}` : ""}</h3>
           <div className="contract-service-grid">
             <Field label={dateOptional ? "Data do serviço" : "Data do serviço *"} pending={datePending} id={dateId} note={dateOptional && !current.serviceDate ? "A definir" : undefined}><input type="date" value={current.serviceDate} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, serviceDate: event.target.value } : item)); onDirty?.(); }} /></Field>
             <Field label="Prazo proposto (dias úteis) *" pending={daysPending} id={daysId}><input type="number" min={0} step={1} value={current.proposedDays} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, proposedDays: event.target.value } : item)); onDirty?.(); }} /></Field>
@@ -152,7 +152,7 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
             <Field label="Local da captação"><input value={current.capturePlace} onChange={(event) => { setSchedule(schedule.map(item => item.id === line.id ? { ...item, capturePlace: event.target.value } : item)); onDirty?.(); }} /></Field>
           </div>
           {delivery && <p className="service-note">Prazo deste serviço: {delivery.split("-").reverse().join("/")}.</p>}
-        </fieldset>;
+        </div>;
       })}
       {projectDelivery && <p className="service-note">Entrega ao cliente do projeto: {projectDelivery.split("-").reverse().join("/")}{previews.filter(item => item.delivery).length > 1 ? ", a data mais tarde" : ""}. Entra uma vez na agenda, no filtro Entregas.</p>}
       {lines.length > 0 && <div className="contract-actions"><button className="button secondary small" type="button" disabled={busy} onClick={() => void saveServiceDates(opportunity.id, schedule.map(line => ({
