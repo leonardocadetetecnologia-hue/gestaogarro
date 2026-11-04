@@ -143,11 +143,22 @@
 .demand-detail > .view-title .view-actions { flex-wrap: wrap; }
 .customer-demands { margin-bottom: 16px; padding: 0; overflow: hidden; }
 .customer-demands .customer-demand-list { padding: 0 16px 14px; }
-.choice-field { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
-.choice-field legend { font-size: 13px; font-weight: 600; }
+.choice-field { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: block; }
+.choice-field legend { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.choice-row .button { flex: 1; min-width: 108px; }
+.choice-row .button { flex: 1 1 108px; max-width: 160px; }
 .choice-row .button[aria-pressed="true"] { background: #7e432f; color: #fff; border-color: #7e432f; }
+.closing-form { display: flex; flex-direction: column; gap: 22px; }
+.closing-section { display: flex; flex-direction: column; gap: 10px; }
+.closing-section h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.closing-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.closing-service { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(140px, .8fr); gap: 10px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fffcf9; }
+.closing-span { grid-column: 1 / -1; }
+.closing-service-tools { display: flex; justify-content: flex-end; }
+.closing-person { display: grid; grid-template-columns: minmax(0, 1fr) 168px auto; gap: 10px; align-items: end; }
+.compact-address { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 72px; gap: 10px 12px; }
+.compact-date { max-width: 220px; }
+@media (max-width: 700px) { .closing-service, .closing-person, .compact-address { grid-template-columns: 1fr; } .closing-span { grid-column: auto; } }
 .kanban-label-editor { display: grid; gap: 8px; margin-top: 18px; }
 .kanban-label-row { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 10px; align-items: center; }
 .kanban-label-row span { font-size: 13px; color: #6d5346; }

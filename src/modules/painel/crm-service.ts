@@ -222,8 +222,13 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
         kind: "CLIENTE", personType: customer?.personType || "PESSOA_FISICA", street: input.street, addressCity: input.addressCity, state: input.state.toUpperCase(),
         birthDate: birthday.date,
       } });
-      await tx.customerBirthday.deleteMany({ where: { customerId: current.customerId } });
-      await tx.customerBirthday.create({ data: { customerId: current.customerId, name: input.birthdayName, birthDate: birthday.date, sortOrder: 1 } });
+      const existingBirthdays = await tx.customerBirthday.findMany({ where: { customerId: current.customerId }, orderBy: { sortOrder: "asc" } });
+      if (existingBirthdays.length > 1) {
+        await tx.customerBirthday.update({ where: { id: existingBirthdays[0].id }, data: { name: input.birthdayName, birthDate: birthday.date } });
+      } else {
+        await tx.customerBirthday.deleteMany({ where: { customerId: current.customerId } });
+        await tx.customerBirthday.create({ data: { customerId: current.customerId, name: input.birthdayName, birthDate: birthday.date, sortOrder: 1 } });
+      }
       await tx.auditLog.create({ data: { userId: user.id, action: "REGISTRATION_COMPLETED", entityType: "Opportunity", entityId: current.id } });
       return;
     }

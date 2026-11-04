@@ -86,7 +86,9 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
   }
 
   async function savePersonal() {
-    if (await saveRegistration(opportunity.id, personal)) onSaved?.();
+    const several = (customer?.birthdays?.length || 0) > 1;
+    const payload = { ...personal, birthdayName: several ? personal.birthdayName : (customer?.name || personal.birthdayName) };
+    if (await saveRegistration(opportunity.id, payload)) onSaved?.();
   }
 
   const previews = lines.flatMap(line => {
@@ -108,11 +110,13 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
     {message && <p className="service-note">{message}</p>}
     {savedPersonal && <fieldset id="pendencia-personal" className={personalPending ? "choice-field choice-pending" : "choice-field"}>
       <legend>Informações pessoais</legend>
-      <div className="form-grid">
-        <Field label="Logradouro" pending={personalPending}><input value={personal.street} onChange={(event) => { setPersonal({ ...personal, street: event.target.value }); onDirty?.(); }} /></Field>
+      <div className="compact-address">
+        <Field label="Endereço" pending={personalPending}><input value={personal.street} onChange={(event) => { setPersonal({ ...personal, street: event.target.value }); onDirty?.(); }} /></Field>
         <Field label="Cidade" pending={personalPending}><input value={personal.addressCity} onChange={(event) => { setPersonal({ ...personal, addressCity: event.target.value }); onDirty?.(); }} /></Field>
-        <Field label="UF" pending={personalPending}><input maxLength={2} value={personal.state} onChange={(event) => { setPersonal({ ...personal, state: event.target.value }); onDirty?.(); }} /></Field>
-        <Field label="Aniversariante" pending={personalPending}><input value={personal.birthdayName} onChange={(event) => { setPersonal({ ...personal, birthdayName: event.target.value }); onDirty?.(); }} /></Field>
+        <Field label="UF" pending={personalPending}><input maxLength={2} value={personal.state} onChange={(event) => { setPersonal({ ...personal, state: event.target.value.toUpperCase() }); onDirty?.(); }} /></Field>
+      </div>
+      <div className={(customer?.birthdays?.length || 0) > 1 ? "closing-person" : "compact-date"}>
+        {(customer?.birthdays?.length || 0) > 1 && <Field label="Aniversariante" pending={personalPending}><input value={personal.birthdayName} onChange={(event) => { setPersonal({ ...personal, birthdayName: event.target.value }); onDirty?.(); }} /></Field>}
         <Field label="Data de nascimento" pending={personalPending}><input type="date" value={personal.birthday} max="9999-12-31" onChange={(event) => { setPersonal({ ...personal, birthday: event.target.value }); onDirty?.(); }} /></Field>
       </div>
       {personalIgnored && <small className="field-ignored-note">ignorado pela gestora</small>}
@@ -122,8 +126,8 @@ export function ContractPanel({ opportunity, onDirty, onSaved, onChecklist }: {
       {attendants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
     </select></Field>}
     <div className="service-dates" id="pendencia-services">
-      {servicesPending && <p className="field-pending-note">Pendente: escolha o serviço e a variação no fechamento.</p>}
-      {check.ignored.some(item => item.id === "services") && <p className="field-ignored-note">Serviço e variação: ignorado pela gestora</p>}
+      {servicesPending && <p className="field-pending-note">Pendente: escolha o serviço no fechamento.</p>}
+      {check.ignored.some(item => item.id === "services") && <p className="field-ignored-note">Serviço: ignorado pela gestora</p>}
       {lines.map(line => {
         const current = schedule.find(item => item.id === line.id);
         if (!current) return null;

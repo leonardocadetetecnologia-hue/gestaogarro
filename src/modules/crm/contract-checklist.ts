@@ -1,7 +1,7 @@
 export const checklistLabels = {
   signed: "Contrato assinado",
   personal: "Informações pessoais",
-  services: "Serviço e variação",
+  services: "Serviço",
   serviceDate: "Data do serviço",
   proposedDays: "Prazo proposto",
 } as const;
