@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const plex = localFont({
+  src: [
+    { path: "../../public/fonts/ibm-plex-sans-latin-400-normal.woff", weight: "400", style: "normal" },
+    { path: "../../public/fonts/ibm-plex-sans-latin-600-normal.woff", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
