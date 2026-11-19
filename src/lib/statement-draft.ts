@@ -1,9 +1,10 @@
-import { formatPeriodDay, saoPauloDay, type StatementActivity } from "@/modules/reports/delivery-statement";
+import { formatDeliveredAt, formatPeriodDay, saoPauloDay, type StatementActivity } from "@/modules/reports/delivery-statement";
 
 export type ReportMode = "junto" | "cada";
 
 export type DraftLine = {
   id: string;
+  deliveredAt?: string;
   include: boolean;
   number?: number;
   showNumber: boolean;
@@ -27,6 +28,7 @@ export type DraftDelivery = {
   customerName: string;
   showCustomer: boolean;
   date: string;
+  dateEdited?: boolean;
   omitDate: boolean;
   lines: DraftLine[];
   notes: DraftNote[];
@@ -34,6 +36,7 @@ export type DraftDelivery = {
 
 export type ReportLine = {
   id: string;
+  date?: string;
   heading: string;
   description: string;
   service: string;
@@ -41,6 +44,7 @@ export type ReportLine = {
 
 export type ReportPart = {
   key: string;
+  project: string;
   customer: string;
   date: string;
   lines: ReportLine[];
@@ -71,7 +75,7 @@ export function draftsFromActivities(activities: StatementActivity[]): DraftDeli
       draft = {
         demandId: activity.demandId,
         include: true,
-        label: activity.title,
+        label: activity.demandTitle || activity.title,
         customerName: activity.customerName,
         showCustomer: true,
         date: "",
@@ -91,6 +95,7 @@ export function draftsFromActivities(activities: StatementActivity[]): DraftDeli
     if (!draft.label.trim()) draft.label = title || service || draft.customerName;
     draft.lines.push({
       id: activity.id,
+      deliveredAt: activity.deliveredAt,
       include: true,
       number: activity.number,
       showNumber: activity.number != null,
@@ -105,21 +110,25 @@ export function draftsFromActivities(activities: StatementActivity[]): DraftDeli
   return order.map((id) => map.get(id)!);
 }
 
-function lineOf(line: DraftLine): ReportLine | null {
+function lineOf(line: DraftLine, draft: DraftDelivery): ReportLine | null {
   if (!line.include) return null;
   const heading = line.showTitle ? line.title.trim() : "";
   const description = line.showDescription ? line.description.trim() : "";
-  if (!heading && !description) return null;
-  return { id: line.id, heading, description, service: "" };
+  const service = line.showService ? line.service.trim() : "";
+  if (!heading && !description && !service) return null;
+  const date = draft.omitDate || !draft.date ? undefined
+    : draft.dateEdited ? formatPeriodDay(draft.date)
+      : line.deliveredAt ? formatDeliveredAt(line.deliveredAt) : undefined;
+  return { id: line.id, heading, description, service, ...(date ? { date } : {}) };
 }
 
 function partOf(draft: DraftDelivery): ReportPart | null {
-  const lines = draft.lines.map(lineOf).filter((line): line is ReportLine => line != null);
+  const lines = draft.lines.map(line => lineOf(line, draft)).filter((line): line is ReportLine => line != null);
   const customer = draft.showCustomer ? draft.customerName.trim() : "";
   const date = !draft.omitDate && draft.date ? formatPeriodDay(draft.date) : "";
   const note = draft.notes.map((item) => item.text.trim()).filter(Boolean).join("\n\n");
   if (!customer && !date && !lines.length && !note) return null;
-  return { key: draft.demandId, customer, date, lines, note };
+  return { key: draft.demandId, project: draft.label, customer, date, lines, note };
 }
 
 export function reportDocuments(drafts: DraftDelivery[], mode: ReportMode, period = ""): ReportDocument[] {
@@ -128,7 +137,7 @@ export function reportDocuments(drafts: DraftDelivery[], mode: ReportMode, perio
     return chosen.flatMap((draft) => {
       const part = partOf(draft);
       if (!part) return [];
-      const title = draft.lines.find((line) => line.showTitle && line.title.trim())?.title.trim() || draft.label || "Entrega";
+      const title = draft.label || "Entrega";
       return [{ key: draft.demandId, title, period, parts: [part] }];
     });
   }
@@ -136,5 +145,5 @@ export function reportDocuments(drafts: DraftDelivery[], mode: ReportMode, perio
     const part = partOf(draft);
     return part ? [part] : [];
   });
-  return parts.length ? [{ key: "junto", title: "Relatório de entrega", period, parts }] : [];
+  return parts.length ? [{ key: "junto", title: parts.length === 1 ? parts[0].project : "Extrato de entregas", period, parts }] : [];
 }

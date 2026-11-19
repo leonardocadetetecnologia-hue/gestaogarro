@@ -77,7 +77,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
         id: true, customerId: true, responsibleId: true, service: true, stage: true,
         estimatedValue: true, proposalValue: true, closedValue: true, priority: true,
         waitingOn: true, waitingSince: true, lastActivityAt: true, nextActionAt: true, nextAction: true,
-        lossReason: true, lossNote: true, lostAt: true, contractSigned: true, contractSignedAt: true, contractFileName: true, checklistWaivedAt: true,
+        lossReason: true, lossNote: true, lostAt: true, archivedAt: true, contractSigned: true, contractSignedAt: true, contractFileName: true, checklistWaivedAt: true,
         responsible: { select: { name: true } },
         customer: { select: { personType: true, street: true, addressCity: true, state: true, birthdays: { select: { name: true, birthDate: true } } } },
         sale: { select: { demand: { select: { id: true } } } },
@@ -178,7 +178,7 @@ export async function loadPanelState(user: SessionUser): Promise<State> {
       priority: o.priority === "ALTA" ? "Alta" : o.priority === "BAIXA" ? "Baixa" : "Média",
       lastActivity: o.lastActivityAt.toISOString(), waitingSince: o.waitingSince?.toISOString(),
       waitingOn: o.waitingOn === "GARRO" ? "atendente" : o.waitingOn === "CLIENTE" ? "cliente" : "nenhum",
-      nextAction: o.nextAction || "", nextAt: o.nextActionAt?.toISOString(), lostAt: o.lostAt?.toISOString(), lossReason: o.lossReason || "", lossNote: o.lossNote || "",
+      nextAction: o.nextAction || "", nextAt: o.nextActionAt?.toISOString(), lostAt: o.lostAt?.toISOString(), archivedAt: o.archivedAt?.toISOString(), lossReason: o.lossReason || "", lossNote: o.lossNote || "",
       contractSigned: o.contractSigned, contractSignedAt: o.contractSignedAt?.toISOString() || "", contractFileName: o.contractFileName || "",
       checklistWaived: Boolean(o.checklistWaivedAt),
       contractPending: o.stage === "CONTRATO" && !o.sale?.demand && contractChecklist({

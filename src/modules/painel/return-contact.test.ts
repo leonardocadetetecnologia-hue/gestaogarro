@@ -19,6 +19,7 @@ const { tx, transaction } = vi.hoisted(() => {
 });
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
 vi.mock("@/lib/integration-feed", () => ({ publishSaleClosed: vi.fn() }));
+vi.mock("@/modules/crm/registration-reminder", () => ({ refreshContractReminder: vi.fn() }));
 import { executeCrmCommand } from "./crm-service";
 
 const malu: SessionUser = { id: "malu", name: "Malu", email: "malu@example.test", role: "ATENDENTE" };
@@ -37,6 +38,20 @@ beforeEach(() => {
 });
 
 describe("retorno comercial", () => {
+  it("arquiva só o card da atendente e restaura sem mudar a etapa", async () => {
+    const command = { kind: "archiveOpportunity", id: "card", archived: true };
+    await expect(executeCrmCommand({ ...malu, id: "outra" }, command)).rejects.toThrow(/não encontrada/);
+    expect(tx.opportunity.update).not.toHaveBeenCalled();
+    await executeCrmCommand(malu, command);
+    expect(tx.opportunity.update).toHaveBeenLastCalledWith({ where: { id: "card" }, data: { archivedAt: expect.any(Date) } });
+    tx.opportunity.findUnique.mockResolvedValue({ id: "card", responsibleId: "malu", archivedAt: new Date() });
+    await executeCrmCommand(malu, command);
+    expect(tx.opportunity.update).toHaveBeenCalledTimes(1);
+    await executeCrmCommand(gestora, { ...command, archived: false });
+    expect(tx.opportunity.update).toHaveBeenLastCalledWith({ where: { id: "card" }, data: { archivedAt: null } });
+    expect(tx.auditLog.create.mock.calls.map(([arg]) => arg.data.action)).toEqual(["OPPORTUNITY_ARCHIVED", "OPPORTUNITY_RESTORED"]);
+    expect(tx.scheduleEvent.updateMany).not.toHaveBeenCalled();
+  });
   it("não move para Sem interesse sem a resposta sobre contato futuro", async () => {
     await expect(executeCrmCommand(malu, { kind: "move", id: "card", stage: "Sem interesse" })).rejects.toThrow("contato no futuro");
     expect(tx.scheduleEvent.create).not.toHaveBeenCalled();

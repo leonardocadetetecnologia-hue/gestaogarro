@@ -31,9 +31,10 @@
 | Arquivar e restaurar entregável | Sim | Não | Não |
 | Agenda Global | Sim | Não | Não |
 | Extrato de entregas concluídas | Sim | Não | Não |
-| Gravar links de entrega | Sim | Não | Não |
+| Gravar links de entrega | Sim | Não | Demandas com entregável não arquivado atribuído |
+| Baixar PDF da demanda entregue | Sim | Não | Somente os próprios entregáveis com entrega registrada e não arquivados |
+| Arquivar, consultar e restaurar cards do CRM | Sim | Somente os próprios | Não |
 | Ver e copiar links de entrega | Sim | Não | Nas demandas que já abre |
-| Exportar PDF da demanda concluída | Sim | Não | Não |
 | Agenda própria | Sim | Sim, comercial | Sim, atribuições próprias |
 | Criar/editar/ativar editor e redefinir senha | Sim | Não | Não |
 

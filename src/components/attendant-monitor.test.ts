@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { State } from "@/lib/data";
 
 const { context } = vi.hoisted(() => ({
@@ -10,6 +10,11 @@ vi.mock("@/lib/store", () => ({ useGarro: () => context }));
 import { AttendantMonitor } from "./attendant-monitor";
 
 describe("menu monitoramento", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-30T12:00:00.000Z"));
+  });
+  afterEach(() => vi.useRealTimers());
   it("mostra entrada, saída e o movimento da atendente para a Gestora", () => {
     context.role = "GESTOR_GARRO";
     context.state = {

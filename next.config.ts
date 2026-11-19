@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     loaderFile: "./src/lib/image-loader.ts",
   },
   output: "standalone",
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "prisma"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "prisma", "pdfkit"],
   poweredByHeader: false,
   experimental: {
     serverActions: {

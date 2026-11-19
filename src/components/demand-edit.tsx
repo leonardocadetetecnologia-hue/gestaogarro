@@ -71,11 +71,12 @@ function deliveryPlaceholder(index: number, mediaType: Demand["mediaType"]) {
 }
 
 export function DeliveryLinks({ demand }: { demand: Demand }) {
-  const { role, saveDeliveryLinks, busy } = useGarro();
-  const canEdit = role === "GESTOR_GARRO";
+  const { role, saveDeliveryLinks, busy, error } = useGarro();
+  const canEdit = role === "GESTOR_GARRO" || role === "EDITOR";
   const savedKey = (demand.deliveryLinks ?? []).join("\n");
   const [links, setLinks] = useState<string[]>(() => deliveryRows(demand, canEdit));
   const [copied, setCopied] = useState("");
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     const saved = savedKey ? savedKey.split("\n") : [];
     setLinks(saved.length ? saved : !canEdit ? [] : demand.mediaType === "FOTO_E_VIDEO" ? ["", ""] : [""]);
@@ -98,7 +99,7 @@ export function DeliveryLinks({ demand }: { demand: Demand }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!canEdit) return;
-    await saveDeliveryLinks({ id: demand.id, links });
+    setSaved(await saveDeliveryLinks({ id: demand.id, links }));
   }
   return <form className="delivery-links" onSubmit={submit} aria-label="Link de Entrega">
     <div className="delivery-links-head">
@@ -123,6 +124,8 @@ export function DeliveryLinks({ demand }: { demand: Demand }) {
       </div>;
     })}
     {canEdit && <button className="button secondary small" disabled={busy}>{busy ? "Salvando…" : "Salvar links"}</button>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+    {saved && !error && <p role="status">Links salvos.</p>}
     <span className="sr-only" role="status">{copied ? "Link copiado." : ""}</span>
   </form>;
 }

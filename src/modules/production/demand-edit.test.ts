@@ -3,7 +3,7 @@ import type { SessionUser } from "@/lib/auth";
 
 const { tx, transaction } = vi.hoisted(() => {
   const tx = {
-    demand: { findUnique: vi.fn(), update: vi.fn() },
+    demand: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     deliverable: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     scheduleEvent: { updateMany: vi.fn() },
     demandFile: { findMany: vi.fn(), update: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
@@ -21,6 +21,7 @@ const editor: SessionUser = { id: "editor", name: "Editor", email: "editor@examp
 beforeEach(() => {
   vi.clearAllMocks();
   tx.demand.findUnique.mockResolvedValue({ id: "demand", status: "ENTREGUE", clientDueAt: null });
+  tx.demand.updateMany.mockResolvedValue({ count: 1 });
   tx.deliverable.findUnique.mockResolvedValue({ id: "task", demandId: "demand", status: "APROVADO" });
   tx.deliverable.create.mockResolvedValue({ id: "new-task" });
   tx.demandFile.findMany.mockResolvedValue([]);
@@ -56,16 +57,28 @@ describe("edição da demanda fora da esteira", () => {
       id: "demand",
       links: ["https://entrega.example/fotos", "drive.google.com/videos", "", "example.com/extra"],
     });
-    expect(tx.demand.update).toHaveBeenCalledWith({
+    expect(tx.demand.updateMany).toHaveBeenCalledWith({
       where: { id: "demand" },
       data: { deliveryLinks: ["https://entrega.example/fotos", "https://drive.google.com/videos", "https://example.com/extra"] },
     });
     await saveDeliveryLinks(gestora, { id: "demand", links: ["  ", ""] });
-    expect(tx.demand.update).toHaveBeenLastCalledWith({ where: { id: "demand" }, data: { deliveryLinks: [] } });
+    expect(tx.demand.updateMany).toHaveBeenLastCalledWith({ where: { id: "demand" }, data: { deliveryLinks: [] } });
     const calls = transaction.mock.calls.length;
     await expect(saveDeliveryLinks(atendente, { id: "demand", links: [] })).rejects.toThrow(/Somente a Gestora/);
-    await expect(saveDeliveryLinks(editor, { id: "demand", links: ["https://ok.example"] })).rejects.toThrow(/Somente a Gestora/);
     expect(transaction.mock.calls.length).toBe(calls);
+  });
+
+  it("grava links de um editor somente quando ele ainda tem um entregável não arquivado", async () => {
+    const input = { id: "demand", links: ["drive.google.com/entrega"] };
+    await saveDeliveryLinks(editor, input);
+    expect(tx.demand.updateMany).toHaveBeenCalledWith({
+      where: { id: "demand", deliverables: { some: { editorId: editor.id, archivedAt: null } } },
+      data: { deliveryLinks: ["https://drive.google.com/entrega"] },
+    });
+    expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
+    tx.demand.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(saveDeliveryLinks(editor, input)).rejects.toThrow(/atribuições/);
+    expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
   });
 
   it("inclui um entregável novo no fim, sem alterar os existentes", async () => {

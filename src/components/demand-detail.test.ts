@@ -14,6 +14,7 @@ const { context, push } = vi.hoisted(() => ({
 vi.mock("@/lib/store", () => ({ useGarro: () => context }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 import { DemandDetail, EditorHome } from "./Production";
+import { DeliveryLinks } from "./demand-edit";
 
 const demand = { id: "iandra", customerId: "customer", title: "IANDRA", description: "Briefing", status: "Nova demanda" as const, clientDue: "2026-11-03T17:58:00.000Z", briefing: "Ainda vou colocar", links: "", createdAt: "2026-10-27T17:59:00.000Z", messages: [] };
 
@@ -45,7 +46,7 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).toContain("Link de Entrega");
     expect(html).toContain('aria-label="Incluir outro link de entrega"');
     expect(html).toContain("Salvar links");
-    expect(html).not.toContain("Exportar PDF");
+    expect(html).toContain("O PDF fica disponível depois que a entrega ao cliente é registrada.");
     expect(html).toContain("1- NEW TECH");
     expect(html).toContain(">Aprovado</span>");
     expect(html).not.toContain("Salvar atribuição e prazos");
@@ -77,7 +78,7 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).toContain("Arquivados");
   });
 
-  it("não oferece o botão ao editor", () => {
+  it("oferece a aba de links ao editor atribuído sem liberar ações administrativas", () => {
     context.role = "EDITOR";
     context.activeEditorId = "manager";
     const html = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
@@ -86,10 +87,10 @@ describe("nova demanda dentro do projeto", () => {
     expect(html).not.toContain(">Atribuir vários</button>");
     expect(html).not.toContain(">Editar</button>");
     expect(html).not.toContain("Demandas de Iandra Vilaça");
-    expect(html).toContain("Nenhum link de entrega informado.");
+    expect(html).toContain(">Link de entrega</button>");
     expect(html).not.toContain("Incluir outro link de entrega");
     expect(html).not.toContain("Salvar links");
-    expect(html).not.toContain("Exportar PDF");
+    expect(html).toContain("O PDF fica disponível depois que a entrega ao cliente é registrada.");
   });
 
   it("abre dois links quando a demanda é foto e vídeo e numera pela criação", () => {
@@ -112,16 +113,18 @@ describe("nova demanda dentro do projeto", () => {
     expect(second).toBeLessThan(html.indexOf("Segundo corte"));
   });
 
-  it("mostra o link salvo para o editor copiar e o PDF só na demanda entregue", () => {
+  it("mostra o link salvo para editar e permite exportar a demanda entregue", () => {
     context.role = "EDITOR";
     context.activeEditorId = "manager";
-    context.state.demands[0] = { ...demand, deliveryLinks: ["https://entrega.example/fotos"] };
-    const editorHtml = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    context.state.demands[0] = { ...demand, status: "Entregue", deliveryLinks: ["https://entrega.example/fotos"] };
+    const editorHtml = renderToStaticMarkup(createElement(DeliveryLinks, { demand: context.state.demands[0] }));
     expect(editorHtml).toContain("https://entrega.example/fotos");
     expect(editorHtml).toContain(">Copiar</button>");
     expect(editorHtml).toContain('href="https://entrega.example/fotos"');
-    expect(editorHtml).not.toContain("Incluir outro link de entrega");
-    expect(editorHtml).not.toContain("Exportar PDF");
+    expect(editorHtml).toContain("Incluir outro link de entrega");
+    const editorDetail = renderToStaticMarkup(createElement(DemandDetail, { id: "iandra" }));
+    expect(editorDetail).toContain("Exportar PDF");
+    expect(editorDetail).not.toContain("O PDF fica disponível depois");
 
     context.role = "GESTOR_GARRO";
     context.state.demands[0] = { ...demand, status: "Entregue" };

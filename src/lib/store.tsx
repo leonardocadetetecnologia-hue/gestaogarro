@@ -33,6 +33,7 @@ type Ctx = {
   archiveDeliverable: (id: string) => Save;
   restoreDeliverable: (id: string) => Save;
   moveOpportunity: (id: string, stage: Stage, future?: { futureContact: "sim" | "nao"; futureAt: string }) => Save;
+  setOpportunityArchived: (id: string, archived: boolean) => Save;
   loseOpportunity: (id: string, input: { reason: string; note?: string; futureContact: "sim" | "nao"; futureAt: string; responsibleId: string }) => Save;
   saveFutureContact: (id: string, input: FutureInput) => Save;
   saveKanbanLabels: (labels: { stage: Stage; label: string }[]) => Save;
@@ -129,6 +130,7 @@ export function GarroProvider({ children, role, userName, userId, initialState }
     archiveDeliverable: id => done(save({ kind: "archiveDeliverable", id }, "production")),
     restoreDeliverable: id => done(save({ kind: "restoreDeliverable", id }, "production")),
     moveOpportunity: (id, stage, future) => done(save({ kind: "move", id, stage, ...future })),
+    setOpportunityArchived: (id, archived) => done(save({ kind: "archiveOpportunity", id, archived })),
     loseOpportunity: (id, input) => done(save({ kind: "lose", id, ...input, note: input.note || "" })),
     closeWon: (id, input) => done(save({ kind: "closeWon", id, ...input })),
     saveContract: (id, input) => done(save({ kind: "contract", id, ...input })),

@@ -111,19 +111,23 @@ export async function saveDemandMedia(user: SessionUser, raw: unknown) {
 }
 
 export async function saveDeliveryLinks(user: SessionUser, raw: unknown) {
-  assertManager(user);
+  if (user.role !== "GESTOR_GARRO" && user.role !== "EDITOR") {
+    throw new CrmFlowError("Somente a Gestora ou um editor atribuído pode gravar links de entrega.");
+  }
   const parsed = deliveryLinksSchema.safeParse(withDeliveryProtocols(raw));
   if (!parsed.success) throw new CrmFlowError(parsed.error.issues[0].message);
   const input = parsed.data;
   await prisma.$transaction(async tx => {
-    const demand = await tx.demand.findUnique({ where: { id: input.id }, select: { id: true } });
-    if (!demand) throw new CrmFlowError("Demanda não encontrada.");
-    await tx.demand.update({
-      where: { id: demand.id },
+    const saved = await tx.demand.updateMany({
+      where: {
+        id: input.id,
+        ...(user.role === "EDITOR" ? { deliverables: { some: { editorId: user.id, archivedAt: null } } } : {}),
+      },
       data: { deliveryLinks: input.links as Prisma.InputJsonValue },
     });
+    if (!saved.count) throw new CrmFlowError("Demanda não encontrada ou fora das suas atribuições.");
     await tx.auditLog.create({
-      data: { userId: user.id, action: "DEMAND_DELIVERY_LINKS", entityType: "Demand", entityId: demand.id, details: { count: input.links.length } },
+      data: { userId: user.id, action: "DEMAND_DELIVERY_LINKS", entityType: "Demand", entityId: input.id, details: { count: input.links.length } },
     });
   });
 }

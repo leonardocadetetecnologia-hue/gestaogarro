@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { StatementActivity } from "@/modules/reports/delivery-statement";
 
-vi.mock("./garro-brand", () => ({ GarroBrand: () => createElement("span", null, "Garro") }));
 import { StatementEditor } from "./statement-editor";
 
 const activity: StatementActivity = {
@@ -17,17 +16,16 @@ describe("janela de ajuste do relatório", () => {
     expect(html).toContain('aria-label="Ajustar o relatório"');
     expect(html).toContain(">Um relatório só</button>");
     expect(html).toContain(">Um para cada entrega</button>");
-    expect(html).toContain("Nome do cliente");
+    expect(html).toContain("Cliente");
     expect(html).toContain("value=\"Ana Lima\"");
     expect(html).toContain("Descrição");
     expect(html).toContain("Data de entrega");
     expect(html).toContain("value=\"2026-10-18\"");
     expect(html).not.toContain("Informação");
     expect(html).not.toContain("Formato do período");
-    expect(html).not.toContain("1. Revelação");
-    expect(html).not.toContain(">Revelação<");
+    expect(html).toContain("1. Revelação");
     expect(html).not.toContain("O que a Garro entregou");
-    expect(html).not.toContain("Inserir observação");
+    expect(html).toContain("Inserir observação");
     expect(html).not.toContain("Incluir este item");
     expect(html).toContain(">Gerar prévia</button>");
     expect(html).toContain(">Gerar PDF</button>");

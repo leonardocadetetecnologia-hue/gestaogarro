@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
-import { GarroBrand } from "@/components/garro-brand";
-import { formatDeliveredAt, formatMonth, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, saoPauloDay, StatementError } from "@/modules/reports/delivery-statement";
+import { StatementItem, StatementSheet } from "@/components/statement-sheet";
+import { demandStatementNote, formatDeliveredAt, formatPeriodDay, loadDeliveryStatement, parseStatementFilters, saoPauloDay, statementPeriodLabel, StatementError } from "@/modules/reports/delivery-statement";
 import { StatementPrint } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -42,57 +42,39 @@ export default async function DeliveryStatementPage({
     const customer = statement.customers.find(item => item.id === customerId)?.name || "Todos os clientes";
     const serviceLabel = service || "Todos os tipos";
     const issuedAt = formatDeliveredAt(new Date().toISOString());
-    const periodLabel = month ? formatMonth(month) : from || to ? `${from ? formatPeriodDay(from) : "início"} a ${to ? formatPeriodDay(to) : "hoje"}` : "Todo o período";
+    const periodLabel = statementPeriodLabel(month, from, to);
+    const metadata: [string, string][] = statement.focus
+      ? [["Projeto", statement.focus.title], ["Cliente", statement.focus.customerName], ["Período", periodLabel], ["Emitido em", issuedAt]]
+      : selection
+        ? [["Emitido em", issuedAt]]
+        : [["Cliente", customer], ["Tipo de entrega", serviceLabel], ["Agrupamento", statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"], ["Período", periodLabel], ["Emitido em", issuedAt]];
     return (
-      <main className="statement-sheet">
-        <StatementPrint auto={one(params.imprimir) === "1"} />
-        <header>
-          <GarroBrand size={64} wordmarkWidth={200} priority />
-          <div>
-            <p>{statement.focus ? "Relatório de entrega" : "Extrato de entregas"}</p>
-            <h1>{statement.focus?.title || periodLabel}</h1>
-          </div>
-        </header>
-        {selection ? (
-          <dl>
-            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
-          </dl>
-        ) : statement.focus ? (
-          <dl>
-            <div><dt>Projeto</dt><dd>{statement.focus.title}</dd></div>
-            <div><dt>Cliente</dt><dd>{statement.focus.customerName}</dd></div>
-            <div><dt>Período</dt><dd>{periodLabel}</dd></div>
-            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
-          </dl>
-        ) : (
-          <dl>
-            <div><dt>Cliente</dt><dd>{customer}</dd></div>
-            <div><dt>Tipo de entrega</dt><dd>{serviceLabel}</dd></div>
-            <div><dt>Agrupamento</dt><dd>{statement.group === "servico" ? "Por tipo de entrega" : "Por cliente"}</dd></div>
-            <div><dt>Período</dt><dd>{periodLabel}</dd></div>
-            <div><dt>Emitido em</dt><dd>{issuedAt}</dd></div>
-          </dl>
-        )}
+      <StatementSheet
+        label={statement.focus ? "Relatório de entrega" : "Extrato de entregas"}
+        title={statement.focus?.title || periodLabel}
+        metadata={metadata}
+        total={statement.total}
+        toolbar={<StatementPrint auto={one(params.imprimir) === "1"} />}
+      >
         {statement.example && <p className="statement-example">Modelo ilustrativo. Estes nomes não são clientes da Garro.</p>}
-        <p className="statement-note">{selection ? "Informação, data e descrição. O registro continua no sistema." : statement.focus ? "Somente o que esta demanda já entregou ao cliente, neste período." : "Somente demandas concluídas na produção. Cada item traz a informação, a data e a descrição."}</p>
+        <p className="statement-note">{selection ? "Informação, data e descrição. O registro continua no sistema." : statement.focus ? demandStatementNote : "Somente demandas concluídas na produção. Cada item traz a informação, a data e a descrição."}</p>
         {!statement.example && statement.total === 0 && <p className="empty-state">Nenhuma entrega concluída neste filtro.</p>}
         {statement.sections.map(section => (
           <section key={section.label}>
             <h2>{section.label}</h2>
             {section.activities.map(activity => (
-              <article key={activity.id}>
-                <div>
-                  <h3>{activity.title}</h3>
-                  {!selection && <p>{statement.group === "servico" ? activity.customerName : activity.service}</p>}
-                </div>
-                <time dateTime={activity.deliveredAt}>{selection ? formatPeriodDay(saoPauloDay(activity.deliveredAt)) : formatDeliveredAt(activity.deliveredAt)}</time>
-                <p>{activity.description}</p>
-              </article>
+              <StatementItem
+                key={activity.id}
+                title={activity.title}
+                service={selection ? undefined : statement.group === "servico" ? activity.customerName : activity.service}
+                deliveredAt={activity.deliveredAt}
+                date={selection ? formatPeriodDay(saoPauloDay(activity.deliveredAt)) : formatDeliveredAt(activity.deliveredAt)}
+                description={activity.description}
+              />
             ))}
           </section>
         ))}
-        <footer>Garro Produtora · extrato de produção concluída · {statement.total} {statement.total === 1 ? "atividade" : "atividades"}</footer>
-      </main>
+      </StatementSheet>
     );
   } catch (error) {
     const message = error instanceof StatementError ? error.message : "Não foi possível montar o extrato.";

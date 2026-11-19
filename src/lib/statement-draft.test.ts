@@ -20,10 +20,12 @@ describe("prévia editável do extrato", () => {
     ]);
     const together = reportDocuments(drafts, "junto", "outubro de 2026");
     expect(together).toHaveLength(1);
-    expect(together[0].title).toBe("Relatório de entrega");
+    expect(together[0].title).toBe("Extrato de entregas");
     expect(together[0].period).toBe("outubro de 2026");
     expect(together[0].parts.map((part) => part.customer)).toEqual(["Ana Lima", "Igor Cardoso"]);
     expect(together[0].parts[0].lines[0].heading).toBe("Vídeo principal");
+    expect(together[0].parts[0].lines[0].service).toBe("Ensaio");
+    expect(together[0].parts[0].lines[0].date).toMatch(/10 de outubro de 2026/);
     const each = reportDocuments(drafts.map((draft, index) => index === 1 ? { ...draft, include: false } : draft), "cada");
     expect(each.map((document) => document.title)).toEqual(["Vídeo principal"]);
   });

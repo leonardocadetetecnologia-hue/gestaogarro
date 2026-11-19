@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { FileDown } from "lucide-react";
 import { GarroBrand } from "./garro-brand";
 import { StatementEditor } from "./statement-editor";
-import { formatDeliveredAt, periodEnding, type StatementGroup, type StatementSection } from "@/modules/reports/delivery-statement";
+import { formatDeliveredAt, periodEnding, statementPeriodLabel, type StatementGroup, type StatementSection } from "@/modules/reports/delivery-statement";
 
 type StatementResponse = {
   customers: { id: string; name: string }[];
@@ -156,7 +156,7 @@ export function DeliveryStatement() {
           </article>
         ))}
       </div>
-      {editorOpen && statement && <StatementEditor activities={statement.sections.flatMap((section) => section.activities)} onClose={() => setEditorOpen(false)} />}
+      {editorOpen && statement && <StatementEditor activities={statement.sections.flatMap((section) => section.activities)} period={statementPeriodLabel(span === "month" ? month : "", from, to)} onClose={() => setEditorOpen(false)} />}
     </section>
   );
 }

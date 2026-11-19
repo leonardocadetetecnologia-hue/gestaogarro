@@ -28,6 +28,7 @@ export type StatementFilters = {
 export type StatementActivity = {
   id: string;
   demandId: string;
+  demandTitle?: string;
   customerId: string;
   customerName: string;
   service: string;
@@ -73,16 +74,22 @@ export function assertStatementAccess(user: Pick<SessionUser, "role">) {
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
 const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+function isStatementDay(value: string) {
+  if (!dayPattern.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 export function monthPeriod(month: string) {
   if (!monthPattern.test(month)) return null;
-  const [year, mon] = month.split("-").map(Number);
-  const last = new Date(Date.UTC(year, mon, 0)).getUTCDate();
+  const cursor = new Date(`${month}-01T00:00:00Z`);
+  cursor.setUTCMonth(cursor.getUTCMonth() + 1, 0);
+  const last = cursor.getUTCDate();
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
 }
 
 export function formatMonth(month: string) {
-  const [year, mon] = month.split("-").map(Number);
-  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, mon - 1, 1)));
+  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T00:00:00Z`));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -125,7 +132,7 @@ export function parseStatementFilters(params: URLSearchParams): StatementFilters
   if (service.length > 120) throw new StatementError("Tipo de entrega inválido.", 400);
   if (month && !monthPattern.test(month)) throw new StatementError("Mês inválido.", 400);
   if (month && (from || to)) throw new StatementError("Escolha um mês ou um intervalo de datas.", 400);
-  if ((from && !dayPattern.test(from)) || (to && !dayPattern.test(to)) || (from && to && from > to)) {
+  if ((from && !isStatementDay(from)) || (to && !isStatementDay(to)) || (from && to && from > to)) {
     throw new StatementError("Período inválido.", 400);
   }
   const period = month ? monthPeriod(month) : null;
@@ -160,6 +167,7 @@ export function activitiesFromDemand(demand: CompletedDemandInput): StatementAct
     return [{
       id: demand.id,
       demandId: demand.id,
+      demandTitle: demand.title,
       customerId: demand.customer.id,
       customerName: demand.customer.name,
       service,
@@ -171,6 +179,7 @@ export function activitiesFromDemand(demand: CompletedDemandInput): StatementAct
   return delivered.map(({ item, number }) => ({
     id: item.id,
     demandId: demand.id,
+    demandTitle: demand.title,
     number,
     customerId: demand.customer.id,
     customerName: demand.customer.name,
@@ -277,16 +286,41 @@ export function buildStatement(demands: CompletedDemandInput[], filters: Stateme
 
 export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, filters: StatementFilters) {
   assertStatementAccess(user);
+  return queryDeliveryStatement(filters);
+}
+
+export async function loadDemandStatementForExport(user: Pick<SessionUser, "id" | "role">, filters: StatementFilters) {
+  if (user.role !== "EDITOR") assertStatementAccess(user);
+  if (!filters.demandId || filters.demandIds?.length || !filters.from || !filters.to) {
+    throw new StatementError("Informe a demanda e o período da entrega.", 400);
+  }
+  const statement = await queryDeliveryStatement(filters, user.role === "EDITOR" ? user.id : undefined);
+  if (!statement.focus || !statement.total) throw new StatementError("Nenhuma entrega disponível neste período.", 404);
+  return { ...statement, focus: statement.focus };
+}
+
+export function statementPeriodLabel(month: string, from: string, to: string) {
+  if (month) return formatMonth(month);
+  if (!from && !to) return "Todo o período";
+  return `${from ? formatPeriodDay(from) : "início"} a ${to ? formatPeriodDay(to) : "hoje"}`;
+}
+
+export const demandStatementNote = "Somente o que esta demanda já entregou ao cliente, neste período.";
+
+async function queryDeliveryStatement(filters: StatementFilters, editorId?: string) {
+  const assignment = editorId ? { editorId, archivedAt: null } : undefined;
   const demands = await prisma.demand.findMany({
     where: {
       status: { in: [...completedDemand] },
       ...(filters.demandIds?.length ? { id: { in: filters.demandIds } } : filters.demandId ? { id: filters.demandId } : {}),
+      ...(assignment ? { deliverables: { some: assignment } } : {}),
     },
     orderBy: { updatedAt: "desc" },
     include: {
       customer: { select: { id: true, name: true } },
       sale: { select: { opportunity: { select: { service: true } } } },
       deliverables: {
+        ...(assignment ? { where: { ...assignment, status: { in: ["ENTREGUE", "CONCLUIDO"] }, clientDeliveredAt: { not: null } } } : {}),
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: { id: true, title: true, description: true, status: true, clientDeliveredAt: true, createdAt: true, archivedAt: true },
       },
@@ -294,7 +328,7 @@ export async function loadDeliveryStatement(user: Pick<SessionUser, "role">, fil
   });
   const focused = filters.demandId ? demands.find(demand => demand.id === filters.demandId) : undefined;
   return {
-    ...statementOrExample(demands.map(demand => ({
+    ...statementOrExample(demands.filter(demand => !assignment || demand.deliverables.length > 0).map(demand => ({
       id: demand.id,
       title: demand.title,
       description: demand.description,

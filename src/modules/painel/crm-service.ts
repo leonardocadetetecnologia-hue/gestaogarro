@@ -32,6 +32,7 @@ export const crmCommandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("createCustomer"), customer, value: z.number().finite().min(0).max(9999999999).nullable() }),
   z.object({ kind: z.literal("updateCustomer"), customer }),
   z.object({ kind: z.literal("createOpportunity"), customerId: z.string().min(1).max(80), service: z.string().trim().min(2).max(200) }),
+  z.object({ kind: z.literal("archiveOpportunity"), id: z.string().min(1).max(80), archived: z.boolean() }),
   z.object({
     kind: z.literal("move"), id: z.string().min(1).max(80), stage: z.enum([stages[0], ...stages.slice(1)]),
     futureContact: z.enum(["sim", "nao"]).optional(),
@@ -147,6 +148,20 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.$queryRaw`SELECT "id" FROM "Opportunity" WHERE "id" = ${input.id} FOR UPDATE`;
     const current = await tx.opportunity.findUnique({ where: { id: input.id }, include: { customer: { select: { name: true } }, sale: { select: { demand: { select: { id: true } } } } } });
     if (!current || !canAccessOpportunity(user, current.responsibleId)) throw new CrmFlowError("Oportunidade não encontrada. Atualize o CRM.");
+    if (input.kind === "archiveOpportunity") {
+      if (Boolean(current.archivedAt) === input.archived) return;
+      await tx.opportunity.update({
+        where: { id: current.id },
+        data: { archivedAt: input.archived ? new Date() : null },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: user.id, action: input.archived ? "OPPORTUNITY_ARCHIVED" : "OPPORTUNITY_RESTORED",
+          entityType: "Opportunity", entityId: current.id,
+        },
+      });
+      return;
+    }
     if (input.kind === "closeWon") {
       if (current.sale?.demand) throw new CrmFlowError("Esta venda já foi enviada para produção.");
       await saveClosing(tx, user, current.id, current.customerId, input);
@@ -311,7 +326,7 @@ export async function executeCrmCommand(user: SessionUser, raw: unknown) {
     await tx.auditLog.create({ data: { userId: user.id, action: "CRM_INTERACTION", entityType: "Opportunity", entityId: current.id } });
   });
   if (saleNotice) await publishSaleClosed(saleNotice);
-  if ("id" in input) await refreshContractReminder(prisma, input.id);
+  if ("id" in input && input.kind !== "archiveOpportunity") await refreshContractReminder(prisma, input.id);
 }
 
 function instagramHandle(value: string) {

@@ -1,39 +1,60 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { GarroBrand } from "./garro-brand";
-import { draftsFromActivities, reportDocuments, type DraftDelivery, type ReportMode } from "@/lib/statement-draft";
-import type { StatementActivity } from "@/modules/reports/delivery-statement";
+import { StatementItem, StatementSheet } from "./statement-sheet";
+import { draftsFromActivities, reportDocuments, type DraftDelivery, type DraftLine, type ReportMode } from "@/lib/statement-draft";
+import { demandStatementNote, formatDeliveredAt, type StatementActivity } from "@/modules/reports/delivery-statement";
 import { Modal } from "./Ui";
 
 function patchDelivery(drafts: DraftDelivery[], demandId: string, patch: Partial<DraftDelivery>) {
   return drafts.map((draft) => draft.demandId === demandId ? { ...draft, ...patch } : draft);
 }
 
-function descriptionOf(draft: DraftDelivery) {
-  return draft.lines.map((line) => line.description.trim()).filter(Boolean).join("\n\n");
-}
-
-function setDescription(drafts: DraftDelivery[], demandId: string, text: string) {
+function patchLine(drafts: DraftDelivery[], demandId: string, lineId: string, patch: Partial<DraftLine>) {
   return drafts.map((draft) => draft.demandId !== demandId ? draft : {
     ...draft,
-    lines: draft.lines.length ? draft.lines.map((line, index) => index === 0
-      ? { ...line, description: text, showDescription: true, include: true }
-      : { ...line, description: "", showDescription: false, include: false }) : [{
-        id: `${demandId}-texto`, include: true, showNumber: false, title: "", showTitle: false,
-        description: text, showDescription: true, service: "", showService: false,
-      }],
+    lines: draft.lines.map((line) => line.id === lineId ? { ...line, ...patch } : line),
   });
 }
 
-export function StatementEditor({ activities, onClose }: { activities: StatementActivity[]; onClose: () => void }) {
+function lineName(line: DraftLine) {
+  const title = line.title.trim();
+  if (line.number != null && title) return `${line.number}. ${title}`;
+  return title || line.service.trim() || "Item";
+}
+
+function addNote(drafts: DraftDelivery[], demandId: string) {
+  const id = crypto.randomUUID();
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: [...draft.notes, { id, text: "" }],
+  });
+}
+
+function patchNote(drafts: DraftDelivery[], demandId: string, noteId: string, text: string) {
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: draft.notes.map((note) => note.id === noteId ? { ...note, text } : note),
+  });
+}
+
+function removeNote(drafts: DraftDelivery[], demandId: string, noteId: string) {
+  return drafts.map((draft) => draft.demandId !== demandId ? draft : {
+    ...draft,
+    notes: draft.notes.filter((note) => note.id !== noteId),
+  });
+}
+
+export function StatementEditor({ activities, period = "Todo o período", onClose }: { activities: StatementActivity[]; period?: string; onClose: () => void }) {
   const [drafts, setDrafts] = useState(() => draftsFromActivities(activities));
   const [mode, setMode] = useState<ReportMode>("junto");
   const [preview, setPreview] = useState(false);
-  const documents = useMemo(() => preview ? reportDocuments(drafts, mode) : [], [preview, drafts, mode]);
+  const [issuedAt, setIssuedAt] = useState("");
+  const documents = useMemo(() => preview ? reportDocuments(drafts, mode, period) : [], [preview, drafts, mode, period]);
 
-  function printPreview() {
+  async function printPreview() {
     if (!documents.length) return;
+    await Promise.allSettled(Array.from(window.document.querySelectorAll<HTMLImageElement>(".statement-preview img"), image => image.decode()));
     document.body.classList.add("garro-statement-print");
     const done = () => document.body.classList.remove("garro-statement-print");
     window.addEventListener("afterprint", done, { once: true });
@@ -52,51 +73,84 @@ export function StatementEditor({ activities, onClose }: { activities: Statement
             {drafts.map((draft) => (
               <article className="statement-draft" key={draft.demandId}>
                 <label className="statement-flag">
-                  <input type="checkbox" checked={draft.include} aria-label={`Incluir ${draft.customerName || "entrega"}`} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { include: event.target.checked }))} />
-                  Incluir
+                  <input type="checkbox" checked={draft.include} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { include: event.target.checked }))} />
+                  <strong>{draft.label}</strong>
                 </label>
                 {draft.include && <>
-                  <label className="statement-field">
-                    <span>Nome do cliente</span>
-                    <input aria-label={`Nome do cliente ${draft.customerName}`} value={draft.customerName} maxLength={200} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { customerName: event.target.value, showCustomer: true }))} />
-                  </label>
-                  <label className="statement-field">
-                    <span>Descrição</span>
-                    <textarea aria-label={`Descrição de ${draft.customerName || "entrega"}`} rows={3} maxLength={4000} value={descriptionOf(draft)} onChange={(event) => setDrafts((current) => setDescription(current, draft.demandId, event.target.value))} />
-                  </label>
-                  <label className="statement-field">
-                    <span>Data de entrega</span>
-                    <input aria-label={`Data de entrega de ${draft.customerName || "entrega"}`} type="date" value={draft.date} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { date: event.target.value, omitDate: false }))} />
-                  </label>
+                  <div className="statement-field">
+                    <label className="statement-flag"><input type="checkbox" checked={draft.showCustomer} aria-label={`Mostrar cliente de ${draft.label}`} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { showCustomer: event.target.checked }))} />Cliente</label>
+                    <input aria-label={`Cliente de ${draft.label}`} value={draft.customerName} maxLength={200} disabled={!draft.showCustomer} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { customerName: event.target.value }))} />
+                  </div>
+                  <div className="statement-field">
+                    <label className="statement-flag"><input type="checkbox" checked={!draft.omitDate} aria-label={`Mostrar data de ${draft.label}`} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { omitDate: !event.target.checked }))} />Data de entrega</label>
+                    <input aria-label={`Data de entrega de ${draft.label}`} type="date" value={draft.date} disabled={draft.omitDate} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { date: event.target.value, dateEdited: true, omitDate: false }))} />
+                    <label className="statement-flag"><input type="checkbox" checked={draft.omitDate} aria-label={`Sem data de entrega de ${draft.label}`} onChange={(event) => setDrafts((current) => patchDelivery(current, draft.demandId, { omitDate: event.target.checked }))} />Sem data de entrega</label>
+                  </div>
+                  {draft.lines.map((line) => (
+                    <div className="statement-line" key={line.id}>
+                      <label className="statement-flag">
+                        <input type="checkbox" checked={line.include} aria-label={`Incluir ${lineName(line)}`} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { include: event.target.checked }))} />
+                        <span>{lineName(line)}</span>
+                      </label>
+                      {line.include && <>
+                        <label className="statement-field">
+                          <span>O que foi feito</span>
+                          <input aria-label={`Texto de ${lineName(line)}`} value={line.title} maxLength={200} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { title: event.target.value, showTitle: true }))} />
+                        </label>
+                        {(line.description.trim() || line.showDescription) && <label className="statement-field">
+                          <span>Descrição</span>
+                          <textarea aria-label={`Descrição de ${lineName(line)}`} rows={2} maxLength={4000} value={line.description} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { description: event.target.value, showDescription: true }))} />
+                        </label>}
+                        {(line.service.trim() || line.showService) && <label className="statement-field">
+                          <span>Tipo</span>
+                          <input aria-label={`Tipo de ${lineName(line)}`} value={line.service} maxLength={120} onChange={(event) => setDrafts((current) => patchLine(current, draft.demandId, line.id, { service: event.target.value, showService: true }))} />
+                        </label>}
+                      </>}
+                    </div>
+                  ))}
+                  {draft.notes.map((note, index) => (
+                    <div className="statement-field" key={note.id}>
+                      <span>{draft.notes.length > 1 ? `Observação ${index + 1}` : "Observação"} <button type="button" className="text-link" onClick={() => setDrafts((current) => removeNote(current, draft.demandId, note.id))}>Tirar</button></span>
+                      <textarea aria-label={`Observação ${index + 1} de ${draft.label}`} rows={3} maxLength={2000} value={note.text} placeholder="Informação extra desta entrega" onChange={(event) => setDrafts((current) => patchNote(current, draft.demandId, note.id, event.target.value))} />
+                    </div>
+                  ))}
+                  <button type="button" className="button secondary small" onClick={() => setDrafts((current) => addNote(current, draft.demandId))}>{draft.notes.length ? "Outra observação" : "Inserir observação"}</button>
                 </>}
               </article>
             ))}
           </div>
           <div className="modal-footer">
             <button type="button" className="button secondary" onClick={onClose}>Fechar</button>
-            <button type="button" className="button secondary" onClick={() => setPreview(true)}>Gerar prévia</button>
+            <button type="button" className="button secondary" onClick={() => { setIssuedAt(formatDeliveredAt(new Date().toISOString())); setPreview(true); }}>Gerar prévia</button>
             <button type="button" className="button primary" disabled={!documents.length} onClick={printPreview}>Gerar PDF</button>
           </div>
         </div>
         {preview && <div className="statement-preview" aria-label="Prévia do relatório">
           {documents.length === 0 && <p className="empty-state">Nada selecionado para o relatório.</p>}
           {documents.map((document) => (
-            <main className="statement-sheet" key={document.key}>
-              <header>
-                <GarroBrand size={56} wordmarkWidth={180} />
-                <div>
-                  <p>Relatório de entrega</p>
-                </div>
-              </header>
+            <StatementSheet
+              key={document.key}
+              label="Relatório de entrega"
+              title={document.title}
+              total={document.parts.reduce((sum, part) => sum + part.lines.length, 0)}
+              metadata={[
+                ...(document.parts.length === 1 ? [
+                  ["Projeto", document.parts[0].project], ["Cliente", document.parts[0].customer],
+                ] as [string, string][] : []),
+                ["Período", document.period], ["Emitido em", issuedAt],
+              ]}
+            >
+              {document.parts.length === 1 && <p className="statement-note">{demandStatementNote}</p>}
               {document.parts.map((part) => (
                 <section key={part.key}>
                   {part.customer && <h2>{part.customer}</h2>}
-                  {part.date && <p className="statement-note">Data de entrega: {part.date}</p>}
-                  {part.lines.map((line) => line.description && <p key={line.id}>{line.description}</p>)}
+                  {part.lines.map((line) => (
+                    <StatementItem key={line.id} title={line.heading} service={line.service} date={line.date} description={line.description} />
+                  ))}
+                  {part.note && <p className="statement-note">{part.note}</p>}
                 </section>
               ))}
-              <footer>Garro Produtora · extrato de produção concluída</footer>
-            </main>
+            </StatementSheet>
           ))}
         </div>}
       </div>

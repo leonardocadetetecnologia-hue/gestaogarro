@@ -33,3 +33,5 @@ Conferir o login em 320, 375, 768, 1024, 1366 e 1920 pixels; validar o símbolo 
 Validação local em 14/10/2026: lint, typecheck e 8 testes existentes passaram. Build com `BASE_PATH=/gestaogarro` aprovado. A revisão visual das seis larguras ainda depende de um navegador conectado; nenhum estava disponível nesta sessão. Acesso SSH confirmado, com app e PostgreSQL saudáveis antes do deploy. A publicação foi solicitada expressamente pelo usuário após a apresentação dessas limitações.
 
 Smoke test HTTP da versão compilada: `/gestaogarro/login`, `/gestaogarro/images/garro-symbol-terracotta.webp` e a escrita existente retornaram 200. A página contém a URL da máscara com o prefixo correto e a dica de pré-carregamento; o símbolo retorna `image/webp` com 407.984 bytes. Nenhum dado de produção foi alterado.
+
+No relatório A4, o símbolo é incorporado como o PNG original de 1.000 × 1.000 px em public/images/garro-symbol-official.png, acompanhado da escrita aprovada. A prévia também carrega as imagens diretamente, sem máscara CSS.
